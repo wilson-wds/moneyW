@@ -118,6 +118,19 @@
         
         <!-- 負債分頁內容 -->
         <div id="debt-view" class="hidden">
+            <section class="mb-8">
+                <h2 class="text-xl font-bold text-gray-700 mb-4">負債總覽</h2>
+                <div id="debt-summary" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div class="bg-yellow-100 p-6 rounded-xl shadow-sm">
+                        <h2 class="text-lg font-semibold text-yellow-800">初始總負債</h2>
+                        <p id="total-initial-debt" class="text-2xl font-bold text-yellow-600 mt-2">NT$ 0</p>
+                    </div>
+                    <div class="bg-red-100 p-6 rounded-xl shadow-sm">
+                        <h2 class="text-lg font-semibold text-red-800">目前總負債</h2>
+                        <p id="total-current-debt" class="text-2xl font-bold text-red-600 mt-2">NT$ 0</p>
+                    </div>
+                </div>
+            </section>
             <section class="bg-white p-6 md:p-8 rounded-2xl shadow-lg mb-8">
                 <h2 class="text-2xl font-bold mb-6">新增一筆負債</h2>
                 <form id="debt-form" class="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -165,6 +178,7 @@
         const manageProjectsBtn = document.getElementById('manage-projects-btn'), projectModal = document.getElementById('project-modal'), customProjectList = document.getElementById('custom-project-list');
         const expenseChartCanvas = document.getElementById('expense-chart'), noExpenseDataMsg = document.getElementById('no-expense-data');
         const debtForm = document.getElementById('debt-form'), debtList = document.getElementById('debt-list'), debtLoadingIndicator = document.getElementById('debt-loading-indicator'), debtEmptyState = document.getElementById('debt-empty-state');
+        const totalInitialDebtEl = document.getElementById('total-initial-debt'), totalCurrentDebtEl = document.getElementById('total-current-debt');
         const repaymentModal = document.getElementById('repayment-modal'), repaymentForm = document.getElementById('repayment-form'), repaymentDebtIdInput = document.getElementById('repayment-debt-id'), repaymentDebtNameInput = document.getElementById('repayment-debt-name'), repaymentAmountInput = document.getElementById('repayment-amount'), repaymentDateInput = document.getElementById('repayment-date');
         const filterThisMonthBtn = document.getElementById('filter-this-month'), filterCustomDateBtn = document.getElementById('filter-custom-date'), startDateInput = document.getElementById('start-date'), endDateInput = document.getElementById('end-date');
         const filteredTransactionList = document.getElementById('filtered-transaction-list'), filteredEmptyState = document.getElementById('filtered-empty-state');
@@ -271,6 +285,7 @@
                 debtLoadingIndicator.classList.add('hidden');
                 const debts = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
                 debts.sort((a, b) => (a.createdAt?.toMillis() || 0) - (b.createdAt?.toMillis() || 0));
+                updateDebtSummary(debts);
                 renderDebts(debts);
                 debtEmptyState.classList.toggle('hidden', debts.length > 0);
             }, (error) => console.error("監聽負債資料失敗:", error));
@@ -360,6 +375,13 @@
             todayBalanceEl.textContent = `NT$ ${(income - expense).toLocaleString()}`;
         }
         
+        function updateDebtSummary(debts) {
+            const initialDebt = debts.reduce((sum, d) => sum + d.totalAmount, 0);
+            const currentDebt = debts.reduce((sum, d) => sum + d.remainingAmount, 0);
+            totalInitialDebtEl.textContent = `NT$ ${initialDebt.toLocaleString()}`;
+            totalCurrentDebtEl.textContent = `NT$ ${currentDebt.toLocaleString()}`;
+        }
+
         function updateFilteredSummary(transactions) {
             const income = transactions.filter(t => t.type === 'income').reduce((sum, t) => sum + t.amount, 0);
             const expense = transactions.filter(t => t.type === 'expense').reduce((sum, t) => sum + t.amount, 0);
