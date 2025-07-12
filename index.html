@@ -1,0 +1,582 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>雲端記帳軟體 (專案、報表與負債)</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', 'Noto Sans TC', sans-serif; }
+        .loader { border: 4px solid #f3f3f3; border-top: 4px solid #3498db; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; }
+        .loader-small { border: 2px solid #f3f3f3; border-top: 2px solid #fff; border-radius: 50%; width: 20px; height: 20px; animation: spin 1s linear infinite; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        ::-webkit-scrollbar { width: 8px; } ::-webkit-scrollbar-track { background: #f1f1f1; } ::-webkit-scrollbar-thumb { background: #888; border-radius: 4px; } ::-webkit-scrollbar-thumb:hover { background: #555; }
+        .tab-btn.active { border-color: #3b82f6; background-color: #3b82f6; color: white; }
+    </style>
+</head>
+<body class="bg-gray-100 text-gray-800">
+
+    <!-- 登入畫面 -->
+    <div id="login-view" class="container mx-auto p-8 max-w-md text-center h-screen flex flex-col justify-center">
+        <h1 class="text-4xl font-bold text-gray-800 mb-4">歡迎使用雲端記帳</h1>
+        <p class="text-gray-600 mb-8">請選擇登入方式以開始使用。</p>
+        <div class="space-y-4">
+            <button id="google-login-btn" class="w-full bg-white text-gray-700 font-semibold py-3 px-4 border border-gray-300 rounded-lg shadow-sm hover:bg-gray-50 flex items-center justify-center gap-3 transition-colors">
+                <svg class="w-6 h-6" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"></path><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"></path><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"></path><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"></path><path fill="none" d="M0 0h48v48H0z"></path></svg>
+                使用 Google 登入
+            </button>
+            <button id="anonymous-login-btn" class="w-full bg-gray-700 text-white font-semibold py-3 px-4 rounded-lg shadow-sm hover:bg-gray-800 transition-colors">
+                以訪客身份繼續
+            </button>
+        </div>
+    </div>
+
+    <!-- 主應用程式畫面 (預設隱藏) -->
+    <div id="app-container" class="container mx-auto p-4 md:p-8 max-w-5xl opacity-0 transition-opacity duration-500 hidden">
+        
+        <header class="mb-6 text-center">
+            <div id="auth-info" class="flex justify-center items-center gap-4 mb-4"></div>
+            <h1 class="text-4xl font-bold text-gray-800">雲端記帳軟體</h1>
+        </header>
+
+        <!-- 分頁導覽 -->
+        <nav class="mb-8 flex justify-center border-b">
+            <button id="tab-accounting" class="tab-btn active py-3 px-6 text-lg font-semibold border-b-4 transition-colors">記帳</button>
+            <button id="tab-reports" class="tab-btn py-3 px-6 text-lg font-semibold border-b-4 border-transparent text-gray-500 hover:text-gray-800 transition-colors">報表</button>
+            <button id="tab-debt" class="tab-btn py-3 px-6 text-lg font-semibold border-b-4 border-transparent text-gray-500 hover:text-gray-800 transition-colors">負債</button>
+        </nav>
+
+        <!-- 記帳分頁內容 -->
+        <div id="accounting-view">
+            <section class="mb-8">
+                 <h2 class="text-xl font-bold text-gray-700 mb-4">本日即時</h2>
+                 <div id="today-summary" class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div class="bg-teal-100 p-4 rounded-xl shadow-sm"><h2 class="text-base font-semibold text-teal-800">當日收入</h2><p id="today-income" class="text-xl font-bold text-teal-600 mt-1">NT$ 0</p></div>
+                    <div class="bg-orange-100 p-4 rounded-xl shadow-sm"><h2 class="text-base font-semibold text-orange-800">當日支出</h2><p id="today-expense" class="text-xl font-bold text-orange-600 mt-1">NT$ 0</p></div>
+                    <div class="bg-indigo-100 p-4 rounded-xl shadow-sm"><h2 class="text-base font-semibold text-indigo-800">當日結餘</h2><p id="today-balance" class="text-xl font-bold text-indigo-600 mt-1">NT$ 0</p></div>
+                </div>
+            </section>
+            <section class="mb-8">
+                <h2 class="text-xl font-bold text-gray-700 mb-4">總覽</h2>
+                <div id="summary" class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div class="bg-green-100 p-6 rounded-xl shadow-sm"><h2 class="text-lg font-semibold text-green-800">總收入</h2><p id="total-income" class="text-2xl font-bold text-green-600 mt-2">NT$ 0</p></div>
+                    <div class="bg-red-100 p-6 rounded-xl shadow-sm"><h2 class="text-lg font-semibold text-red-800">總支出</h2><p id="total-expense" class="text-2xl font-bold text-red-600 mt-2">NT$ 0</p></div>
+                    <div class="bg-blue-100 p-6 rounded-xl shadow-sm"><h2 class="text-lg font-semibold text-blue-800">目前結餘</h2><p id="balance" class="text-2xl font-bold text-blue-600 mt-2">NT$ 0</p></div>
+                </div>
+            </section>
+            <section class="bg-white p-6 md:p-8 rounded-2xl shadow-lg mb-8">
+                <h2 class="text-2xl font-bold mb-6">新增一筆紀錄</h2>
+                <form id="transaction-form" class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div class="md:col-span-2"><fieldset class="flex gap-4"><legend class="sr-only">交易類型</legend><div><input type="radio" name="type" id="type-expense" value="expense" class="sr-only" checked><label for="type-expense" class="type-label cursor-pointer block w-full text-center p-3 rounded-lg border-2 border-gray-300 transition">支出</label></div><div><input type="radio" name="type" id="type-income" value="income" class="sr-only"><label for="type-income" class="type-label cursor-pointer block w-full text-center p-3 rounded-lg border-2 border-gray-300 transition">收入</label></div></fieldset></div>
+                    <div><label for="amount" class="block text-sm font-medium text-gray-700 mb-1">金額</label><input type="number" id="amount" placeholder="輸入金額" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500" required></div>
+                    <div class="flex items-end gap-2"><div class="flex-grow"><label for="category-input" class="block text-sm font-medium text-gray-700 mb-1">分類</label><input list="category-list" id="category-input" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500" placeholder="選擇或輸入新分類" required><datalist id="category-list"></datalist></div><button type="button" id="manage-categories-btn" class="p-3 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300" title="管理分類"><svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg></button></div>
+                    <div class="flex items-end gap-2"><div class="flex-grow"><label for="project-input" class="block text-sm font-medium text-gray-700 mb-1">專案 (選填)</label><input list="project-list" id="project-input" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500" placeholder="選擇或輸入新專案"><datalist id="project-list"></datalist></div><button type="button" id="manage-projects-btn" class="p-3 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300" title="管理專案"><svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" /></svg></button></div>
+                    <div class="md:col-span-2"><label for="remarks" class="block text-sm font-medium text-gray-700 mb-1">備註 (選填)</label><input type="text" id="remarks" placeholder="這筆錢用在哪裡？" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"></div>
+                    <div class="md:col-span-2"><button type="submit" class="w-full bg-blue-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-4 focus:ring-blue-300 flex justify-center items-center"><span id="submit-btn-text">新增紀錄</span><div id="submit-spinner" class="hidden loader-small"></div></button></div>
+                </form>
+            </section>
+            <section class="bg-white p-6 md:p-8 rounded-2xl shadow-lg">
+                <h2 class="text-2xl font-bold mb-6">歷史紀錄</h2>
+                <div id="loading-indicator" class="flex justify-center items-center py-8"><div class="loader"></div></div>
+                <ul id="transaction-list" class="space-y-4"></ul>
+                <p id="empty-state" class="hidden text-center text-gray-500 py-8">還沒有任何紀錄，快來新增第一筆吧！</p>
+            </section>
+        </div>
+
+        <!-- 報表分頁內容 -->
+        <div id="reports-view" class="hidden">
+            <section class="bg-white p-6 md:p-8 rounded-2xl shadow-lg mb-8">
+                 <h2 class="text-2xl font-bold mb-6">支出分類圖</h2>
+                 <div id="no-expense-data" class="hidden text-center text-gray-500 py-8">尚無足夠的支出資料可產生報表。</div>
+                 <div class="max-w-xl mx-auto"><canvas id="expense-chart"></canvas></div>
+            </section>
+            <section class="bg-white p-6 md:p-8 rounded-2xl shadow-lg">
+                <h2 class="text-2xl font-bold mb-6">交易明細</h2>
+                <div class="flex flex-wrap items-center gap-4 mb-6 p-4 bg-gray-50 rounded-lg border">
+                    <button id="filter-this-month" class="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 transition">本月</button>
+                    <div class="flex items-center gap-2">
+                        <label for="start-date" class="text-sm font-medium">從:</label>
+                        <input type="date" id="start-date" class="p-2 border rounded-lg text-sm">
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <label for="end-date" class="text-sm font-medium">到:</label>
+                        <input type="date" id="end-date" class="p-2 border rounded-lg text-sm">
+                    </div>
+                    <button id="filter-custom-date" class="bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700 transition">查詢</button>
+                </div>
+                <div id="filtered-summary" class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                     <div class="bg-green-100 p-4 rounded-xl"><h3 class="font-semibold text-green-800">期間總收入</h3><p id="filtered-income" class="text-xl font-bold text-green-600">NT$ 0</p></div>
+                     <div class="bg-red-100 p-4 rounded-xl"><h3 class="font-semibold text-red-800">期間總支出</h3><p id="filtered-expense" class="text-xl font-bold text-red-600">NT$ 0</p></div>
+                     <div class="bg-blue-100 p-4 rounded-xl"><h3 class="font-semibold text-blue-800">期間結餘</h3><p id="filtered-balance" class="text-xl font-bold text-blue-600">NT$ 0</p></div>
+                </div>
+                <ul id="filtered-transaction-list" class="space-y-2"></ul>
+                <p id="filtered-empty-state" class="hidden text-center text-gray-500 py-8">在選定範圍內沒有交易紀錄。</p>
+            </section>
+        </div>
+        
+        <!-- 負債分頁內容 -->
+        <div id="debt-view" class="hidden">
+            <section class="bg-white p-6 md:p-8 rounded-2xl shadow-lg mb-8">
+                <h2 class="text-2xl font-bold mb-6">新增一筆負債</h2>
+                <form id="debt-form" class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div><label for="debt-name" class="block text-sm font-medium text-gray-700 mb-1">負債項目</label><input type="text" id="debt-name" placeholder="例如: 信用卡、學貸" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500" required></div>
+                    <div><label for="debt-total-amount" class="block text-sm font-medium text-gray-700 mb-1">總金額</label><input type="number" id="debt-total-amount" placeholder="輸入總負債金額" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500" required></div>
+                    <div class="md:col-span-2"><button type="submit" class="w-full bg-purple-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-purple-700 focus:outline-none focus:ring-4 focus:ring-purple-300 flex justify-center items-center"><span id="add-debt-btn-text">新增負債</span><div id="add-debt-spinner" class="hidden loader-small"></div></button></div>
+                </form>
+            </section>
+            <section class="bg-white p-6 md:p-8 rounded-2xl shadow-lg">
+                <h2 class="text-2xl font-bold mb-6">負債列表</h2>
+                <div id="debt-loading-indicator" class="flex justify-center items-center py-8"><div class="loader"></div></div>
+                <div id="debt-list" class="space-y-6"></div>
+                <p id="debt-empty-state" class="hidden text-center text-gray-500 py-8">太棒了！目前沒有任何負債紀錄。</p>
+            </section>
+        </div>
+
+    </div>
+
+    <!-- Modals -->
+    <div id="category-modal" class="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center hidden z-50 p-4"><div class="bg-white p-6 md:p-8 rounded-2xl shadow-xl w-full max-w-md"><div class="flex justify-between items-center mb-6"><h3 class="text-2xl font-bold">管理分類</h3><button id="close-category-modal-btn" class="text-gray-400 hover:text-gray-600 text-3xl leading-none">&times;</button></div><ul id="custom-category-list" class="space-y-2 max-h-60 overflow-y-auto mb-6 border-t border-b py-4"></ul><div class="flex justify-end"><button type="button" id="close-category-modal-btn-bottom" class="bg-gray-500 text-white font-bold py-2 px-4 rounded-lg hover:bg-gray-600">關閉</button></div></div></div>
+    <div id="project-modal" class="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center hidden z-50 p-4"><div class="bg-white p-6 md:p-8 rounded-2xl shadow-xl w-full max-w-md"><div class="flex justify-between items-center mb-6"><h3 class="text-2xl font-bold">管理專案</h3><button id="close-project-modal-btn" class="text-gray-400 hover:text-gray-600 text-3xl leading-none">&times;</button></div><ul id="custom-project-list" class="space-y-2 max-h-60 overflow-y-auto mb-6 border-t border-b py-4"></ul><div class="flex justify-end"><button type="button" id="close-project-modal-btn-bottom" class="bg-gray-500 text-white font-bold py-2 px-4 rounded-lg hover:bg-gray-600">關閉</button></div></div></div>
+    <div id="repayment-modal" class="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center hidden z-50 p-4"><div class="bg-white p-6 md:p-8 rounded-2xl shadow-xl w-full max-w-md"><h3 class="text-2xl font-bold mb-6">記錄一筆還款</h3><form id="repayment-form"><input type="hidden" id="repayment-debt-id"><input type="hidden" id="repayment-debt-name"><div class="mb-4"><label for="repayment-amount" class="block text-sm font-medium text-gray-700 mb-1">還款金額</label><input type="number" id="repayment-amount" placeholder="輸入此次還款金額" class="w-full p-3 border border-gray-300 rounded-lg" required></div><div class="mb-4"><label for="repayment-date" class="block text-sm font-medium text-gray-700 mb-1">還款日期</label><input type="date" id="repayment-date" class="w-full p-3 border border-gray-300 rounded-lg" required></div><div class="flex justify-end gap-4"><button type="button" id="cancel-repayment-btn" class="bg-gray-300 text-gray-800 font-bold py-2 px-4 rounded-lg hover:bg-gray-400">取消</button><button type="submit" class="bg-green-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-green-700">確認還款</button></div></form></div></div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, onAuthStateChanged, GoogleAuthProvider, signInWithPopup, signOut } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, collection, addDoc, query, onSnapshot, doc, deleteDoc, serverTimestamp, updateDoc, increment, Timestamp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // --- DOM 元素 ---
+        const loginView = document.getElementById('login-view');
+        const googleLoginBtn = document.getElementById('google-login-btn');
+        const anonymousLoginBtn = document.getElementById('anonymous-login-btn');
+        const appContainer = document.getElementById('app-container'), authInfo = document.getElementById('auth-info');
+        const accountingView = document.getElementById('accounting-view'), reportsView = document.getElementById('reports-view'), debtView = document.getElementById('debt-view');
+        const tabAccounting = document.getElementById('tab-accounting'), tabReports = document.getElementById('tab-reports'), tabDebt = document.getElementById('tab-debt');
+        const form = document.getElementById('transaction-form'), amountInput = document.getElementById('amount'), remarksInput = document.getElementById('remarks'), transactionList = document.getElementById('transaction-list');
+        const categoryInput = document.getElementById('category-input'), categoryDatalist = document.getElementById('category-list');
+        const projectInput = document.getElementById('project-input'), projectDatalist = document.getElementById('project-list');
+        const totalIncomeEl = document.getElementById('total-income'), totalExpenseEl = document.getElementById('total-expense'), balanceEl = document.getElementById('balance');
+        const todayIncomeEl = document.getElementById('today-income'), todayExpenseEl = document.getElementById('today-expense'), todayBalanceEl = document.getElementById('today-balance');
+        const loadingIndicator = document.getElementById('loading-indicator'), emptyState = document.getElementById('empty-state');
+        const typeLabels = document.querySelectorAll('.type-label'), expenseRadio = document.getElementById('type-expense');
+        const submitBtnText = document.getElementById('submit-btn-text'), submitSpinner = document.getElementById('submit-spinner');
+        const manageCategoriesBtn = document.getElementById('manage-categories-btn'), categoryModal = document.getElementById('category-modal'), customCategoryList = document.getElementById('custom-category-list');
+        const manageProjectsBtn = document.getElementById('manage-projects-btn'), projectModal = document.getElementById('project-modal'), customProjectList = document.getElementById('custom-project-list');
+        const expenseChartCanvas = document.getElementById('expense-chart'), noExpenseDataMsg = document.getElementById('no-expense-data');
+        const debtForm = document.getElementById('debt-form'), debtList = document.getElementById('debt-list'), debtLoadingIndicator = document.getElementById('debt-loading-indicator'), debtEmptyState = document.getElementById('debt-empty-state');
+        const repaymentModal = document.getElementById('repayment-modal'), repaymentForm = document.getElementById('repayment-form'), repaymentDebtIdInput = document.getElementById('repayment-debt-id'), repaymentDebtNameInput = document.getElementById('repayment-debt-name'), repaymentAmountInput = document.getElementById('repayment-amount'), repaymentDateInput = document.getElementById('repayment-date');
+        const filterThisMonthBtn = document.getElementById('filter-this-month'), filterCustomDateBtn = document.getElementById('filter-custom-date'), startDateInput = document.getElementById('start-date'), endDateInput = document.getElementById('end-date');
+        const filteredTransactionList = document.getElementById('filtered-transaction-list'), filteredEmptyState = document.getElementById('filtered-empty-state');
+        const filteredIncomeEl = document.getElementById('filtered-income'), filteredExpenseEl = document.getElementById('filtered-expense'), filteredBalanceEl = document.getElementById('filtered-balance');
+
+        // --- Firebase & App 狀態 ---
+        let db, auth, userId, transactionsColRef, categoriesColRef, projectsColRef, debtsColRef;
+        let unsubscribeTransactions, unsubscribeCategories, unsubscribeProjects, unsubscribeDebts;
+        let allTransactions = [], customCategories = [], customProjects = [];
+        let expenseChart = null;
+        const defaultCategories = { expense: ['飲食', '交通', '居住', '娛樂', '購物', '醫療', '教育', '負債還款', '其他'], income: ['薪資', '獎金', '投資', '兼職', '其他'] };
+
+        // Your web app's Firebase configuration
+        const firebaseConfig = {
+          apiKey: "AIzaSyAqFHm6Bn35m8xauc50ZvNNy_rxIZzCMTE",
+          authDomain: "moneyw-f8105.firebaseapp.com",
+          projectId: "moneyw-f8105",
+          storageBucket: "moneyw-f8105.appspot.com",
+          messagingSenderId: "155586195799",
+          appId: "1:155586195799:web:302184fbf613f032a88e12"
+        };
+        
+        // Initialize Firebase
+        const app = initializeApp(firebaseConfig);
+        db = getFirestore(app);
+        auth = getAuth(app);
+
+        // --- 核心功能 ---
+        onAuthStateChanged(auth, (user) => {
+            if (user) {
+                // User is signed in.
+                userId = user.uid;
+                const basePath = `/users/${userId}`; // Simplified path
+                transactionsColRef = collection(db, `${basePath}/transactions`);
+                categoriesColRef = collection(db, `${basePath}/categories`);
+                projectsColRef = collection(db, `${basePath}/projects`);
+                debtsColRef = collection(db, `${basePath}/debts`);
+                
+                setupUIForLoggedInUser(user);
+                
+                listenForTransactions();
+                listenForCustomItems(categoriesColRef, (items) => { customCategories = items; populateCategoryDatalist(); populateModalList(customCategoryList, customCategories, '尚無自訂分類', 'category'); });
+                listenForCustomItems(projectsColRef, (items) => { customProjects = items; populateDatalist(projectDatalist, customProjects.map(p => p.name)); populateModalList(customProjectList, customProjects, '尚無自訂專案', 'project'); });
+                listenForDebts();
+                
+            } else {
+                // User is signed out.
+                setupUIForLoggedOutUser();
+                // Clean up listeners
+                if (unsubscribeTransactions) unsubscribeTransactions();
+                if (unsubscribeCategories) unsubscribeCategories();
+                if (unsubscribeProjects) unsubscribeProjects();
+                if (unsubscribeDebts) unsubscribeDebts();
+            }
+        });
+        
+        function setupUIForLoggedInUser(user) {
+            loginView.classList.add('hidden');
+            appContainer.classList.remove('hidden');
+            appContainer.classList.remove('opacity-0');
+            
+            let userInfoHtml = '';
+            if (user.isAnonymous) {
+                userInfoHtml = `<span>訪客模式 (UID: <span class="font-mono">${user.uid.substring(0, 6)}...</span>)</span>`;
+            } else {
+                userInfoHtml = `<img src="${user.photoURL}" alt="User Avatar" class="w-8 h-8 rounded-full"><span class="font-semibold">${user.displayName}</span>`;
+            }
+            authInfo.innerHTML = `${userInfoHtml}<button id="logout-btn" class="ml-4 bg-red-500 text-white text-xs font-bold py-1 px-3 rounded-full hover:bg-red-600">登出</button>`;
+            document.getElementById('logout-btn').addEventListener('click', () => signOut(auth));
+        }
+
+        function setupUIForLoggedOutUser() {
+            loginView.classList.remove('hidden');
+            appContainer.classList.add('hidden');
+            authInfo.innerHTML = '';
+            // Reset UI state if needed
+            transactionList.innerHTML = '';
+            debtList.innerHTML = '';
+            // etc.
+        }
+
+        function listenForTransactions() {
+            if (unsubscribeTransactions) unsubscribeTransactions();
+            unsubscribeTransactions = onSnapshot(query(transactionsColRef), (snapshot) => {
+                loadingIndicator.classList.add('hidden');
+                allTransactions = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                allTransactions.sort((a, b) => (b.timestamp?.toMillis() || 0) - (a.timestamp?.toMillis() || 0));
+                
+                const now = new Date(), startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+                const todayTransactions = allTransactions.filter(tx => tx.timestamp && tx.timestamp.toDate() >= startOfToday);
+
+                renderTransactions(allTransactions);
+                updateSummary(allTransactions);
+                updateTodaySummary(todayTransactions);
+                updateExpenseChart();
+                if(reportsView.classList.contains('hidden') === false) { handleFilterThisMonth(); }
+                emptyState.classList.toggle('hidden', allTransactions.length > 0);
+            }, (error) => console.error("監聽交易資料失敗:", error));
+        }
+
+        function listenForDebts() {
+            if (unsubscribeDebts) unsubscribeDebts();
+            unsubscribeDebts = onSnapshot(query(debtsColRef), (snapshot) => {
+                debtLoadingIndicator.classList.add('hidden');
+                const debts = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                debts.sort((a, b) => (a.createdAt?.toMillis() || 0) - (b.createdAt?.toMillis() || 0));
+                renderDebts(debts);
+                debtEmptyState.classList.toggle('hidden', debts.length > 0);
+            }, (error) => console.error("監聽負債資料失敗:", error));
+        }
+
+        function listenForCustomItems(collectionRef, callback) {
+            const q = query(collectionRef);
+            return onSnapshot(q, (snapshot) => {
+                const items = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                callback(items);
+            }, (error) => console.error("監聽自訂項目失敗:", error));
+        }
+        
+        // --- 渲染函式 ---
+        function renderTransactions(transactions) {
+            transactionList.innerHTML = '';
+            transactions.forEach(tx => {
+                const isIncome = tx.type === 'income';
+                const li = document.createElement('li');
+                li.className = 'flex items-center justify-between p-4 rounded-lg hover:bg-gray-50 border-b';
+                li.innerHTML = `
+                    <div class="flex items-center gap-4"><div class="flex-shrink-0"><p class="font-semibold">${tx.category}</p><p class="text-sm text-gray-500">${tx.project || '無專案'}</p></div><div><p class="text-sm text-gray-600">${tx.remarks || '無備註'}</p></div></div>
+                    <div class="text-right"><p class="font-bold text-lg ${isIncome ? 'text-green-600' : 'text-red-600'}">${isIncome ? '+' : '-'} NT$ ${tx.amount.toLocaleString()}</p><div class="flex items-center gap-2 justify-end"><span class="text-xs text-gray-400">${tx.timestamp ? tx.timestamp.toDate().toLocaleDateString('zh-TW') : '...'}</span><button data-id="${tx.id}" class="delete-btn text-gray-400 hover:text-red-500"><svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg></button></div></div>`;
+                transactionList.appendChild(li);
+            });
+        }
+        
+        function renderFilteredTransactions(transactions) {
+            filteredTransactionList.innerHTML = '';
+            filteredEmptyState.classList.toggle('hidden', transactions.length > 0);
+            transactions.forEach(tx => {
+                const isIncome = tx.type === 'income';
+                const li = document.createElement('li');
+                li.className = 'grid grid-cols-5 gap-2 items-center p-2 rounded-md hover:bg-gray-50 text-sm border-b';
+                li.innerHTML = `
+                    <span class="text-gray-600">${tx.timestamp ? tx.timestamp.toDate().toLocaleDateString('zh-TW') : '...'}</span>
+                    <span class="font-medium">${tx.category}</span>
+                    <span class="text-gray-500">${tx.project || ''}</span>
+                    <span class="text-gray-500 truncate">${tx.remarks || ''}</span>
+                    <span class="font-bold text-right ${isIncome ? 'text-green-600' : 'text-red-600'}">${isIncome ? '+' : '-'} ${tx.amount.toLocaleString()}</span>
+                `;
+                filteredTransactionList.appendChild(li);
+            });
+        }
+
+        function renderDebts(debts) {
+            debtList.innerHTML = '';
+            debts.forEach(debt => {
+                const percentage = debt.totalAmount > 0 ? ((debt.totalAmount - debt.remainingAmount) / debt.totalAmount) * 100 : 100;
+                const card = document.createElement('div');
+                card.className = 'bg-gray-50 p-5 rounded-lg shadow-sm border';
+                card.innerHTML = `
+                    <div class="flex justify-between items-start">
+                        <h3 class="text-lg font-bold text-gray-800">${debt.name}</h3>
+                        <button class="delete-debt-btn text-gray-400 hover:text-red-500" data-id="${debt.id}">&times;</button>
+                    </div>
+                    <div class="mt-4">
+                        <div class="flex justify-between text-sm text-gray-600 mb-1">
+                            <span>剩餘: NT$ ${debt.remainingAmount.toLocaleString()}</span>
+                            <span>總額: NT$ ${debt.totalAmount.toLocaleString()}</span>
+                        </div>
+                        <div class="w-full bg-gray-200 rounded-full h-4">
+                            <div class="bg-green-500 h-4 rounded-full" style="width: ${percentage}%"></div>
+                        </div>
+                    </div>
+                    <div class="mt-4 text-right">
+                        <button class="repay-btn bg-green-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-green-700" data-id="${debt.id}" data-name="${debt.name}" data-remaining="${debt.remainingAmount}">償還</button>
+                    </div>
+                `;
+                debtList.appendChild(card);
+            });
+        }
+
+        function updateSummary(transactions) {
+            const income = transactions.filter(t => t.type === 'income').reduce((sum, t) => sum + t.amount, 0);
+            const expense = transactions.filter(t => t.type === 'expense').reduce((sum, t) => sum + t.amount, 0);
+            totalIncomeEl.textContent = `NT$ ${income.toLocaleString()}`;
+            totalExpenseEl.textContent = `NT$ ${expense.toLocaleString()}`;
+            balanceEl.textContent = `NT$ ${(income - expense).toLocaleString()}`;
+        }
+        
+        function updateTodaySummary(transactions) {
+            const income = transactions.filter(t => t.type === 'income').reduce((sum, t) => sum + t.amount, 0);
+            const expense = transactions.filter(t => t.type === 'expense').reduce((sum, t) => sum + t.amount, 0);
+            todayIncomeEl.textContent = `NT$ ${income.toLocaleString()}`;
+            todayExpenseEl.textContent = `NT$ ${expense.toLocaleString()}`;
+            todayBalanceEl.textContent = `NT$ ${(income - expense).toLocaleString()}`;
+        }
+        
+        function updateFilteredSummary(transactions) {
+            const income = transactions.filter(t => t.type === 'income').reduce((sum, t) => sum + t.amount, 0);
+            const expense = transactions.filter(t => t.type === 'expense').reduce((sum, t) => sum + t.amount, 0);
+            filteredIncomeEl.textContent = `NT$ ${income.toLocaleString()}`;
+            filteredExpenseEl.textContent = `NT$ ${expense.toLocaleString()}`;
+            filteredBalanceEl.textContent = `NT$ ${(income - expense).toLocaleString()}`;
+        }
+
+
+        function updateExpenseChart() {
+            const expenseData = allTransactions.filter(t => t.type === 'expense');
+            noExpenseDataMsg.classList.toggle('hidden', expenseData.length > 0);
+            expenseChartCanvas.classList.toggle('hidden', expenseData.length === 0);
+            if(expenseData.length === 0) { if(expenseChart) expenseChart.destroy(); return; }
+
+            const dataByCategory = expenseData.reduce((acc, curr) => { acc[curr.category] = (acc[curr.category] || 0) + curr.amount; return acc; }, {});
+            if (expenseChart) expenseChart.destroy();
+            expenseChart = new Chart(expenseChartCanvas, {
+                type: 'pie',
+                data: { labels: Object.keys(dataByCategory), datasets: [{ label: '支出金額', data: Object.values(dataByCategory), backgroundColor: ['#ff6384', '#36a2eb', '#ffce56', '#4bc0c0', '#9966ff', '#ff9f40', '#c9cbcf'], hoverOffset: 4 }] },
+                options: { responsive: true, maintainAspectRatio: true }
+            });
+        }
+        
+        // --- UI & Event Listeners ---
+        function setupEventListeners() {
+            googleLoginBtn.addEventListener('click', () => {
+                const provider = new GoogleAuthProvider();
+                signInWithPopup(auth, provider).catch(error => console.error("Google 登入失敗", error));
+            });
+            anonymousLoginBtn.addEventListener('click', () => {
+                signInAnonymously(auth).catch(error => console.error("匿名登入失敗", error));
+            });
+
+            tabAccounting.addEventListener('click', () => switchTab('accounting'));
+            tabReports.addEventListener('click', () => switchTab('reports'));
+            tabDebt.addEventListener('click', () => switchTab('debt'));
+            form.addEventListener('submit', handleFormSubmit);
+            debtForm.addEventListener('submit', handleDebtFormSubmit);
+            repaymentForm.addEventListener('submit', handleRepaymentSubmit);
+            document.getElementById('cancel-repayment-btn').addEventListener('click', () => repaymentModal.classList.add('hidden'));
+            expenseRadio.addEventListener('change', updateTypeSelection);
+            document.querySelector('input[name="type"][value="income"]').addEventListener('change', updateTypeSelection);
+            setupModal(manageCategoriesBtn, categoryModal, [document.getElementById('close-category-modal-btn'), document.getElementById('close-category-modal-btn-bottom')]);
+            setupModal(manageProjectsBtn, projectModal, [document.getElementById('close-project-modal-btn'), document.getElementById('close-project-modal-btn-bottom')]);
+            transactionList.addEventListener('click', (e) => handleDelete(e, '.delete-btn', transactionsColRef));
+            debtList.addEventListener('click', (e) => {
+                handleDelete(e, '.delete-debt-btn', debtsColRef);
+                handleRepayClick(e);
+            });
+            customCategoryList.addEventListener('click', (e) => handleDelete(e, '.delete-category-btn', categoriesColRef));
+            customProjectList.addEventListener('click', (e) => handleDelete(e, '.delete-project-btn', projectsColRef));
+            filterThisMonthBtn.addEventListener('click', handleFilterThisMonth);
+            filterCustomDateBtn.addEventListener('click', handleFilterCustomDate);
+        }
+
+        function switchTab(tabName) {
+            accountingView.classList.toggle('hidden', tabName !== 'accounting');
+            reportsView.classList.toggle('hidden', tabName !== 'reports');
+            debtView.classList.toggle('hidden', tabName !== 'debt');
+            tabAccounting.classList.toggle('active', tabName === 'accounting');
+            tabReports.classList.toggle('active', tabName === 'reports');
+            tabDebt.classList.toggle('active', tabName === 'debt');
+            if(tabName === 'reports') {
+                updateExpenseChart();
+                handleFilterThisMonth();
+            }
+        }
+
+        async function handleFormSubmit(e) {
+            e.preventDefault();
+            if (!userId) return;
+            const amount = parseFloat(amountInput.value), category = categoryInput.value.trim(), project = projectInput.value.trim();
+            if (isNaN(amount) || amount <= 0 || category === '') { console.warn("請輸入有效的金額和分類！"); return; }
+            
+            submitBtnText.classList.add('hidden'); submitSpinner.classList.remove('hidden'); form.querySelector('button[type="submit"]').disabled = true;
+            try {
+                await saveNewCustomItemIfNeeded(category, customCategories, categoriesColRef);
+                if(project) await saveNewCustomItemIfNeeded(project, customProjects, projectsColRef);
+                await addDoc(transactionsColRef, { type: document.querySelector('input[name="type"]:checked').value, amount, category, project, remarks: remarksInput.value.trim(), timestamp: serverTimestamp() });
+                form.reset(); updateTypeSelection();
+            } catch (error) { console.error("新增紀錄失敗:", error); } 
+            finally { submitBtnText.classList.remove('hidden'); submitSpinner.classList.remove('hidden'); form.querySelector('button[type="submit"]').disabled = false; }
+        }
+        
+        async function handleDebtFormSubmit(e) {
+            e.preventDefault();
+            const name = document.getElementById('debt-name').value.trim();
+            const totalAmount = parseFloat(document.getElementById('debt-total-amount').value);
+            if (name === '' || isNaN(totalAmount) || totalAmount <= 0) { console.warn("請輸入有效的負債項目和金額"); return; }
+            
+            const btnText = document.getElementById('add-debt-btn-text'), spinner = document.getElementById('add-debt-spinner');
+            btnText.classList.add('hidden'); spinner.classList.remove('hidden'); debtForm.querySelector('button[type="submit"]').disabled = true;
+            try {
+                await addDoc(debtsColRef, { name, totalAmount, remainingAmount: totalAmount, createdAt: serverTimestamp() });
+                debtForm.reset();
+            } catch (error) { console.error("新增負債失敗:", error); }
+            finally { btnText.classList.remove('hidden'); spinner.classList.add('hidden'); debtForm.querySelector('button[type="submit"]').disabled = false; }
+        }
+
+        function handleRepayClick(e) {
+            const repayBtn = e.target.closest('.repay-btn');
+            if (repayBtn) {
+                repaymentDebtIdInput.value = repayBtn.dataset.id;
+                repaymentDebtNameInput.value = repayBtn.dataset.name;
+                repaymentAmountInput.max = repayBtn.dataset.remaining;
+                repaymentDateInput.valueAsDate = new Date();
+                repaymentModal.classList.remove('hidden');
+                repaymentAmountInput.focus();
+            }
+        }
+
+        async function handleRepaymentSubmit(e) {
+            e.preventDefault();
+            const debtId = repaymentDebtIdInput.value;
+            const debtName = repaymentDebtNameInput.value;
+            const amount = parseFloat(repaymentAmountInput.value);
+            const date = repaymentDateInput.value;
+
+            if (isNaN(amount) || amount <= 0 || !date) { console.warn("請輸入有效的還款金額和日期"); return; }
+            
+            const debtRef = doc(db, debtsColRef.path, debtId);
+            try {
+                await updateDoc(debtRef, { remainingAmount: increment(-amount) });
+                await addDoc(transactionsColRef, { type: 'expense', amount: amount, category: '負債還款', project: debtName, remarks: `償還負債: ${debtName}`, timestamp: Timestamp.fromDate(new Date(date)) });
+                repaymentForm.reset();
+                repaymentModal.classList.add('hidden');
+            } catch (error) { console.error("更新還款失敗:", error); }
+        }
+        
+        async function handleDelete(event, selector, collectionRef) {
+            const deleteBtn = event.target.closest(selector);
+            if (deleteBtn && collectionRef) {
+                const id = deleteBtn.dataset.id;
+                try {
+                    deleteBtn.disabled = true;
+                    await deleteDoc(doc(db, collectionRef.path, id));
+                } catch (error) { console.error("刪除失敗:", error); deleteBtn.disabled = false; }
+            }
+        }
+        
+        // --- Report Filter Handlers ---
+        function handleFilterThisMonth() {
+            const now = new Date();
+            const start = new Date(now.getFullYear(), now.getMonth(), 1);
+            const end = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
+            startDateInput.value = start.toISOString().split('T')[0];
+            endDateInput.value = end.toISOString().split('T')[0];
+            filterAndRenderDetails(start, end);
+        }
+
+        function handleFilterCustomDate() {
+            const startVal = startDateInput.value;
+            const endVal = endDateInput.value;
+            if (!startVal || !endVal) {
+                console.warn("請選擇開始與結束日期");
+                return;
+            }
+            const start = new Date(startVal);
+            const end = new Date(endVal);
+            end.setHours(23, 59, 59, 999); 
+            filterAndRenderDetails(start, end);
+        }
+
+        function filterAndRenderDetails(startDate, endDate) {
+            const filtered = allTransactions.filter(tx => {
+                if (!tx.timestamp) return false;
+                const txDate = tx.timestamp.toDate();
+                return txDate >= startDate && txDate <= endDate;
+            });
+            renderFilteredTransactions(filtered);
+            updateFilteredSummary(filtered);
+        }
+
+        // --- Helper Functions ---
+        function updateTypeSelection() {
+            const isExpense = expenseRadio.checked;
+            typeLabels[0].classList.toggle('bg-red-500', isExpense); typeLabels[0].classList.toggle('text-white', isExpense);
+            typeLabels[1].classList.toggle('bg-green-500', !isExpense); typeLabels[1].classList.toggle('text-white', !isExpense);
+            populateCategoryDatalist();
+        }
+        
+        function populateDatalist(datalistElement, items) {
+            datalistElement.innerHTML = '';
+            [...new Set(items)].forEach(item => { datalistElement.insertAdjacentHTML('beforeend', `<option value="${item}"></option>`); });
+        }
+
+        function populateCategoryDatalist() {
+            const type = expenseRadio.checked ? 'expense' : 'income';
+            const categories = [...defaultCategories[type], ...customCategories.map(c => c.name)];
+            populateDatalist(categoryDatalist, categories);
+        }
+
+        function populateModalList(ulElement, items, emptyMsg, type) {
+            ulElement.innerHTML = '';
+            if (items.length === 0) { ulElement.innerHTML = `<li class="text-center text-gray-500">${emptyMsg}</li>`; return; }
+            items.forEach(item => { ulElement.insertAdjacentHTML('beforeend', `<li class="flex justify-between items-center p-2 rounded-md hover:bg-gray-100"><span>${item.name}</span><button data-id="${item.id}" class="delete-${type}-btn text-red-400 hover:text-red-600 font-bold">刪除</button></li>`); });
+        }
+        
+        function setupModal(openBtn, modal, closeBtns) {
+            openBtn.addEventListener('click', () => modal.classList.remove('hidden'));
+            closeBtns.forEach(btn => btn.addEventListener('click', () => modal.classList.add('hidden')));
+            modal.addEventListener('click', (e) => { if (e.target === modal) modal.classList.add('hidden'); });
+        }
+
+        async function saveNewCustomItemIfNeeded(itemName, existingItems, collectionRef) {
+            const trimmedName = itemName.trim();
+            if (trimmedName === '') return;
+            const isNew = !existingItems.some(item => item.name.toLowerCase() === trimmedName.toLowerCase());
+            if (isNew) {
+                try { await addDoc(collectionRef, { name: trimmedName, createdAt: serverTimestamp() }); } 
+                catch (error) { console.error("儲存新項目失敗:", error); }
+            }
+        }
+        
+        setupEventListeners();
+        updateTypeSelection();
+    </script>
+</body>
+</html>
