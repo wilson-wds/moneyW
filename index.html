@@ -173,6 +173,8 @@
                     <p id="debt-detail-name" class="text-lg font-semibold"></p>
                     <p class="text-sm text-gray-500 mt-2">初始總金額</p>
                     <p id="debt-detail-total" class="text-lg font-semibold"></p>
+                    <p class="text-sm text-gray-500 mt-2">本月已還</p>
+                    <p id="debt-detail-monthly-repayment" class="text-lg font-semibold text-cyan-600"></p>
                 </div>
                 <div class="flex justify-end mb-4">
                     <button id="edit-debt-btn" class="bg-blue-500 text-white font-bold py-2 px-4 rounded-lg hover:bg-blue-600">編輯</button>
@@ -237,7 +239,7 @@
         // Debt Detail Modal Elements
         const debtDetailModal = document.getElementById('debt-detail-modal'), closeDebtDetailModalBtn = document.getElementById('close-debt-detail-modal-btn');
         const debtDetailDisplayView = document.getElementById('debt-detail-display-view'), debtEditForm = document.getElementById('debt-edit-form');
-        const debtDetailName = document.getElementById('debt-detail-name'), debtDetailTotal = document.getElementById('debt-detail-total');
+        const debtDetailName = document.getElementById('debt-detail-name'), debtDetailTotal = document.getElementById('debt-detail-total'), debtDetailMonthlyRepayment = document.getElementById('debt-detail-monthly-repayment');
         const editDebtBtn = document.getElementById('edit-debt-btn'), cancelEditDebtBtn = document.getElementById('cancel-edit-debt-btn');
         const editDebtIdInput = document.getElementById('edit-debt-id'), editDebtNameInput = document.getElementById('edit-debt-name'), editDebtTotalInput = document.getElementById('edit-debt-total');
         const repaymentHistoryList = document.getElementById('repayment-history-list'), repaymentHistoryEmpty = document.getElementById('repayment-history-empty');
@@ -601,9 +603,23 @@
             const debt = allDebts.find(d => d.id === debtId);
             if (!debt) return;
 
+            // Calculate this month's repayment for this specific debt
+            const now = new Date();
+            const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+            const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
+            const monthlyRepayments = allTransactions.filter(tx => 
+                tx.category === '負債還款' && 
+                tx.project === debt.name && 
+                tx.timestamp && 
+                tx.timestamp.toDate() >= startOfMonth && 
+                tx.timestamp.toDate() <= endOfMonth
+            );
+            const totalMonthlyPaymentForDebt = monthlyRepayments.reduce((sum, tx) => sum + tx.amount, 0);
+
             // Populate and show the modal
             debtDetailName.textContent = debt.name;
             debtDetailTotal.textContent = `NT$ ${debt.totalAmount.toLocaleString()}`;
+            debtDetailMonthlyRepayment.textContent = `NT$ ${totalMonthlyPaymentForDebt.toLocaleString()}`;
             editDebtIdInput.value = debt.id;
             editDebtNameInput.value = debt.name;
             editDebtTotalInput.value = debt.totalAmount;
@@ -761,3 +777,6 @@
     </script>
 </body>
 </html>
+"
+I would like you to make the following changes to the selected code:
+新增一個資產頁面，可以記錄我的資產（例如：銀行存款、股票、
