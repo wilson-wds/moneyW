@@ -73,8 +73,11 @@
                 <h2 class="text-2xl font-bold mb-6">新增一筆紀錄</h2>
                 <form id="transaction-form" class="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div class="md:col-span-2"><fieldset class="flex gap-4"><legend class="sr-only">交易類型</legend><div><input type="radio" name="type" id="type-expense" value="expense" class="sr-only" checked><label for="type-expense" class="type-label cursor-pointer block w-full text-center p-3 rounded-lg border-2 border-gray-300 transition">支出</label></div><div><input type="radio" name="type" id="type-income" value="income" class="sr-only"><label for="type-income" class="type-label cursor-pointer block w-full text-center p-3 rounded-lg border-2 border-gray-300 transition">收入</label></div></fieldset></div>
-                    <div><label for="amount" class="block text-sm font-medium text-gray-700 mb-1">金額</label><input type="number" id="amount" placeholder="輸入金額" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500" required></div>
-                    <div><label for="transaction-date" class="block text-sm font-medium text-gray-700 mb-1">日期</label><input type="date" id="transaction-date" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500" required></div>
+                    <div class="md:col-span-2 grid grid-cols-1 md:grid-cols-3 gap-6">
+                        <div><label for="amount" class="block text-sm font-medium text-gray-700 mb-1">金額</label><input type="number" id="amount" placeholder="輸入金額" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500" required></div>
+                        <div><label for="transaction-date" class="block text-sm font-medium text-gray-700 mb-1">日期</label><input type="date" id="transaction-date" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500" required></div>
+                        <div><label for="transaction-asset-select" class="block text-sm font-medium text-gray-700 mb-1">資產帳戶</label><select id="transaction-asset-select" class="w-full p-3 border border-gray-300 rounded-lg bg-white"><option value="">無</option></select></div>
+                    </div>
                     <div class="flex items-end gap-2"><div class="flex-grow"><label for="category-input" class="block text-sm font-medium text-gray-700 mb-1">分類</label><input list="category-list" id="category-input" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500" placeholder="選擇或輸入新分類" required><datalist id="category-list"></datalist></div><button type="button" id="manage-categories-btn" class="p-3 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300" title="管理分類"><svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg></button></div>
                     <div class="flex items-end gap-2"><div class="flex-grow"><label for="project-input" class="block text-sm font-medium text-gray-700 mb-1">專案 (選填)</label><input list="project-list" id="project-input" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500" placeholder="選擇或輸入新專案"><datalist id="project-list"></datalist></div><button type="button" id="manage-projects-btn" class="p-3 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300" title="管理專案"><svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" /></svg></button></div>
                     <div class="md:col-span-2"><label for="remarks" class="block text-sm font-medium text-gray-700 mb-1">備註 (選填)</label><input type="text" id="remarks" placeholder="這筆錢用在哪裡？" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"></div>
@@ -109,7 +112,7 @@
                 <form id="asset-form" class="grid grid-cols-1 md:grid-cols-3 gap-6">
                     <div class="md:col-span-1"><label for="asset-name" class="block text-sm font-medium text-gray-700 mb-1">資產名稱</label><input type="text" id="asset-name" placeholder="例如: 郵局帳戶" class="w-full p-3 border border-gray-300 rounded-lg" required></div>
                     <div class="md:col-span-1"><label for="asset-type" class="block text-sm font-medium text-gray-700 mb-1">資產類型</label><select id="asset-type" class="w-full p-3 border border-gray-300 rounded-lg bg-white"><option>銀行存款</option><option>股票</option><option>現金</option><option>其他</option></select></div>
-                    <div class="md:col-span-1"><label for="asset-amount" class="block text-sm font-medium text-gray-700 mb-1">目前金額</label><input type="number" id="asset-amount" placeholder="輸入目前金額" class="w-full p-3 border border-gray-300 rounded-lg" required></div>
+                    <div class="md:col-span-1"><label for="asset-initial-amount" class="block text-sm font-medium text-gray-700 mb-1">初始金額</label><input type="number" id="asset-initial-amount" placeholder="輸入初始金額" class="w-full p-3 border border-gray-300 rounded-lg" required></div>
                     <div class="md:col-span-3"><button type="submit" class="w-full bg-green-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-green-700 flex justify-center items-center">新增資產</button></div>
                 </form>
             </section>
@@ -225,7 +228,7 @@
     <div id="project-modal" class="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center hidden z-50 p-4"><div class="bg-white p-6 md:p-8 rounded-2xl shadow-xl w-full max-w-md"><div class="flex justify-between items-center mb-6"><h3 class="text-2xl font-bold">管理專案</h3><button id="close-project-modal-btn" class="text-gray-400 hover:text-gray-600 text-3xl leading-none">&times;</button></div><ul id="custom-project-list" class="space-y-2 max-h-60 overflow-y-auto mb-6 border-t border-b py-4"></ul><div class="flex justify-end"><button type="button" id="close-project-modal-btn-bottom" class="bg-gray-500 text-white font-bold py-2 px-4 rounded-lg hover:bg-gray-600">關閉</button></div></div></div>
     <div id="repayment-modal" class="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center hidden z-50 p-4"><div class="bg-white p-6 md:p-8 rounded-2xl shadow-xl w-full max-w-md"><h3 class="text-2xl font-bold mb-6">記錄一筆還款</h3><form id="repayment-form"><input type="hidden" id="repayment-debt-id"><input type="hidden" id="repayment-debt-name"><div class="mb-4"><label for="repayment-amount" class="block text-sm font-medium text-gray-700 mb-1">還款金額</label><input type="number" id="repayment-amount" placeholder="輸入此次還款金額" class="w-full p-3 border border-gray-300 rounded-lg" required></div><div class="mb-4"><label for="repayment-date" class="block text-sm font-medium text-gray-700 mb-1">還款日期</label><input type="date" id="repayment-date" class="w-full p-3 border border-gray-300 rounded-lg" required></div><div class="flex justify-end gap-4"><button type="button" id="cancel-repayment-btn" class="bg-gray-300 text-gray-800 font-bold py-2 px-4 rounded-lg hover:bg-gray-400">取消</button><button type="submit" class="bg-green-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-green-700">確認還款</button></div></form></div></div>
     <div id="debt-detail-modal" class="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center hidden z-50 p-4"><div class="bg-white p-6 md:p-8 rounded-2xl shadow-xl w-full max-w-lg"><div class="flex justify-between items-center mb-4"><h3 id="debt-detail-title" class="text-2xl font-bold">負債詳情</h3><button id="close-debt-detail-modal-btn" class="text-gray-400 hover:text-gray-600 text-3xl leading-none">&times;</button></div><div id="debt-detail-display-view"><div class="mb-4 p-4 bg-gray-50 rounded-lg"><p class="text-sm text-gray-500">項目名稱</p><p id="debt-detail-name" class="text-lg font-semibold"></p><p class="text-sm text-gray-500 mt-2">初始總金額</p><p id="debt-detail-total" class="text-lg font-semibold"></p><p class="text-sm text-gray-500 mt-2">本月已還</p><p id="debt-detail-monthly-repayment" class="text-lg font-semibold text-cyan-600"></p></div><div class="flex justify-end mb-4"><button id="edit-debt-btn" class="bg-blue-500 text-white font-bold py-2 px-4 rounded-lg hover:bg-blue-600">編輯</button></div></div><form id="debt-edit-form" class="hidden mb-4"><input type="hidden" id="edit-debt-id"><div class="mb-4"><label for="edit-debt-name" class="block text-sm font-medium text-gray-700 mb-1">項目名稱</label><input type="text" id="edit-debt-name" class="w-full p-3 border border-gray-300 rounded-lg" required></div><div class="mb-4"><label for="edit-debt-total" class="block text-sm font-medium text-gray-700 mb-1">初始總金額</label><input type="number" id="edit-debt-total" class="w-full p-3 border border-gray-300 rounded-lg" required></div><div class="flex justify-end gap-4"><button type="button" id="cancel-edit-debt-btn" class="bg-gray-300 text-gray-800 font-bold py-2 px-4 rounded-lg hover:bg-gray-400">取消</button><button type="submit" class="bg-green-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-green-700">儲存變更</button></div></form><h4 class="text-lg font-bold mb-2 border-t pt-4">還款紀錄</h4><ul id="repayment-history-list" class="space-y-2 max-h-48 overflow-y-auto"></ul><p id="repayment-history-empty" class="hidden text-center text-gray-500 py-4">尚無還款紀錄</p></div></div>
-    <div id="asset-edit-modal" class="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center hidden z-50 p-4"><div class="bg-white p-6 md:p-8 rounded-2xl shadow-xl w-full max-w-md"><h3 class="text-2xl font-bold mb-6">編輯資產</h3><form id="asset-edit-form"><input type="hidden" id="edit-asset-id"><div class="mb-4"><label for="edit-asset-name" class="block text-sm font-medium text-gray-700 mb-1">資產名稱</label><input type="text" id="edit-asset-name" class="w-full p-3 border border-gray-300 rounded-lg" required></div><div class="mb-4"><label for="edit-asset-type" class="block text-sm font-medium text-gray-700 mb-1">資產類型</label><select id="edit-asset-type" class="w-full p-3 border border-gray-300 rounded-lg bg-white"><option>銀行存款</option><option>股票</option><option>現金</option><option>其他</option></select></div><div class="mb-4"><label for="edit-asset-amount" class="block text-sm font-medium text-gray-700 mb-1">目前金額</label><input type="number" id="edit-asset-amount" class="w-full p-3 border border-gray-300 rounded-lg" required></div><div class="flex justify-end gap-4"><button type="button" id="cancel-asset-edit-btn" class="bg-gray-300 text-gray-800 font-bold py-2 px-4 rounded-lg hover:bg-gray-400">取消</button><button type="submit" class="bg-green-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-green-700">儲存</button></div></form></div></div>
+    <div id="asset-edit-modal" class="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center hidden z-50 p-4"><div class="bg-white p-6 md:p-8 rounded-2xl shadow-xl w-full max-w-md"><h3 class="text-2xl font-bold mb-6">編輯資產</h3><form id="asset-edit-form"><input type="hidden" id="edit-asset-id"><div class="mb-4"><label for="edit-asset-name" class="block text-sm font-medium text-gray-700 mb-1">資產名稱</label><input type="text" id="edit-asset-name" class="w-full p-3 border border-gray-300 rounded-lg" required></div><div class="mb-4"><label for="edit-asset-type" class="block text-sm font-medium text-gray-700 mb-1">資產類型</label><select id="edit-asset-type" class="w-full p-3 border border-gray-300 rounded-lg bg-white"><option>銀行存款</option><option>股票</option><option>現金</option><option>其他</option></select></div><div class="mb-4"><label for="edit-asset-initial-amount" class="block text-sm font-medium text-gray-700 mb-1">初始金額</label><input type="number" id="edit-asset-initial-amount" class="w-full p-3 border border-gray-300 rounded-lg" required></div><div class="flex justify-end gap-4"><button type="button" id="cancel-asset-edit-btn" class="bg-gray-300 text-gray-800 font-bold py-2 px-4 rounded-lg hover:bg-gray-400">取消</button><button type="submit" class="bg-green-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-green-700">儲存</button></div></form></div></div>
     <div id="receive-payment-modal" class="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center hidden z-50 p-4"><div class="bg-white p-6 md:p-8 rounded-2xl shadow-xl w-full max-w-md"><h3 class="text-2xl font-bold mb-6">記錄一筆收款</h3><form id="receive-payment-form"><input type="hidden" id="receive-payment-lending-id"><input type="hidden" id="receive-payment-lending-name"><div class="mb-4"><label for="receive-payment-amount" class="block text-sm font-medium text-gray-700 mb-1">收款金額</label><input type="number" id="receive-payment-amount" placeholder="輸入此次收款金額" class="w-full p-3 border border-gray-300 rounded-lg" required></div><div class="mb-4"><label for="receive-payment-date" class="block text-sm font-medium text-gray-700 mb-1">收款日期</label><input type="date" id="receive-payment-date" class="w-full p-3 border border-gray-300 rounded-lg" required></div><div class="flex justify-end gap-4"><button type="button" id="cancel-receive-payment-btn" class="bg-gray-300 text-gray-800 font-bold py-2 px-4 rounded-lg hover:bg-gray-400">取消</button><button type="submit" class="bg-emerald-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-emerald-700">確認收款</button></div></form></div></div>
 
     <script type="module">
@@ -243,6 +246,7 @@
         const form = document.getElementById('transaction-form'), amountInput = document.getElementById('amount'), transactionDateInput = document.getElementById('transaction-date'), remarksInput = document.getElementById('remarks'), transactionList = document.getElementById('transaction-list');
         const categoryInput = document.getElementById('category-input'), categoryDatalist = document.getElementById('category-list');
         const projectInput = document.getElementById('project-input'), projectDatalist = document.getElementById('project-list');
+        const transactionAssetSelect = document.getElementById('transaction-asset-select');
         const totalIncomeEl = document.getElementById('total-income'), totalExpenseEl = document.getElementById('total-expense'), balanceEl = document.getElementById('balance');
         const todayIncomeEl = document.getElementById('today-income'), todayExpenseEl = document.getElementById('today-expense'), todayBalanceEl = document.getElementById('today-balance');
         const loadingIndicator = document.getElementById('loading-indicator'), emptyState = document.getElementById('empty-state');
@@ -265,7 +269,7 @@
         const assetForm = document.getElementById('asset-form'), assetList = document.getElementById('asset-list'), assetLoadingIndicator = document.getElementById('asset-loading-indicator'), assetEmptyState = document.getElementById('asset-empty-state');
         const totalAssetsEl = document.getElementById('total-assets'), netWorthEl = document.getElementById('net-worth');
         const assetEditModal = document.getElementById('asset-edit-modal'), assetEditForm = document.getElementById('asset-edit-form'), cancelAssetEditBtn = document.getElementById('cancel-asset-edit-btn');
-        const editAssetIdInput = document.getElementById('edit-asset-id'), editAssetNameInput = document.getElementById('edit-asset-name'), editAssetTypeInput = document.getElementById('edit-asset-type'), editAssetAmountInput = document.getElementById('edit-asset-amount');
+        const editAssetIdInput = document.getElementById('edit-asset-id'), editAssetNameInput = document.getElementById('edit-asset-name'), editAssetTypeInput = document.getElementById('edit-asset-type'), editAssetInitialAmountInput = document.getElementById('edit-asset-initial-amount');
         // Lending Elements
         const lendingForm = document.getElementById('lending-form'), lendingList = document.getElementById('lending-list'), lendingLoadingIndicator = document.getElementById('lending-loading-indicator'), lendingEmptyState = document.getElementById('lending-empty-state');
         const totalLendingAmountEl = document.getElementById('total-lending-amount'), totalLendingRemainingEl = document.getElementById('total-lending-remaining');
@@ -375,6 +379,7 @@
                 updateTodaySummary(todayTransactions);
                 updateExpenseChart();
                 updateMonthlyRepaymentSummary();
+                updateAssetSummary(allAssets); // Recalculate asset amounts when transactions change
                 if(reportsView.classList.contains('hidden') === false) { handleFilterThisMonth(); }
                 emptyState.classList.toggle('hidden', allTransactions.length > 0);
             }, (error) => console.error("監聽交易資料失敗:", error));
@@ -397,8 +402,8 @@
             unsubscribeAssets = onSnapshot(query(assetsColRef), (snapshot) => {
                 assetLoadingIndicator.classList.add('hidden');
                 allAssets = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                updateAssetSummary(allAssets);
-                renderAssets(allAssets);
+                populateAssetDropdown();
+                updateAssetSummary(allAssets); // Initial calculation
                 assetEmptyState.classList.toggle('hidden', allAssets.length > 0);
             }, (error) => console.error("監聽資產資料失敗:", error));
         }
@@ -495,7 +500,7 @@
                             <p class="text-xs text-gray-500">${asset.type}</p>
                             <h3 class="text-lg font-bold text-gray-800">${asset.name}</h3>
                         </div>
-                        <p class="text-xl font-bold text-green-600">NT$ ${asset.amount.toLocaleString()}</p>
+                        <p class="text-xl font-bold text-green-600">NT$ ${asset.currentAmount.toLocaleString()}</p>
                     </div>
                 `;
                 assetList.appendChild(card);
@@ -570,8 +575,17 @@
         }
         
         function updateAssetSummary(assets) {
-            const total = assets.reduce((sum, a) => sum + a.amount, 0);
+            const calculatedAssets = assets.map(asset => {
+                const linkedTransactions = allTransactions.filter(tx => tx.assetId === asset.id);
+                const income = linkedTransactions.filter(tx => tx.type === 'income').reduce((sum, tx) => sum + tx.amount, 0);
+                const expense = linkedTransactions.filter(tx => tx.type === 'expense').reduce((sum, tx) => sum + tx.amount, 0);
+                const currentAmount = (asset.initialAmount || 0) + income - expense;
+                return { ...asset, currentAmount };
+            });
+
+            const total = calculatedAssets.reduce((sum, a) => sum + a.currentAmount, 0);
             totalAssetsEl.textContent = `NT$ ${total.toLocaleString()}`;
+            renderAssets(calculatedAssets);
             updateNetWorth();
         }
 
@@ -583,7 +597,13 @@
         }
         
         function updateNetWorth() {
-            const totalAssets = allAssets.reduce((sum, a) => sum + a.amount, 0);
+            const totalAssets = allAssets.map(asset => {
+                const linkedTransactions = allTransactions.filter(tx => tx.assetId === asset.id);
+                const income = linkedTransactions.filter(tx => tx.type === 'income').reduce((sum, tx) => sum + tx.amount, 0);
+                const expense = linkedTransactions.filter(tx => tx.type === 'expense').reduce((sum, tx) => sum + tx.amount, 0);
+                return (asset.initialAmount || 0) + income - expense;
+            }).reduce((sum, amount) => sum + amount, 0);
+
             const totalDebts = allDebts.reduce((sum, d) => sum + d.remainingAmount, 0);
             const net = totalAssets - totalDebts;
             netWorthEl.textContent = `NT$ ${net.toLocaleString()}`;
@@ -713,14 +733,14 @@
         async function handleFormSubmit(e) {
             e.preventDefault();
             if (!userId) return;
-            const amount = parseFloat(amountInput.value), category = categoryInput.value.trim(), project = projectInput.value.trim(), date = transactionDateInput.value;
+            const amount = parseFloat(amountInput.value), category = categoryInput.value.trim(), project = projectInput.value.trim(), date = transactionDateInput.value, assetId = transactionAssetSelect.value;
             if (isNaN(amount) || amount <= 0 || category === '' || !date) { console.warn("請輸入有效的金額、分類和日期！"); return; }
             
             submitBtnText.classList.add('hidden'); submitSpinner.classList.remove('hidden'); form.querySelector('button[type="submit"]').disabled = true;
             try {
                 await saveNewCustomItemIfNeeded(category, customCategories, categoriesColRef);
                 if(project) await saveNewCustomItemIfNeeded(project, customProjects, projectsColRef);
-                await addDoc(transactionsColRef, { type: document.querySelector('input[name="type"]:checked').value, amount, category, project, remarks: remarksInput.value.trim(), timestamp: Timestamp.fromDate(new Date(date)) });
+                await addDoc(transactionsColRef, { type: document.querySelector('input[name="type"]:checked').value, amount, category, project, remarks: remarksInput.value.trim(), timestamp: Timestamp.fromDate(new Date(date)), assetId: assetId || null });
                 form.reset();
                 transactionDateInput.valueAsDate = new Date();
                 updateTypeSelection();
@@ -747,11 +767,11 @@
             e.preventDefault();
             const name = document.getElementById('asset-name').value.trim();
             const type = document.getElementById('asset-type').value;
-            const amount = parseFloat(document.getElementById('asset-amount').value);
-            if (name === '' || isNaN(amount) || amount < 0) { console.warn("請輸入有效的資產名稱和金額"); return; }
+            const initialAmount = parseFloat(document.getElementById('asset-initial-amount').value);
+            if (name === '' || isNaN(initialAmount)) { console.warn("請輸入有效的資產名稱和初始金額"); return; }
             
             try {
-                await addDoc(assetsColRef, { name, type, amount, createdAt: serverTimestamp() });
+                await addDoc(assetsColRef, { name, type, initialAmount, createdAt: serverTimestamp() });
                 assetForm.reset();
             } catch (error) { console.error("新增資產失敗:", error); }
         }
@@ -822,7 +842,7 @@
                 editAssetIdInput.value = asset.id;
                 editAssetNameInput.value = asset.name;
                 editAssetTypeInput.value = asset.type;
-                editAssetAmountInput.value = asset.amount;
+                editAssetInitialAmountInput.value = asset.initialAmount;
                 assetEditModal.classList.remove('hidden');
             }
         }
@@ -852,13 +872,13 @@
         
         async function handleAssetEditSubmit(e) {
             e.preventDefault();
-            const assetId = document.getElementById('edit-asset-id').value;
-            const name = document.getElementById('edit-asset-name').value.trim();
-            const type = document.getElementById('edit-asset-type').value;
-            const amount = parseFloat(document.getElementById('edit-asset-amount').value);
-            if (assetId && name && !isNaN(amount)) {
+            const assetId = editAssetIdInput.value;
+            const name = editAssetNameInput.value.trim();
+            const type = editAssetTypeInput.value;
+            const initialAmount = parseFloat(editAssetInitialAmountInput.value);
+            if (assetId && name && !isNaN(initialAmount)) {
                 try {
-                    await updateDoc(doc(db, assetsColRef.path, assetId), { name, type, amount });
+                    await updateDoc(doc(db, assetsColRef.path, assetId), { name, type, initialAmount });
                     assetEditModal.classList.add('hidden');
                 } catch (error) { console.error("更新資產失敗:", error); }
             }
@@ -942,7 +962,17 @@
         
         function populateDatalist(datalistElement, items) {
             datalistElement.innerHTML = '';
-            [...new Set(items)].forEach(item => { datalistElement.insertAdjacentHTML('beforeend', `<option value="${item}"></option>`); });
+            [...new Set(items)].forEach(item => { datalistElement.insertAdjacentHTML('beforeend', `<option value="${item}">${item}</option>`); });
+        }
+        
+        function populateAssetDropdown() {
+            transactionAssetSelect.innerHTML = '<option value="">無</option>';
+            allAssets.forEach(asset => {
+                const option = document.createElement('option');
+                option.value = asset.id;
+                option.textContent = asset.name;
+                transactionAssetSelect.appendChild(option);
+            });
         }
 
         function populateCategoryDatalist() {
