@@ -15,6 +15,7 @@
         ::-webkit-scrollbar { width: 8px; } ::-webkit-scrollbar-track { background: #f1f1f1; } ::-webkit-scrollbar-thumb { background: #888; border-radius: 4px; } ::-webkit-scrollbar-thumb:hover { background: #555; }
         .tab-btn.active { border-color: #3b82f6; background-color: #3b82f6; color: white; }
         .debt-card-clickable, .asset-card-clickable, .lending-card-clickable { cursor: pointer; }
+        .category-stat-item.active { background-color: #dbeafe; }
     </style>
 </head>
 <body class="bg-gray-100 text-gray-800">
@@ -130,6 +131,19 @@
                  <h2 class="text-2xl font-bold mb-6">支出分類圖</h2>
                  <div id="no-expense-data" class="hidden text-center text-gray-500 py-8">尚無足夠的支出資料可產生報表。</div>
                  <div class="max-w-xl mx-auto"><canvas id="expense-chart"></canvas></div>
+            </section>
+            <section class="bg-white p-6 md:p-8 rounded-2xl shadow-lg mb-8">
+                <h2 class="text-2xl font-bold mb-6">期間分類統計 (可點擊)</h2>
+                <div class="grid md:grid-cols-2 gap-8">
+                    <div>
+                        <h3 class="text-xl font-bold mb-4 text-red-600">支出</h3>
+                        <ul id="expense-stats-list" class="space-y-1"></ul>
+                    </div>
+                    <div>
+                        <h3 class="text-xl font-bold mb-4 text-green-600">收入</h3>
+                        <ul id="income-stats-list" class="space-y-1"></ul>
+                    </div>
+                </div>
             </section>
             <section class="bg-white p-6 md:p-8 rounded-2xl shadow-lg">
                 <h2 class="text-2xl font-bold mb-6">交易明細</h2>
@@ -279,12 +293,15 @@
         const filterThisMonthBtn = document.getElementById('filter-this-month'), filterCustomDateBtn = document.getElementById('filter-custom-date'), startDateInput = document.getElementById('start-date'), endDateInput = document.getElementById('end-date');
         const filteredTransactionList = document.getElementById('filtered-transaction-list'), filteredEmptyState = document.getElementById('filtered-empty-state');
         const filteredIncomeEl = document.getElementById('filtered-income'), filteredExpenseEl = document.getElementById('filtered-expense'), filteredBalanceEl = document.getElementById('filtered-balance');
+        const expenseStatsList = document.getElementById('expense-stats-list');
+        const incomeStatsList = document.getElementById('income-stats-list');
 
         // --- Firebase & App 狀態 ---
         let db, auth, userId, transactionsColRef, categoriesColRef, projectsColRef, debtsColRef, assetsColRef, lendingsColRef;
         let unsubscribeTransactions, unsubscribeCategories, unsubscribeProjects, unsubscribeDebts, unsubscribeAssets, unsubscribeLendings;
         let allTransactions = [], customCategories = [], customProjects = [], allDebts = [], allAssets = [], allLendings = [];
         let expenseChart = null;
+        let activeCategoryFilter = { type: null, category: null };
         const defaultCategories = { expense: ['飲食', '交通', '居住', '娛樂', '購物', '醫療', '教育', '負債還款', '其他'], income: ['薪資', '獎金', '投資', '兼職', '債權回收', '其他'] };
 
         // Your web app's Firebase configuration
@@ -550,6 +567,28 @@
             });
         }
 
+        function renderCategoryStats(listElement, summaryData, type) {
+            listElement.innerHTML = '';
+            const sortedSummary = Object.entries(summaryData).sort(([, a], [, b]) => b - a);
+
+            if (sortedSummary.length === 0) {
+                listElement.innerHTML = `<li class="text-center text-gray-400 text-sm py-2">無資料</li>`;
+                return;
+            }
+
+            sortedSummary.forEach(([category, amount]) => {
+                const li = document.createElement('li');
+                li.className = 'flex justify-between p-2 hover:bg-gray-100 rounded cursor-pointer category-stat-item';
+                li.dataset.category = category;
+                li.dataset.type = type;
+                li.innerHTML = `
+                    <span>${category}</span>
+                    <span class="font-mono">${amount.toLocaleString()}</span>
+                `;
+                listElement.appendChild(li);
+            });
+        }
+
         function updateSummary(transactions) {
             const income = transactions.filter(t => t.type === 'income').reduce((sum, t) => sum + t.amount, 0);
             const expense = transactions.filter(t => t.type === 'expense').reduce((sum, t) => sum + t.amount, 0);
@@ -713,6 +752,9 @@
             closeDebtDetailModalBtn.addEventListener('click', () => debtDetailModal.classList.add('hidden'));
             editDebtBtn.addEventListener('click', toggleDebtEditView);
             cancelEditDebtBtn.addEventListener('click', toggleDebtEditView);
+            // Category Stats Listeners
+            expenseStatsList.addEventListener('click', handleCategoryClick);
+            incomeStatsList.addEventListener('click', handleCategoryClick);
         }
 
         function switchTab(tabName) {
@@ -942,14 +984,58 @@
             filterAndRenderDetails(start, end);
         }
 
-        function filterAndRenderDetails(startDate, endDate) {
-            const filtered = allTransactions.filter(tx => {
+        function filterAndRenderDetails(startDate, endDate, category = null, type = null) {
+            let filtered = allTransactions.filter(tx => {
                 if (!tx.timestamp) return false;
                 const txDate = tx.timestamp.toDate();
                 return txDate >= startDate && txDate <= endDate;
             });
+
+            // Handle category stats lists
+            const expenseSummary = {};
+            const incomeSummary = {};
+            filtered.forEach(tx => {
+                if (tx.type === 'expense') {
+                    expenseSummary[tx.category] = (expenseSummary[tx.category] || 0) + tx.amount;
+                } else {
+                    incomeSummary[tx.category] = (incomeSummary[tx.category] || 0) + tx.amount;
+                }
+            });
+            renderCategoryStats(expenseStatsList, expenseSummary, 'expense');
+            renderCategoryStats(incomeStatsList, incomeSummary, 'income');
+
+            // Further filter by category if one is selected
+            if (category && type) {
+                filtered = filtered.filter(tx => tx.category === category && tx.type === type);
+                activeCategoryFilter = { type, category };
+            } else {
+                activeCategoryFilter = { type: null, category: null };
+            }
+            
             renderFilteredTransactions(filtered);
             updateFilteredSummary(filtered);
+        }
+
+        function handleCategoryClick(e) {
+            const statItem = e.target.closest('.category-stat-item');
+            if (!statItem) return;
+
+            // Remove active class from all items
+            document.querySelectorAll('.category-stat-item').forEach(item => item.classList.remove('active'));
+            
+            const category = statItem.dataset.category;
+            const type = statItem.dataset.type;
+
+            // If clicking the same category again, clear filter. Otherwise, apply new filter.
+            if (activeCategoryFilter.category === category && activeCategoryFilter.type === type) {
+                handleFilterCustomDate(); // Re-run the date filter to show all
+            } else {
+                statItem.classList.add('active');
+                const start = new Date(startDateInput.value);
+                const end = new Date(endDateInput.value);
+                end.setHours(23, 59, 59, 999);
+                filterAndRenderDetails(start, end, category, type);
+            }
         }
 
         // --- Helper Functions ---
