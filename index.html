@@ -506,13 +506,16 @@
             transactions.forEach(tx => {
                 const isIncome = tx.type === 'income';
                 const li = document.createElement('li');
-                li.className = 'grid grid-cols-5 gap-2 items-center p-2 rounded-md hover:bg-gray-50 text-sm border-b';
+                li.className = 'grid grid-cols-6 gap-2 items-center p-2 rounded-md hover:bg-gray-50 text-sm border-b';
                 li.innerHTML = `
-                    <span class="text-gray-600">${tx.timestamp ? tx.timestamp.toDate().toLocaleDateString('zh-TW') : '...'}</span>
-                    <span class="font-medium">${tx.category}</span>
-                    <span class="text-gray-500">${tx.project || ''}</span>
-                    <span class="text-gray-500 truncate">${tx.remarks || ''}</span>
-                    <span class="font-bold text-right ${isIncome ? 'text-green-600' : 'text-red-600'}">${isIncome ? '+' : '-'} ${tx.amount.toLocaleString()}</span>
+                    <span class="text-gray-600 col-span-1">${tx.timestamp ? tx.timestamp.toDate().toLocaleDateString('zh-TW') : '...'}</span>
+                    <span class="font-medium col-span-1">${tx.category}</span>
+                    <span class="text-gray-500 col-span-1">${tx.project || ''}</span>
+                    <span class="text-gray-500 truncate col-span-1">${tx.remarks || ''}</span>
+                    <span class="font-bold text-right col-span-1 ${isIncome ? 'text-green-600' : 'text-red-600'}">${isIncome ? '+' : '-'} ${tx.amount.toLocaleString()}</span>
+                    <div class="text-center col-span-1">
+                         <button data-id="${tx.id}" class="delete-btn text-gray-400 hover:text-red-500 p-1 rounded-full"><svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg></button>
+                    </div>
                 `;
                 filteredTransactionList.appendChild(li);
             });
@@ -1236,23 +1239,3 @@
     </script>
 </body>
 </html>
-" from the latest Canvas "雲端記帳軟體 (專案、報表與負債)" document above.
-I am asking a question about the code I have selected.
-I want to add a "資產" page that allows me to record my assets (e.g., bank deposits, stocks, cash).
-Please make the following changes:
-1.  **新增「資產」分頁**：
-    * 您現在可以記錄您的各項資產，例如銀行存款、股票、現金等。
-    * 頁面頂部會顯示您的「總資產」與「淨資產」（總資產 - 總負債）。
-    * 您可以隨時新增、編輯或刪除您的資產項目。
-
-2.  **記帳表單更新**：
-    * 在「新增一筆紀錄」的表單中，我新增了一個「**資產帳戶**」的下拉選單。
-    * 這個選單會自動讀取您在「資產」頁面建立的所有項目（例如：銀行存款、現金）。
-    * 現在，當您記錄一筆收入或支出時，可以指定這筆錢是從哪個資產帳戶進出。
-
-3.  **資產金額自動計算**：
-    * 您在「資產」頁面新增資產時，現在是輸入「**初始金額**」。
-    * 之後，該資產的**目前金額會根據您連結到它的每一筆收支紀錄，進行全自動的加總與扣除**。您不再需要手動編輯資產的餘額。
-    * 例如，您的「銀行存款」初始有 $50,000，當您新增一筆來自該帳戶的 $500 支出後，它的餘額會自動變為 $49,500。
-
-4.  **淨資產連動**：您的「淨資產」也會根據資產的動態變化，即時
