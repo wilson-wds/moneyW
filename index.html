@@ -942,9 +942,17 @@
             if (name === '' || isNaN(initialValue)) { console.warn("請輸入有效的帳戶名稱和初始金額"); return; }
 
             try {
-                await addDoc(investmentsColRef, { name, initialValue, createdAt: serverTimestamp() });
+                const newInvestmentRef = await addDoc(investmentsColRef, { name, initialValue, createdAt: serverTimestamp() });
                 // Also add a corresponding transaction
                 if (initialValue > 0) {
+                     const txColRef = collection(db, `${investmentsColRef.path}/${newInvestmentRef.id}/transactions`);
+                     await addDoc(txColRef, {
+                        date: serverTimestamp(),
+                        type: 'expense',
+                        amount: initialValue,
+                        remark: '初始投入金額'
+                    });
+
                     await addDoc(transactionsColRef, { 
                         type: 'expense', 
                         amount: initialValue, 
@@ -986,6 +994,7 @@
                 await addDoc(txColRef, { date: Timestamp.fromDate(new Date(date)), type, amount, remark });
                 investmentTransactionForm.reset();
                 investmentTransactionModal.classList.add('hidden');
+                listenForInvestments(); // Manually refresh investment data
             } catch (error) {
                 console.error("新增投資交易失敗:", error);
             }
@@ -1227,3 +1236,23 @@
     </script>
 </body>
 </html>
+" from the latest Canvas "雲端記帳軟體 (專案、報表與負債)" document above.
+I am asking a question about the code I have selected.
+I want to add a "資產" page that allows me to record my assets (e.g., bank deposits, stocks, cash).
+Please make the following changes:
+1.  **新增「資產」分頁**：
+    * 您現在可以記錄您的各項資產，例如銀行存款、股票、現金等。
+    * 頁面頂部會顯示您的「總資產」與「淨資產」（總資產 - 總負債）。
+    * 您可以隨時新增、編輯或刪除您的資產項目。
+
+2.  **記帳表單更新**：
+    * 在「新增一筆紀錄」的表單中，我新增了一個「**資產帳戶**」的下拉選單。
+    * 這個選單會自動讀取您在「資產」頁面建立的所有項目（例如：銀行存款、現金）。
+    * 現在，當您記錄一筆收入或支出時，可以指定這筆錢是從哪個資產帳戶進出。
+
+3.  **資產金額自動計算**：
+    * 您在「資產」頁面新增資產時，現在是輸入「**初始金額**」。
+    * 之後，該資產的**目前金額會根據您連結到它的每一筆收支紀錄，進行全自動的加總與扣除**。您不再需要手動編輯資產的餘額。
+    * 例如，您的「銀行存款」初始有 $50,000，當您新增一筆來自該帳戶的 $500 支出後，它的餘額會自動變為 $49,500。
+
+4.  **淨資產連動**：您的「淨資產」也會根據資產的動態變化，即時
