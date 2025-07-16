@@ -14,7 +14,7 @@
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
         ::-webkit-scrollbar { width: 8px; } ::-webkit-scrollbar-track { background: #f1f1f1; } ::-webkit-scrollbar-thumb { background: #888; border-radius: 4px; } ::-webkit-scrollbar-thumb:hover { background: #555; }
         .tab-btn.active { border-color: #3b82f6; background-color: #3b82f6; color: white; }
-        .debt-card-clickable, .asset-card-clickable, .lending-card-clickable { cursor: pointer; }
+        .debt-card-clickable, .asset-card-clickable, .lending-card-clickable, .investment-card-clickable { cursor: pointer; }
         .category-stat-item.active { background-color: #dbeafe; }
     </style>
 </head>
@@ -46,6 +46,7 @@
         <!-- 分頁導覽 -->
         <nav class="mb-8 flex justify-center border-b flex-wrap">
             <button id="tab-accounting" class="tab-btn active py-3 px-6 text-lg font-semibold border-b-4 transition-colors">記帳</button>
+            <button id="tab-investment" class="tab-btn py-3 px-6 text-lg font-semibold border-b-4 border-transparent text-gray-500 hover:text-gray-800 transition-colors">投資</button>
             <button id="tab-debt" class="tab-btn py-3 px-6 text-lg font-semibold border-b-4 border-transparent text-gray-500 hover:text-gray-800 transition-colors">負債</button>
             <button id="tab-lending" class="tab-btn py-3 px-6 text-lg font-semibold border-b-4 border-transparent text-gray-500 hover:text-gray-800 transition-colors">債權</button>
             <button id="tab-events" class="tab-btn py-3 px-6 text-lg font-semibold border-b-4 border-transparent text-gray-500 hover:text-gray-800 transition-colors">事件紀錄</button>
@@ -89,6 +90,37 @@
                 <div id="loading-indicator" class="flex justify-center items-center py-8"><div class="loader"></div></div>
                 <ul id="transaction-list" class="space-y-4"></ul>
                 <p id="empty-state" class="hidden text-center text-gray-500 py-8">還沒有任何紀錄，快來新增第一筆吧！</p>
+            </section>
+        </div>
+        
+        <!-- 投資分頁內容 -->
+        <div id="investment-view" class="hidden">
+            <section class="mb-8">
+                <h2 class="text-xl font-bold text-gray-700 mb-4">投資總覽</h2>
+                <div id="investment-summary" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div class="bg-blue-100 p-6 rounded-xl shadow-sm">
+                        <h2 class="text-lg font-semibold text-blue-800">總投資現值</h2>
+                        <p id="total-investment-value" class="text-2xl font-bold text-blue-600 mt-2">NT$ 0</p>
+                    </div>
+                    <div class="bg-purple-100 p-6 rounded-xl shadow-sm">
+                        <h2 class="text-lg font-semibold text-purple-800">總報酬</h2>
+                        <p id="total-investment-return" class="text-2xl font-bold text-purple-600 mt-2">NT$ 0</p>
+                    </div>
+                </div>
+            </section>
+            <section class="bg-white p-6 md:p-8 rounded-2xl shadow-lg mb-8">
+                <h2 class="text-2xl font-bold mb-6">新增投資帳戶</h2>
+                <form id="investment-form" class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div><label for="investment-name" class="block text-sm font-medium text-gray-700 mb-1">帳戶名稱</label><input type="text" id="investment-name" placeholder="例如: 富邦證券" class="w-full p-3 border border-gray-300 rounded-lg" required></div>
+                    <div><label for="investment-initial-value" class="block text-sm font-medium text-gray-700 mb-1">初始投入金額</label><input type="number" id="investment-initial-value" placeholder="輸入初始金額" class="w-full p-3 border border-gray-300 rounded-lg" required></div>
+                    <div class="md:col-span-2"><button type="submit" class="w-full bg-blue-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-blue-700">建立帳戶</button></div>
+                </form>
+            </section>
+            <section class="bg-white p-6 md:p-8 rounded-2xl shadow-lg">
+                <h2 class="text-2xl font-bold mb-6">投資帳戶列表</h2>
+                <div id="investment-loading-indicator" class="flex justify-center items-center py-8"><div class="loader"></div></div>
+                <div id="investment-list" class="grid grid-cols-1 md:grid-cols-2 gap-4"></div>
+                <p id="investment-empty-state" class="hidden text-center text-gray-500 py-8">尚未建立任何投資帳戶。</p>
             </section>
         </div>
 
@@ -229,6 +261,8 @@
     <div id="repayment-modal" class="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center hidden z-50 p-4"><div class="bg-white p-6 md:p-8 rounded-2xl shadow-xl w-full max-w-md"><h3 class="text-2xl font-bold mb-6">記錄一筆還款</h3><form id="repayment-form"><input type="hidden" id="repayment-debt-id"><input type="hidden" id="repayment-debt-name"><div class="mb-4"><label for="repayment-amount" class="block text-sm font-medium text-gray-700 mb-1">還款金額</label><input type="number" id="repayment-amount" placeholder="輸入此次還款金額" class="w-full p-3 border border-gray-300 rounded-lg" required></div><div class="mb-4"><label for="repayment-date" class="block text-sm font-medium text-gray-700 mb-1">還款日期</label><input type="date" id="repayment-date" class="w-full p-3 border border-gray-300 rounded-lg" required></div><div class="flex justify-end gap-4"><button type="button" id="cancel-repayment-btn" class="bg-gray-300 text-gray-800 font-bold py-2 px-4 rounded-lg hover:bg-gray-400">取消</button><button type="submit" class="bg-green-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-green-700">確認還款</button></div></form></div></div>
     <div id="debt-detail-modal" class="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center hidden z-50 p-4"><div class="bg-white p-6 md:p-8 rounded-2xl shadow-xl w-full max-w-lg"><div class="flex justify-between items-center mb-4"><h3 id="debt-detail-title" class="text-2xl font-bold">負債詳情</h3><button id="close-debt-detail-modal-btn" class="text-gray-400 hover:text-gray-600 text-3xl leading-none">&times;</button></div><div id="debt-detail-display-view"><div class="mb-4 p-4 bg-gray-50 rounded-lg"><p class="text-sm text-gray-500">項目名稱</p><p id="debt-detail-name" class="text-lg font-semibold"></p><p class="text-sm text-gray-500 mt-2">初始總金額</p><p id="debt-detail-total" class="text-lg font-semibold"></p><p class="text-sm text-gray-500 mt-2">本月已還</p><p id="debt-detail-monthly-repayment" class="text-lg font-semibold text-cyan-600"></p></div><div class="flex justify-end mb-4"><button id="edit-debt-btn" class="bg-blue-500 text-white font-bold py-2 px-4 rounded-lg hover:bg-blue-600">編輯</button></div></div><form id="debt-edit-form" class="hidden mb-4"><input type="hidden" id="edit-debt-id"><div class="mb-4"><label for="edit-debt-name" class="block text-sm font-medium text-gray-700 mb-1">項目名稱</label><input type="text" id="edit-debt-name" class="w-full p-3 border border-gray-300 rounded-lg" required></div><div class="mb-4"><label for="edit-debt-total" class="block text-sm font-medium text-gray-700 mb-1">初始總金額</label><input type="number" id="edit-debt-total" class="w-full p-3 border border-gray-300 rounded-lg" required></div><div class="flex justify-end gap-4"><button type="button" id="cancel-edit-debt-btn" class="bg-gray-300 text-gray-800 font-bold py-2 px-4 rounded-lg hover:bg-gray-400">取消</button><button type="submit" class="bg-green-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-green-700">儲存變更</button></div></form><h4 class="text-lg font-bold mb-2 border-t pt-4">還款紀錄</h4><ul id="repayment-history-list" class="space-y-2 max-h-48 overflow-y-auto"></ul><p id="repayment-history-empty" class="hidden text-center text-gray-500 py-4">尚無還款紀錄</p></div></div>
     <div id="receive-payment-modal" class="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center hidden z-50 p-4"><div class="bg-white p-6 md:p-8 rounded-2xl shadow-xl w-full max-w-md"><h3 class="text-2xl font-bold mb-6">記錄一筆收款</h3><form id="receive-payment-form"><input type="hidden" id="receive-payment-lending-id"><input type="hidden" id="receive-payment-lending-name"><div class="mb-4"><label for="receive-payment-amount" class="block text-sm font-medium text-gray-700 mb-1">收款金額</label><input type="number" id="receive-payment-amount" placeholder="輸入此次收款金額" class="w-full p-3 border border-gray-300 rounded-lg" required></div><div class="mb-4"><label for="receive-payment-date" class="block text-sm font-medium text-gray-700 mb-1">收款日期</label><input type="date" id="receive-payment-date" class="w-full p-3 border border-gray-300 rounded-lg" required></div><div class="flex justify-end gap-4"><button type="button" id="cancel-receive-payment-btn" class="bg-gray-300 text-gray-800 font-bold py-2 px-4 rounded-lg hover:bg-gray-400">取消</button><button type="submit" class="bg-emerald-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-emerald-700">確認收款</button></div></form></div></div>
+    <div id="investment-transaction-modal" class="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center hidden z-50 p-4"><div class="bg-white p-6 md:p-8 rounded-2xl shadow-xl w-full max-w-md"><h3 id="investment-transaction-title" class="text-2xl font-bold mb-6"></h3><form id="investment-transaction-form"><input type="hidden" id="investment-transaction-account-id"><div class="mb-4"><label for="investment-transaction-date" class="block text-sm font-medium text-gray-700 mb-1">日期</label><input type="date" id="investment-transaction-date" class="w-full p-3 border border-gray-300 rounded-lg" required></div><div class="mb-4"><label class="block text-sm font-medium text-gray-700 mb-1">類型</label><select id="investment-transaction-type" class="w-full p-3 border border-gray-300 rounded-lg bg-white"><option value="expense">支出 (買入/投入)</option><option value="income">收入 (賣出/配息)</option></select></div><div class="mb-4"><label for="investment-transaction-amount" class="block text-sm font-medium text-gray-700 mb-1">金額</label><input type="number" id="investment-transaction-amount" placeholder="輸入金額" class="w-full p-3 border border-gray-300 rounded-lg" required></div><div class="mb-4"><label for="investment-transaction-remark" class="block text-sm font-medium text-gray-700 mb-1">備註</label><input type="text" id="investment-transaction-remark" placeholder="例如: 買入TSMC 1股" class="w-full p-3 border border-gray-300 rounded-lg"></div><div class="flex justify-end gap-4"><button type="button" id="cancel-investment-transaction-btn" class="bg-gray-300 text-gray-800 font-bold py-2 px-4 rounded-lg hover:bg-gray-400">取消</button><button type="submit" class="bg-blue-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-blue-700">確認</button></div></form></div></div>
+    <div id="investment-detail-modal" class="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center hidden z-50 p-4"><div class="bg-white p-6 md:p-8 rounded-2xl shadow-xl w-full max-w-lg"><div class="flex justify-between items-center mb-4"><h3 id="investment-detail-title" class="text-2xl font-bold"></h3><button id="close-investment-detail-modal-btn" class="text-gray-400 hover:text-gray-600 text-3xl leading-none">&times;</button></div><h4 class="text-lg font-bold mb-2 border-t pt-4">交易紀錄</h4><ul id="investment-history-list" class="space-y-2 max-h-96 overflow-y-auto"></ul><p id="investment-history-empty" class="hidden text-center text-gray-500 py-4">尚無交易紀錄</p></div></div>
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
@@ -240,8 +274,8 @@
         const googleLoginBtn = document.getElementById('google-login-btn');
         const anonymousLoginBtn = document.getElementById('anonymous-login-btn');
         const appContainer = document.getElementById('app-container'), authInfo = document.getElementById('auth-info');
-        const accountingView = document.getElementById('accounting-view'), reportsView = document.getElementById('reports-view'), debtView = document.getElementById('debt-view'), eventsView = document.getElementById('events-view'), lendingView = document.getElementById('lending-view');
-        const tabAccounting = document.getElementById('tab-accounting'), tabReports = document.getElementById('tab-reports'), tabDebt = document.getElementById('tab-debt'), tabEvents = document.getElementById('tab-events'), tabLending = document.getElementById('tab-lending');
+        const accountingView = document.getElementById('accounting-view'), reportsView = document.getElementById('reports-view'), debtView = document.getElementById('debt-view'), eventsView = document.getElementById('events-view'), lendingView = document.getElementById('lending-view'), investmentView = document.getElementById('investment-view');
+        const tabAccounting = document.getElementById('tab-accounting'), tabReports = document.getElementById('tab-reports'), tabDebt = document.getElementById('tab-debt'), tabEvents = document.getElementById('tab-events'), tabLending = document.getElementById('tab-lending'), tabInvestment = document.getElementById('tab-investment');
         const form = document.getElementById('transaction-form'), amountInput = document.getElementById('amount'), transactionDateInput = document.getElementById('transaction-date'), remarksInput = document.getElementById('remarks'), transactionList = document.getElementById('transaction-list');
         const categoryInput = document.getElementById('category-input'), categoryDatalist = document.getElementById('category-list');
         const projectInput = document.getElementById('project-input'), projectDatalist = document.getElementById('project-list');
@@ -270,6 +304,11 @@
         const totalLendingAmountEl = document.getElementById('total-lending-amount'), totalLendingRemainingEl = document.getElementById('total-lending-remaining');
         const receivePaymentModal = document.getElementById('receive-payment-modal'), receivePaymentForm = document.getElementById('receive-payment-form'), cancelReceivePaymentBtn = document.getElementById('cancel-receive-payment-btn');
         const receivePaymentLendingIdInput = document.getElementById('receive-payment-lending-id'), receivePaymentLendingNameInput = document.getElementById('receive-payment-lending-name'), receivePaymentAmountInput = document.getElementById('receive-payment-amount'), receivePaymentDateInput = document.getElementById('receive-payment-date');
+        // Investment Elements
+        const investmentForm = document.getElementById('investment-form'), investmentList = document.getElementById('investment-list'), investmentLoadingIndicator = document.getElementById('investment-loading-indicator'), investmentEmptyState = document.getElementById('investment-empty-state');
+        const totalInvestmentValueEl = document.getElementById('total-investment-value'), totalInvestmentReturnEl = document.getElementById('total-investment-return');
+        const investmentTransactionModal = document.getElementById('investment-transaction-modal'), investmentTransactionForm = document.getElementById('investment-transaction-form'), cancelInvestmentTransactionBtn = document.getElementById('cancel-investment-transaction-btn');
+        const investmentDetailModal = document.getElementById('investment-detail-modal'), closeInvestmentDetailModalBtn = document.getElementById('close-investment-detail-modal-btn'), investmentHistoryList = document.getElementById('investment-history-list'), investmentHistoryEmpty = document.getElementById('investment-history-empty');
         // Report filter elements
         const filterThisMonthBtn = document.getElementById('filter-this-month'), filterCustomDateBtn = document.getElementById('filter-custom-date'), startDateInput = document.getElementById('start-date'), endDateInput = document.getElementById('end-date');
         const filteredTransactionList = document.getElementById('filtered-transaction-list'), filteredEmptyState = document.getElementById('filtered-empty-state');
@@ -278,9 +317,9 @@
         const incomeStatsList = document.getElementById('income-stats-list');
 
         // --- Firebase & App 狀態 ---
-        let db, auth, userId, transactionsColRef, categoriesColRef, projectsColRef, debtsColRef, eventsColRef, lendingsColRef;
-        let unsubscribeTransactions, unsubscribeCategories, unsubscribeProjects, unsubscribeDebts, unsubscribeEvents, unsubscribeLendings;
-        let allTransactions = [], customCategories = [], customProjects = [], allDebts = [], allEvents = [], allLendings = [];
+        let db, auth, userId, transactionsColRef, categoriesColRef, projectsColRef, debtsColRef, eventsColRef, lendingsColRef, investmentsColRef;
+        let unsubscribeTransactions, unsubscribeCategories, unsubscribeProjects, unsubscribeDebts, unsubscribeEvents, unsubscribeLendings, unsubscribeInvestments;
+        let allTransactions = [], customCategories = [], customProjects = [], allDebts = [], allEvents = [], allLendings = [], allInvestments = [];
         let expenseChart = null;
         let activeCategoryFilter = { type: null, category: null };
         const defaultCategories = { expense: ['飲食', '交通', '居住', '娛樂', '購物', '醫療', '教育', '負債還款', '其他'], income: ['薪資', '獎金', '投資', '兼職', '債權回收', '其他'] };
@@ -312,6 +351,7 @@
                 debtsColRef = collection(db, `${basePath}/debts`);
                 eventsColRef = collection(db, `${basePath}/events`);
                 lendingsColRef = collection(db, `${basePath}/lendings`);
+                investmentsColRef = collection(db, `${basePath}/investments`);
                 
                 setupUIForLoggedInUser(user);
                 
@@ -321,6 +361,7 @@
                 listenForDebts();
                 listenForEvents();
                 listenForLendings();
+                listenForInvestments();
                 
             } else {
                 // User is signed out.
@@ -332,6 +373,7 @@
                 if (unsubscribeDebts) unsubscribeDebts();
                 if (unsubscribeEvents) unsubscribeEvents();
                 if (unsubscribeLendings) unsubscribeLendings();
+                if (unsubscribeInvestments) unsubscribeInvestments();
             }
         });
         
@@ -359,6 +401,7 @@
             debtList.innerHTML = '';
             eventList.innerHTML = '';
             lendingList.innerHTML = '';
+            investmentList.innerHTML = '';
             // etc.
         }
 
@@ -415,6 +458,25 @@
                 lendingEmptyState.classList.toggle('hidden', allLendings.length > 0);
             }, (error) => console.error("監聽債權資料失敗:", error));
         }
+        
+        function listenForInvestments() {
+            if(unsubscribeInvestments) unsubscribeInvestments();
+            unsubscribeInvestments = onSnapshot(query(investmentsColRef), async (snapshot) => {
+                investmentLoadingIndicator.classList.add('hidden');
+                const investmentPromises = snapshot.docs.map(async (investmentDoc) => {
+                    const investmentData = { id: investmentDoc.id, ...investmentDoc.data() };
+                    const investmentTxColRef = collection(db, `${investmentsColRef.path}/${investmentDoc.id}/transactions`);
+                    const txSnapshot = await getDocs(query(investmentTxColRef));
+                    investmentData.transactions = txSnapshot.docs.map(txDoc => ({id: txDoc.id, ...txDoc.data()}));
+                    return investmentData;
+                });
+                allInvestments = await Promise.all(investmentPromises);
+                renderInvestments(allInvestments);
+                updateInvestmentSummary(allInvestments);
+                investmentEmptyState.classList.toggle('hidden', allInvestments.length > 0);
+            }, (error) => console.error("監聽投資資料失敗:", error));
+        }
+
 
         function listenForCustomItems(collectionRef, callback) {
             const q = query(collectionRef);
@@ -534,6 +596,39 @@
                 lendingList.appendChild(card);
             });
         }
+        
+        function renderInvestments(investments) {
+            investmentList.innerHTML = '';
+            investments.forEach(inv => {
+                const income = inv.transactions.filter(t => t.type === 'income').reduce((sum, t) => sum + t.amount, 0);
+                const expense = inv.transactions.filter(t => t.type === 'expense').reduce((sum, t) => sum + t.amount, 0);
+                const currentValue = inv.initialValue + income - expense;
+                const profit = currentValue - inv.initialValue;
+                const profitColor = profit >= 0 ? 'text-green-600' : 'text-red-600';
+
+                const card = document.createElement('div');
+                card.className = 'bg-gray-50 p-4 rounded-lg shadow-sm border investment-card-clickable hover:shadow-md transition-shadow';
+                card.dataset.id = inv.id;
+                card.innerHTML = `
+                    <div class="flex justify-between items-start">
+                        <h3 class="text-md font-bold text-gray-800">${inv.name}</h3>
+                        <button class="delete-investment-btn text-gray-400 hover:text-red-500 z-10 relative" data-id="${inv.id}">&times;</button>
+                    </div>
+                    <div class="mt-2">
+                        <p class="text-sm text-gray-500">目前價值</p>
+                        <p class="text-xl font-bold text-blue-600">NT$ ${currentValue.toLocaleString()}</p>
+                    </div>
+                    <div class="mt-1">
+                        <p class="text-sm text-gray-500">總報酬</p>
+                        <p class="text-lg font-bold ${profitColor}">NT$ ${profit.toLocaleString()}</p>
+                    </div>
+                    <div class="mt-3 text-right">
+                        <button class="add-investment-tx-btn bg-blue-600 text-white font-bold py-1 px-3 rounded-lg hover:bg-blue-700 z-10 relative text-sm" data-id="${inv.id}" data-name="${inv.name}">新增交易</button>
+                    </div>
+                `;
+                investmentList.appendChild(card);
+            });
+        }
 
         function renderRepaymentHistory(debtName) {
             const history = allTransactions.filter(tx => tx.category === '負債還款' && tx.project === debtName);
@@ -547,6 +642,27 @@
                     <span class="text-sm font-semibold">償還 NT$ ${tx.amount.toLocaleString()}</span>
                 `;
                 repaymentHistoryList.appendChild(li);
+            });
+        }
+        
+        function renderInvestmentHistory(investmentId) {
+            const investment = allInvestments.find(inv => inv.id === investmentId);
+            if (!investment) return;
+            investmentHistoryList.innerHTML = '';
+            investmentHistoryEmpty.classList.toggle('hidden', investment.transactions.length > 0);
+            
+            investment.transactions.sort((a,b) => (b.date?.toMillis() || 0) - (a.date?.toMillis() || 0)).forEach(tx => {
+                const li = document.createElement('li');
+                const isIncome = tx.type === 'income';
+                li.className = `flex justify-between items-center p-2 rounded ${isIncome ? 'bg-green-50' : 'bg-red-50'}`;
+                li.innerHTML = `
+                    <div>
+                        <p class="text-sm text-gray-600">${tx.date.toDate().toLocaleDateString('zh-TW')}</p>
+                        <p class="text-sm text-gray-500">${tx.remark || '無備註'}</p>
+                    </div>
+                    <span class="text-sm font-semibold ${isIncome ? 'text-green-700' : 'text-red-700'}">${isIncome ? '+' : '-'} NT$ ${tx.amount.toLocaleString()}</span>
+                `;
+                investmentHistoryList.appendChild(li);
             });
         }
 
@@ -595,6 +711,22 @@
             totalCurrentDebtEl.textContent = `NT$ ${currentDebt.toLocaleString()}`;
         }
         
+        function updateInvestmentSummary(investments) {
+            let totalValue = 0;
+            let totalReturn = 0;
+            investments.forEach(inv => {
+                const income = inv.transactions.filter(t => t.type === 'income').reduce((sum, t) => sum + t.amount, 0);
+                const expense = inv.transactions.filter(t => t.type === 'expense').reduce((sum, t) => sum + t.amount, 0);
+                const currentValue = inv.initialValue + income - expense;
+                totalValue += currentValue;
+                totalReturn += (currentValue - inv.initialValue);
+            });
+            totalInvestmentValueEl.textContent = `NT$ ${totalValue.toLocaleString()}`;
+            totalInvestmentReturnEl.textContent = `NT$ ${totalReturn.toLocaleString()}`;
+            totalInvestmentReturnEl.classList.toggle('text-green-600', totalReturn >= 0);
+            totalInvestmentReturnEl.classList.toggle('text-red-600', totalReturn < 0);
+        }
+
         function updateLendingSummary(lendings) {
             const totalLent = lendings.reduce((sum, l) => sum + l.totalAmount, 0);
             const totalRemaining = lendings.reduce((sum, l) => sum + l.remainingAmount, 0);
@@ -652,6 +784,7 @@
             });
 
             tabAccounting.addEventListener('click', () => switchTab('accounting'));
+            tabInvestment.addEventListener('click', () => switchTab('investment'));
             tabReports.addEventListener('click', () => switchTab('reports'));
             tabDebt.addEventListener('click', () => switchTab('debt'));
             tabLending.addEventListener('click', () => switchTab('lending'));
@@ -661,6 +794,8 @@
             debtForm.addEventListener('submit', handleDebtFormSubmit);
             lendingForm.addEventListener('submit', handleLendingFormSubmit);
             eventForm.addEventListener('submit', handleEventFormSubmit);
+            investmentForm.addEventListener('submit', handleInvestmentFormSubmit);
+            investmentTransactionForm.addEventListener('submit', handleInvestmentTransactionSubmit);
 
             repaymentForm.addEventListener('submit', handleRepaymentSubmit);
             debtEditForm.addEventListener('submit', handleDebtEditSubmit);
@@ -668,6 +803,7 @@
             
             cancelRepaymentBtn.addEventListener('click', () => repaymentModal.classList.add('hidden'));
             cancelReceivePaymentBtn.addEventListener('click', () => receivePaymentModal.classList.add('hidden'));
+            cancelInvestmentTransactionBtn.addEventListener('click', () => investmentTransactionModal.classList.add('hidden'));
 
             expenseRadio.addEventListener('change', updateTypeSelection);
             document.querySelector('input[name="type"][value="income"]').addEventListener('change', updateTypeSelection);
@@ -692,6 +828,16 @@
                 if (e.target.closest('.receive-payment-btn')) handleReceivePaymentClick(e);
                 if (e.target.closest('.delete-lending-btn')) handleDelete(e, '.delete-lending-btn', lendingsColRef);
             });
+            investmentList.addEventListener('click', (e) => {
+                const investmentCard = e.target.closest('.investment-card-clickable');
+                if (e.target.closest('.add-investment-tx-btn') || e.target.closest('.delete-investment-btn')) {
+                    e.stopPropagation();
+                    handleDelete(e, '.delete-investment-btn', investmentsColRef);
+                    handleAddInvestmentTxClick(e);
+                    return;
+                }
+                if(investmentCard) handleInvestmentCardClick(investmentCard.dataset.id);
+            });
 
             customCategoryList.addEventListener('click', (e) => handleDelete(e, '.delete-category-btn', categoriesColRef));
             customProjectList.addEventListener('click', (e) => handleDelete(e, '.delete-project-btn', projectsColRef));
@@ -701,14 +847,16 @@
             closeDebtDetailModalBtn.addEventListener('click', () => debtDetailModal.classList.add('hidden'));
             editDebtBtn.addEventListener('click', toggleDebtEditView);
             cancelEditDebtBtn.addEventListener('click', toggleDebtEditView);
+            // Investment Detail Modal Listener
+            closeInvestmentDetailModalBtn.addEventListener('click', () => investmentDetailModal.classList.add('hidden'));
             // Category Stats Listeners
             expenseStatsList.addEventListener('click', handleCategoryClick);
             incomeStatsList.addEventListener('click', handleCategoryClick);
         }
 
         function switchTab(tabName) {
-            const views = { accounting: accountingView, reports: reportsView, debt: debtView, lending: lendingView, events: eventsView };
-            const tabs = { accounting: tabAccounting, reports: tabReports, debt: tabDebt, lending: tabLending, events: tabEvents };
+            const views = { accounting: accountingView, investment: investmentView, reports: reportsView, debt: debtView, lending: lendingView, events: eventsView };
+            const tabs = { accounting: tabAccounting, investment: tabInvestment, reports: tabReports, debt: tabDebt, lending: tabLending, events: tabEvents };
             
             for (const key in views) {
                 views[key].classList.toggle('hidden', key !== tabName);
@@ -786,6 +934,52 @@
                 lendingForm.reset();
             } catch (error) { console.error("新增債權失敗:", error); }
         }
+        
+        async function handleInvestmentFormSubmit(e) {
+            e.preventDefault();
+            const name = document.getElementById('investment-name').value.trim();
+            const initialValue = parseFloat(document.getElementById('investment-initial-value').value);
+            if (name === '' || isNaN(initialValue)) { console.warn("請輸入有效的帳戶名稱和初始金額"); return; }
+
+            try {
+                await addDoc(investmentsColRef, { name, initialValue, createdAt: serverTimestamp() });
+                investmentForm.reset();
+            } catch (error) { console.error("新增投資帳戶失敗:", error); }
+        }
+        
+        function handleAddInvestmentTxClick(e) {
+            const btn = e.target.closest('.add-investment-tx-btn');
+            if(btn) {
+                document.getElementById('investment-transaction-title').textContent = `新增交易至 "${btn.dataset.name}"`;
+                document.getElementById('investment-transaction-account-id').value = btn.dataset.id;
+                document.getElementById('investment-transaction-date').valueAsDate = new Date();
+                investmentTransactionModal.classList.remove('hidden');
+            }
+        }
+        
+        async function handleInvestmentTransactionSubmit(e) {
+            e.preventDefault();
+            const accountId = document.getElementById('investment-transaction-account-id').value;
+            const date = document.getElementById('investment-transaction-date').value;
+            const type = document.getElementById('investment-transaction-type').value;
+            const amount = parseFloat(document.getElementById('investment-transaction-amount').value);
+            const remark = document.getElementById('investment-transaction-remark').value.trim();
+
+            if (!accountId || !date || isNaN(amount) || amount <= 0) {
+                console.warn("請填寫完整交易資訊");
+                return;
+            }
+
+            const txColRef = collection(db, `${investmentsColRef.path}/${accountId}/transactions`);
+            try {
+                await addDoc(txColRef, { date: Timestamp.fromDate(new Date(date)), type, amount, remark });
+                investmentTransactionForm.reset();
+                investmentTransactionModal.classList.add('hidden');
+            } catch (error) {
+                console.error("新增投資交易失敗:", error);
+            }
+        }
+
 
         function handleRepayClick(e) {
             const repayBtn = e.target.closest('.repay-btn');
@@ -831,6 +1025,15 @@
             debtDetailModal.classList.remove('hidden');
         }
         
+        function handleInvestmentCardClick(investmentId) {
+            const investment = allInvestments.find(inv => inv.id === investmentId);
+            if (!investment) return;
+            
+            document.getElementById('investment-detail-title').textContent = `"${investment.name}" 交易紀錄`;
+            renderInvestmentHistory(investment.id);
+            investmentDetailModal.classList.remove('hidden');
+        }
+
         function toggleDebtEditView() {
             debtDetailDisplayView.classList.toggle('hidden');
             debtEditForm.classList.toggle('hidden');
