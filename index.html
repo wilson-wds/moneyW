@@ -267,7 +267,7 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, signInAnonymously, onAuthStateChanged, GoogleAuthProvider, signInWithPopup, signOut } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, collection, addDoc, query, onSnapshot, doc, deleteDoc, serverTimestamp, updateDoc, increment, Timestamp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getFirestore, collection, addDoc, query, onSnapshot, doc, deleteDoc, serverTimestamp, updateDoc, increment, Timestamp, getDocs } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         // --- DOM 元素 ---
         const loginView = document.getElementById('login-view');
@@ -322,7 +322,7 @@
         let allTransactions = [], customCategories = [], customProjects = [], allDebts = [], allEvents = [], allLendings = [], allInvestments = [];
         let expenseChart = null;
         let activeCategoryFilter = { type: null, category: null };
-        const defaultCategories = { expense: ['飲食', '交通', '居住', '娛樂', '購物', '醫療', '教育', '負債還款', '其他'], income: ['薪資', '獎金', '投資', '兼職', '債權回收', '其他'] };
+        const defaultCategories = { expense: ['飲食', '交通', '居住', '娛樂', '購物', '醫療', '教育', '負債還款', '投資本金', '其他'], income: ['薪資', '獎金', '投資', '兼職', '債權回收', '其他'] };
 
         // Your web app's Firebase configuration
         const firebaseConfig = {
@@ -943,6 +943,17 @@
 
             try {
                 await addDoc(investmentsColRef, { name, initialValue, createdAt: serverTimestamp() });
+                // Also add a corresponding transaction
+                if (initialValue > 0) {
+                    await addDoc(transactionsColRef, { 
+                        type: 'expense', 
+                        amount: initialValue, 
+                        category: '投資本金', 
+                        project: name, 
+                        remarks: `建立投資帳戶: ${name}`, 
+                        timestamp: serverTimestamp() 
+                    });
+                }
                 investmentForm.reset();
             } catch (error) { console.error("新增投資帳戶失敗:", error); }
         }
