@@ -659,11 +659,14 @@
                 const isIncome = tx.type === 'income';
                 li.className = `flex justify-between items-center p-2 rounded ${isIncome ? 'bg-green-50' : 'bg-red-50'}`;
                 li.innerHTML = `
-                    <div>
+                    <div class="flex-grow">
                         <p class="text-sm text-gray-600">${tx.date.toDate().toLocaleDateString('zh-TW')}</p>
                         <p class="text-sm text-gray-500">${tx.remark || '無備註'}</p>
                     </div>
                     <span class="text-sm font-semibold ${isIncome ? 'text-green-700' : 'text-red-700'}">${isIncome ? '+' : '-'} NT$ ${tx.amount.toLocaleString()}</span>
+                    <button class="delete-investment-tx-btn text-gray-400 hover:text-red-500 p-1 ml-2" data-investment-id="${investmentId}" data-tx-id="${tx.id}">
+                         <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
+                    </button>
                 `;
                 investmentHistoryList.appendChild(li);
             });
@@ -852,6 +855,7 @@
             cancelEditDebtBtn.addEventListener('click', toggleDebtEditView);
             // Investment Detail Modal Listener
             closeInvestmentDetailModalBtn.addEventListener('click', () => investmentDetailModal.classList.add('hidden'));
+            investmentHistoryList.addEventListener('click', (e) => handleDeleteInvestmentTx(e));
             // Category Stats Listeners
             expenseStatsList.addEventListener('click', handleCategoryClick);
             incomeStatsList.addEventListener('click', handleCategoryClick);
@@ -1000,6 +1004,29 @@
                 listenForInvestments(); // Manually refresh investment data
             } catch (error) {
                 console.error("新增投資交易失敗:", error);
+            }
+        }
+        
+        async function handleDeleteInvestmentTx(e) {
+            const deleteBtn = e.target.closest('.delete-investment-tx-btn');
+            if (deleteBtn) {
+                const investmentId = deleteBtn.dataset.investmentId;
+                const txId = deleteBtn.dataset.txId;
+                if (investmentId && txId) {
+                    const txDocRef = doc(db, investmentsColRef.path, investmentId, 'transactions', txId);
+                    try {
+                        deleteBtn.disabled = true;
+                        await deleteDoc(txDocRef);
+                        listenForInvestments(); // Refresh all investment data
+                        // Re-render the modal content if it's still open
+                        if (!investmentDetailModal.classList.contains('hidden')) {
+                           renderInvestmentHistory(investmentId);
+                        }
+                    } catch (error) {
+                        console.error("刪除投資交易失敗:", error);
+                        deleteBtn.disabled = false;
+                    }
+                }
             }
         }
 
