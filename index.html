@@ -968,12 +968,15 @@
             if (name === '' || isNaN(initialValue)) { console.warn("請輸入有效的帳戶名稱和初始金額"); return; }
 
             try {
-                const newInvestmentRef = await addDoc(investmentsColRef, { name, initialValue, createdAt: serverTimestamp() });
+                const now = new Date();
+                const timestamp = Timestamp.fromDate(now);
+
+                const newInvestmentRef = await addDoc(investmentsColRef, { name, initialValue, createdAt: timestamp });
                 // Also add a corresponding transaction
                 if (initialValue > 0) {
                      const txColRef = collection(db, `${investmentsColRef.path}/${newInvestmentRef.id}/transactions`);
                      await addDoc(txColRef, {
-                        date: serverTimestamp(),
+                        date: timestamp,
                         type: 'expense',
                         amount: initialValue,
                         remark: '初始投入金額'
@@ -985,7 +988,7 @@
                         category: '投資本金', 
                         project: name, 
                         remarks: `建立投資帳戶: ${name}`, 
-                        timestamp: serverTimestamp() 
+                        timestamp: timestamp 
                     });
                 }
                 investmentForm.reset();
