@@ -811,6 +811,7 @@
             tabDebt.addEventListener('click', () => switchTab('debt'));
             tabLending.addEventListener('click', () => switchTab('lending'));
             tabEvents.addEventListener('click', () => switchTab('events'));
+            document.getElementById('tab-settings').addEventListener('click', () => switchTab('settings'));
 
             form.addEventListener('submit', handleFormSubmit);
             debtForm.addEventListener('submit', handleDebtFormSubmit);
