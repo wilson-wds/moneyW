@@ -64,6 +64,14 @@
                     <div class="bg-indigo-100 p-4 rounded-xl shadow-sm"><h2 class="text-base font-semibold text-indigo-800">當日結餘</h2><p id="today-balance" class="text-xl font-bold text-indigo-600 mt-1">NT$ 0</p></div>
                 </div>
             </section>
+             <section class="mb-8">
+                 <h2 class="text-xl font-bold text-gray-700 mb-4">本月即時</h2>
+                 <div id="monthly-summary" class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div class="bg-pink-100 p-4 rounded-xl shadow-sm"><h2 class="text-base font-semibold text-pink-800">本月收入</h2><p id="monthly-income" class="text-xl font-bold text-pink-600 mt-1">NT$ 0</p></div>
+                    <div class="bg-amber-100 p-4 rounded-xl shadow-sm"><h2 class="text-base font-semibold text-amber-800">本月支出</h2><p id="monthly-expense" class="text-xl font-bold text-amber-600 mt-1">NT$ 0</p></div>
+                    <div class="bg-purple-100 p-4 rounded-xl shadow-sm"><h2 class="text-base font-semibold text-purple-800">本月結餘</h2><p id="monthly-balance" class="text-xl font-bold text-purple-600 mt-1">NT$ 0</p></div>
+                </div>
+            </section>
             <section class="mb-8">
                 <h2 class="text-xl font-bold text-gray-700 mb-4">總覽</h2>
                 <div id="summary" class="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -293,6 +301,7 @@
         const projectInput = document.getElementById('project-input'), projectDatalist = document.getElementById('project-list');
         const totalIncomeEl = document.getElementById('total-income'), totalExpenseEl = document.getElementById('total-expense'), balanceEl = document.getElementById('balance');
         const todayIncomeEl = document.getElementById('today-income'), todayExpenseEl = document.getElementById('today-expense'), todayBalanceEl = document.getElementById('today-balance');
+        const monthlyIncomeEl = document.getElementById('monthly-income'), monthlyExpenseEl = document.getElementById('monthly-expense'), monthlyBalanceEl = document.getElementById('monthly-balance');
         const loadingIndicator = document.getElementById('loading-indicator'), emptyState = document.getElementById('empty-state');
         const typeLabels = document.querySelectorAll('.type-label'), expenseRadio = document.getElementById('type-expense');
         const submitBtnText = document.getElementById('submit-btn-text'), submitSpinner = document.getElementById('submit-spinner');
@@ -437,6 +446,7 @@
                 renderTransactions(allTransactions);
                 updateSummary(allTransactions);
                 updateTodaySummary(todayTransactions);
+                updateMonthlySummary(allTransactions);
                 updateExpenseChart();
                 updateMonthlyRepaymentSummary();
                 if(reportsView.classList.contains('hidden') === false) { handleFilterThisMonth(); }
@@ -730,6 +740,24 @@
             todayIncomeEl.textContent = `NT$ ${income.toLocaleString()}`;
             todayExpenseEl.textContent = `NT$ ${expense.toLocaleString()}`;
             todayBalanceEl.textContent = `NT$ ${(income - expense).toLocaleString()}`;
+        }
+
+        function updateMonthlySummary(transactions) {
+            const now = new Date();
+            const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+            const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+            
+            const monthlyTransactions = transactions.filter(tx => {
+                 if (!tx.timestamp) return false;
+                 const txDate = tx.timestamp.toDate();
+                 return txDate >= startOfMonth && txDate <= endOfMonth;
+            });
+
+            const income = monthlyTransactions.filter(t => t.type === 'income').reduce((sum, t) => sum + t.amount, 0);
+            const expense = monthlyTransactions.filter(t => t.type === 'expense').reduce((sum, t) => sum + t.amount, 0);
+            monthlyIncomeEl.textContent = `NT$ ${income.toLocaleString()}`;
+            monthlyExpenseEl.textContent = `NT$ ${expense.toLocaleString()}`;
+            monthlyBalanceEl.textContent = `NT$ ${(income - expense).toLocaleString()}`;
         }
         
         function updateDebtSummary(debts) {
