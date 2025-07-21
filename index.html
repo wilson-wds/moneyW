@@ -1025,7 +1025,10 @@
                 return;
             }
             
-            const transactionTimestamp = Timestamp.fromDate(new Date(date));
+            const dateParts = date.split('-');
+            const localDate = new Date(parseInt(dateParts[0]), parseInt(dateParts[1]) - 1, parseInt(dateParts[2]));
+            const transactionTimestamp = Timestamp.fromDate(localDate);
+
             const txColRef = collection(db, `${investmentsColRef.path}/${accountId}/transactions`);
             try {
                 await addDoc(txColRef, { date: transactionTimestamp, type, amount, remark });
@@ -1154,10 +1157,14 @@
             const remark = document.getElementById('repayment-remark').value.trim();
             if (isNaN(amount) || amount <= 0 || !date) { console.warn("請輸入有效的還款金額和日期"); return; }
             
+            const dateParts = date.split('-');
+            const localDate = new Date(parseInt(dateParts[0]), parseInt(dateParts[1]) - 1, parseInt(dateParts[2]));
+            const timestamp = Timestamp.fromDate(localDate);
+
             const debtRef = doc(db, debtsColRef.path, debtId);
             try {
                 await updateDoc(debtRef, { remainingAmount: increment(-amount) });
-                await addDoc(transactionsColRef, { type: 'expense', amount: amount, category: '負債還款', project: debtName, remarks: remark || `償還負債: ${debtName}`, timestamp: Timestamp.fromDate(new Date(date)) });
+                await addDoc(transactionsColRef, { type: 'expense', amount: amount, category: '負債還款', project: debtName, remarks: remark || `償還負債: ${debtName}`, timestamp: timestamp });
                 repaymentForm.reset();
                 repaymentModal.classList.add('hidden');
             } catch (error) { console.error("更新還款失敗:", error); }
@@ -1168,10 +1175,14 @@
             const lendingId = receivePaymentLendingIdInput.value, lendingName = receivePaymentLendingNameInput.value, amount = parseFloat(receivePaymentAmountInput.value), date = receivePaymentDateInput.value;
             if (isNaN(amount) || amount <= 0 || !date) { console.warn("請輸入有效的收款金額和日期"); return; }
 
+            const dateParts = date.split('-');
+            const localDate = new Date(parseInt(dateParts[0]), parseInt(dateParts[1]) - 1, parseInt(dateParts[2]));
+            const timestamp = Timestamp.fromDate(localDate);
+
             const lendingRef = doc(db, lendingsColRef.path, lendingId);
             try {
                 await updateDoc(lendingRef, { remainingAmount: increment(-amount) });
-                await addDoc(transactionsColRef, { type: 'income', amount: amount, category: '債權回收', project: lendingName, remarks: `收到還款: ${lendingName}`, timestamp: Timestamp.fromDate(new Date(date)) });
+                await addDoc(transactionsColRef, { type: 'income', amount: amount, category: '債權回收', project: lendingName, remarks: `收到還款: ${lendingName}`, timestamp: timestamp });
                 receivePaymentForm.reset();
                 receivePaymentModal.classList.add('hidden');
             } catch (error) { console.error("更新收款失敗:", error); }
