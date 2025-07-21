@@ -425,8 +425,13 @@
                 allTransactions = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
                 allTransactions.sort((a, b) => (b.timestamp?.toMillis() || 0) - (a.timestamp?.toMillis() || 0));
                 
-                const now = new Date(), startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-                const todayTransactions = allTransactions.filter(tx => tx.timestamp && tx.timestamp.toDate() >= startOfToday);
+                const now = new Date();
+                const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+                const todayTransactions = allTransactions.filter(tx => {
+                    if (!tx.timestamp) return false;
+                    const txDate = tx.timestamp.toDate();
+                    return txDate >= startOfToday;
+                });
 
                 renderTransactions(allTransactions);
                 updateSummary(allTransactions);
@@ -922,7 +927,7 @@
             const btnText = document.getElementById('add-debt-btn-text'), spinner = document.getElementById('add-debt-spinner');
             btnText.classList.add('hidden'); spinner.classList.remove('hidden'); debtForm.querySelector('button[type="submit"]').disabled = true;
             try {
-                await addDoc(debtsColRef, { name, totalAmount, remainingAmount: totalAmount, createdAt: serverTimestamp() });
+                await addDoc(debtsColRef, { name, totalAmount, remainingAmount: totalAmount, createdAt: Timestamp.now() });
                 debtForm.reset();
             } catch (error) { console.error("新增負債失敗:", error); }
             finally { btnText.classList.remove('hidden'); spinner.classList.add('hidden'); debtForm.querySelector('button[type="submit"]').disabled = false; }
@@ -940,7 +945,7 @@
                     date: Timestamp.fromDate(new Date(date)),
                     title,
                     description,
-                    createdAt: serverTimestamp()
+                    createdAt: Timestamp.now()
                 });
                 eventForm.reset();
                 document.getElementById('event-date').valueAsDate = new Date();
@@ -956,7 +961,7 @@
             if (name === '' || isNaN(totalAmount) || totalAmount <= 0) { console.warn("請輸入有效的借款項目和金額"); return; }
             
             try {
-                await addDoc(lendingsColRef, { name, totalAmount, remainingAmount: totalAmount, createdAt: serverTimestamp() });
+                await addDoc(lendingsColRef, { name, totalAmount, remainingAmount: totalAmount, createdAt: Timestamp.now() });
                 lendingForm.reset();
             } catch (error) { console.error("新增債權失敗:", error); }
         }
@@ -1019,10 +1024,11 @@
                 console.warn("請填寫完整交易資訊");
                 return;
             }
-
+            
+            const transactionTimestamp = Timestamp.fromDate(new Date(date));
             const txColRef = collection(db, `${investmentsColRef.path}/${accountId}/transactions`);
             try {
-                await addDoc(txColRef, { date: Timestamp.fromDate(new Date(date)), type, amount, remark });
+                await addDoc(txColRef, { date: transactionTimestamp, type, amount, remark });
                 
                 // Add to main transaction log
                 await addDoc(transactionsColRef, {
@@ -1031,7 +1037,7 @@
                     category: type === 'income' ? '投資收入' : '投資支出',
                     project: accountName,
                     remarks: remark,
-                    timestamp: Timestamp.fromDate(new Date(date))
+                    timestamp: transactionTimestamp
                 });
 
                 investmentTransactionForm.reset();
