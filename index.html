@@ -51,6 +51,7 @@
             <button id="tab-lending" class="tab-btn py-3 px-6 text-lg font-semibold border-b-4 border-transparent text-gray-500 hover:text-gray-800 transition-colors">債權</button>
             <button id="tab-events" class="tab-btn py-3 px-6 text-lg font-semibold border-b-4 border-transparent text-gray-500 hover:text-gray-800 transition-colors">事件紀錄</button>
             <button id="tab-reports" class="tab-btn py-3 px-6 text-lg font-semibold border-b-4 border-transparent text-gray-500 hover:text-gray-800 transition-colors">報表</button>
+            <button id="tab-settings" class="tab-btn py-3 px-6 text-lg font-semibold border-b-4 border-transparent text-gray-500 hover:text-gray-800 transition-colors">設定</button>
         </nav>
 
         <!-- 記帳分頁內容 -->
@@ -252,6 +253,17 @@
                 <p id="event-empty-state" class="hidden text-center text-gray-500 py-8">尚未有任何事件紀錄。</p>
             </section>
         </div>
+        
+        <!-- 設定分頁 -->
+        <div id="settings-view" class="hidden">
+            <section class="bg-white p-6 md:p-8 rounded-2xl shadow-lg">
+                <h2 class="text-2xl font-bold mb-6">資料備份</h2>
+                <div class="p-4 bg-gray-50 rounded-lg border">
+                    <p class="text-gray-600 mb-4">點擊以下載您所有的記帳、負債、投資等資料的 JSON 備份檔案。您可以將此檔案儲存至您的電腦或上傳至雲端硬碟。</p>
+                    <button id="backup-btn" class="bg-gray-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-gray-700">下載備份檔案</button>
+                </div>
+            </section>
+        </div>
 
     </div>
 
@@ -315,6 +327,7 @@
         const filteredIncomeEl = document.getElementById('filtered-income'), filteredExpenseEl = document.getElementById('filtered-expense'), filteredBalanceEl = document.getElementById('filtered-balance');
         const expenseStatsList = document.getElementById('expense-stats-list');
         const incomeStatsList = document.getElementById('income-stats-list');
+        const backupBtn = document.getElementById('backup-btn');
 
         // --- Firebase & App 狀態 ---
         let db, auth, userId, transactionsColRef, categoriesColRef, projectsColRef, debtsColRef, eventsColRef, lendingsColRef, investmentsColRef;
@@ -859,11 +872,13 @@
             // Category Stats Listeners
             expenseStatsList.addEventListener('click', handleCategoryClick);
             incomeStatsList.addEventListener('click', handleCategoryClick);
+            // Backup
+            backupBtn.addEventListener('click', handleBackup);
         }
 
         function switchTab(tabName) {
-            const views = { accounting: accountingView, investment: investmentView, reports: reportsView, debt: debtView, lending: lendingView, events: eventsView };
-            const tabs = { accounting: tabAccounting, investment: tabInvestment, reports: tabReports, debt: tabDebt, lending: tabLending, events: tabEvents };
+            const views = { accounting: accountingView, investment: investmentView, reports: reportsView, debt: debtView, lending: lendingView, events: eventsView, settings: document.getElementById('settings-view') };
+            const tabs = { accounting: tabAccounting, investment: tabInvestment, reports: tabReports, debt: tabDebt, lending: tabLending, events: tabEvents, settings: document.getElementById('tab-settings') };
             
             for (const key in views) {
                 views[key].classList.toggle('hidden', key !== tabName);
@@ -1259,6 +1274,30 @@
             }
         }
         
+        function handleBackup() {
+            const dataToBackup = {
+                transactions: allTransactions.map(t => ({...t, timestamp: t.timestamp.toDate()})),
+                debts: allDebts.map(d => ({...d, createdAt: d.createdAt.toDate()})),
+                lendings: allLendings.map(l => ({...l, createdAt: l.createdAt.toDate()})),
+                events: allEvents.map(e => ({...e, date: e.date.toDate(), createdAt: e.createdAt.toDate()})),
+                investments: allInvestments.map(i => ({...i, createdAt: i.createdAt.toDate(), transactions: i.transactions.map(t => ({...t, date: t.date.toDate()}))})),
+                customCategories: customCategories,
+                customProjects: customProjects
+            };
+
+            const jsonString = JSON.stringify(dataToBackup, null, 2);
+            const blob = new Blob([jsonString], {type: 'application/json'});
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            const date = new Date().toISOString().slice(0, 10);
+            a.href = url;
+            a.download = `記帳軟體備份-${date}.json`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+
         setupEventListeners();
         updateTypeSelection();
         transactionDateInput.valueAsDate = new Date();
