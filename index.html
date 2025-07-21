@@ -427,10 +427,11 @@
                 
                 const now = new Date();
                 const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+                const endOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
                 const todayTransactions = allTransactions.filter(tx => {
                     if (!tx.timestamp) return false;
                     const txDate = tx.timestamp.toDate();
-                    return txDate >= startOfToday;
+                    return txDate >= startOfToday && txDate < endOfToday;
                 });
 
                 renderTransactions(allTransactions);
