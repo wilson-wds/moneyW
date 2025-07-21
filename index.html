@@ -335,7 +335,7 @@
         let allTransactions = [], customCategories = [], customProjects = [], allDebts = [], allEvents = [], allLendings = [], allInvestments = [];
         let expenseChart = null;
         let activeCategoryFilter = { type: null, category: null };
-        const defaultCategories = { expense: ['飲食', '交通', '居住', '娛樂', '購物', '醫療', '教育', '負債還款', '投資本金', '其他'], income: ['薪資', '獎金', '投資', '兼職', '債權回收', '其他'] };
+        const defaultCategories = { expense: ['飲食', '交通', '居住', '娛樂', '購物', '醫療', '教育', '負債還款', '投資本金', '投資支出', '其他'], income: ['薪資', '獎金', '投資收入', '兼職', '債權回收', '其他'] };
 
         // Your web app's Firebase configuration
         const firebaseConfig = {
@@ -997,6 +997,7 @@
             if(btn) {
                 document.getElementById('investment-transaction-title').textContent = `新增交易至 "${btn.dataset.name}"`;
                 document.getElementById('investment-transaction-account-id').value = btn.dataset.id;
+                document.getElementById('investment-transaction-account-name').value = btn.dataset.name;
                 document.getElementById('investment-transaction-date').valueAsDate = new Date();
                 investmentTransactionModal.classList.remove('hidden');
             }
@@ -1005,6 +1006,7 @@
         async function handleInvestmentTransactionSubmit(e) {
             e.preventDefault();
             const accountId = document.getElementById('investment-transaction-account-id').value;
+            const accountName = document.getElementById('investment-transaction-account-name').value;
             const date = document.getElementById('investment-transaction-date').value;
             const type = document.getElementById('investment-transaction-type').value;
             const amount = parseFloat(document.getElementById('investment-transaction-amount').value);
@@ -1018,6 +1020,17 @@
             const txColRef = collection(db, `${investmentsColRef.path}/${accountId}/transactions`);
             try {
                 await addDoc(txColRef, { date: Timestamp.fromDate(new Date(date)), type, amount, remark });
+                
+                // Add to main transaction log
+                await addDoc(transactionsColRef, {
+                    type: type,
+                    amount: amount,
+                    category: type === 'income' ? '投資收入' : '投資支出',
+                    project: accountName,
+                    remarks: remark,
+                    timestamp: Timestamp.fromDate(new Date(date))
+                });
+
                 investmentTransactionForm.reset();
                 investmentTransactionModal.classList.add('hidden');
                 listenForInvestments(); // Manually refresh investment data
