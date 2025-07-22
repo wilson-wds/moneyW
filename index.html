@@ -991,6 +991,7 @@
             
             try {
                 await addDoc(lendingsColRef, { name, totalAmount, remainingAmount: totalAmount, createdAt: Timestamp.now() });
+                await addDoc(transactionsColRef, { type: 'expense', amount: totalAmount, category: '債權借出', project: name, remarks: `借款給: ${name}`, timestamp: Timestamp.now() });
                 lendingForm.reset();
             } catch (error) { console.error("新增債權失敗:", error); }
         }
