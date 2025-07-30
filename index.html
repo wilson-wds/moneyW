@@ -641,9 +641,10 @@
                 const income = inv.transactions.filter(t => t.type === 'income').reduce((sum, t) => sum + t.amount, 0);
                 const expense = inv.transactions.filter(t => t.type === 'expense').reduce((sum, t) => sum + t.amount, 0);
                 
-                const totalCost = inv.initialValue + expense;
+                // Corrected Logic: Total cost is the sum of all expenses (including initial if it was logged as a transaction).
+                const totalCost = expense;
                 const currentValue = inv.initialValue + income - expense;
-                const profit = currentValue - totalCost;
+                const profit = income - expense; // Profit is simply income minus expense
                 const roi = totalCost > 0 ? (profit / totalCost) * 100 : 0;
 
                 const profitColor = profit >= 0 ? 'text-green-600' : 'text-red-600';
@@ -803,12 +804,13 @@
             investments.forEach(inv => {
                 const income = inv.transactions.filter(t => t.type === 'income').reduce((sum, t) => sum + t.amount, 0);
                 const expense = inv.transactions.filter(t => t.type === 'expense').reduce((sum, t) => sum + t.amount, 0);
-                const totalCost = inv.initialValue + expense;
+                const totalCost = expense;
                 const currentValue = inv.initialValue + income - expense;
+                const profit = income - expense;
                 
                 totalValue += currentValue;
                 totalCostAggregated += totalCost;
-                totalReturn += (currentValue - totalCost);
+                totalReturn += profit;
             });
             
             const totalRoi = totalCostAggregated > 0 ? (totalReturn / totalCostAggregated) * 100 : 0;
@@ -1497,4 +1499,4 @@
 * **編輯交易紀錄**：在點進單一投資帳戶的「交易紀錄」彈出視窗中，每一筆交易後面都新增了**編輯**與**刪除**按鈕。
 * **資料同步**：當您編輯或刪除一筆投資交易時，系統會自動找到並同步更新總帳中的對應收支紀錄，確保所有數據都保持一致。
 
-您可以預覽看看新的功能，如果有任何問題或想再調整的地方，隨時都可以告
+您可以預覽看看新的功能，如果有任何問題或想再調整的地方，隨時都
