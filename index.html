@@ -108,11 +108,11 @@
                 <h2 class="text-xl font-bold text-gray-700 mb-4">投資總覽</h2>
                 <div id="investment-summary" class="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div class="bg-blue-100 p-6 rounded-xl shadow-sm">
-                        <h2 class="text-lg font-semibold text-blue-800">總投資現值</h2>
+                        <h2 class="text-lg font-semibold text-blue-800">總資產現值</h2>
                         <p id="total-investment-value" class="text-2xl font-bold text-blue-600 mt-2">NT$ 0</p>
                     </div>
                     <div class="bg-purple-100 p-6 rounded-xl shadow-sm">
-                        <h2 class="text-lg font-semibold text-purple-800">總報酬</h2>
+                        <h2 class="text-lg font-semibold text-purple-800">總報酬 (已實現)</h2>
                         <p id="total-investment-return" class="text-2xl font-bold text-purple-600 mt-2">NT$ 0</p>
                     </div>
                     <div class="bg-teal-100 p-6 rounded-xl shadow-sm">
@@ -288,6 +288,7 @@
     <div id="investment-transaction-modal" class="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center hidden z-50 p-4"><div class="bg-white p-6 md:p-8 rounded-2xl shadow-xl w-full max-w-md"><h3 id="investment-transaction-title" class="text-2xl font-bold mb-6"></h3><form id="investment-transaction-form"><input type="hidden" id="investment-transaction-account-id"><input type="hidden" id="investment-transaction-account-name"><input type="hidden" id="investment-transaction-id"><input type="hidden" id="investment-main-transaction-id"><div class="mb-4"><label for="investment-transaction-date" class="block text-sm font-medium text-gray-700 mb-1">日期</label><input type="date" id="investment-transaction-date" class="w-full p-3 border border-gray-300 rounded-lg" required></div><div class="mb-4"><label class="block text-sm font-medium text-gray-700 mb-1">類型</label><select id="investment-transaction-type" class="w-full p-3 border border-gray-300 rounded-lg bg-white"><option value="expense">支出 (買入/投入)</option><option value="income">收入 (賣出/配息)</option></select></div><div class="mb-4"><label for="investment-transaction-amount" class="block text-sm font-medium text-gray-700 mb-1">金額</label><input type="number" id="investment-transaction-amount" placeholder="輸入金額" class="w-full p-3 border border-gray-300 rounded-lg" required></div><div class="mb-4"><label for="investment-transaction-remark" class="block text-sm font-medium text-gray-700 mb-1">備註</label><input type="text" id="investment-transaction-remark" placeholder="例如: 買入TSMC 1股" class="w-full p-3 border border-gray-300 rounded-lg"></div><div class="flex justify-end gap-4"><button type="button" id="cancel-investment-transaction-btn" class="bg-gray-300 text-gray-800 font-bold py-2 px-4 rounded-lg hover:bg-gray-400">取消</button><button type="submit" class="bg-blue-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-blue-700">確認</button></div></form></div></div>
     <div id="investment-detail-modal" class="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center hidden z-50 p-4"><div class="bg-white p-6 md:p-8 rounded-2xl shadow-xl w-full max-w-lg"><div class="flex justify-between items-center mb-4"><h3 id="investment-detail-title" class="text-2xl font-bold"></h3><button id="close-investment-detail-modal-btn" class="text-gray-400 hover:text-gray-600 text-3xl leading-none">&times;</button></div><h4 class="text-lg font-bold mb-2 border-t pt-4">交易紀錄</h4><ul id="investment-history-list" class="space-y-2 max-h-96 overflow-y-auto"></ul><p id="investment-history-empty" class="hidden text-center text-gray-500 py-4">尚無交易紀錄</p></div></div>
     <div id="edit-investment-account-modal" class="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center hidden z-50 p-4"><div class="bg-white p-6 md:p-8 rounded-2xl shadow-xl w-full max-w-md"><h3 class="text-2xl font-bold mb-6">編輯投資帳戶</h3><form id="edit-investment-account-form"><input type="hidden" id="edit-investment-account-id"><div class="mb-4"><label for="edit-investment-account-name" class="block text-sm font-medium text-gray-700 mb-1">帳戶名稱</label><input type="text" id="edit-investment-account-name" class="w-full p-3 border border-gray-300 rounded-lg" required></div><div class="flex justify-end gap-4"><button type="button" id="cancel-edit-investment-account-btn" class="bg-gray-300 text-gray-800 font-bold py-2 px-4 rounded-lg hover:bg-gray-400">取消</button><button type="submit" class="bg-blue-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-blue-700">儲存</button></div></form></div></div>
+    <div id="update-market-value-modal" class="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center hidden z-50 p-4"><div class="bg-white p-6 md:p-8 rounded-2xl shadow-xl w-full max-w-md"><h3 id="update-market-value-title" class="text-2xl font-bold mb-6">更新資產現值</h3><form id="update-market-value-form"><input type="hidden" id="update-market-value-id"><div class="mb-4"><label for="update-market-value-amount" class="block text-sm font-medium text-gray-700 mb-1">目前資產總價值</label><input type="number" id="update-market-value-amount" placeholder="輸入目前總市價" class="w-full p-3 border border-gray-300 rounded-lg" required></div><div class="flex justify-end gap-4"><button type="button" id="cancel-update-market-value-btn" class="bg-gray-300 text-gray-800 font-bold py-2 px-4 rounded-lg hover:bg-gray-400">取消</button><button type="submit" class="bg-yellow-500 text-white font-bold py-2 px-4 rounded-lg hover:bg-yellow-600">確認更新</button></div></form></div></div>
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
@@ -336,6 +337,7 @@
         const investmentTransactionModal = document.getElementById('investment-transaction-modal'), investmentTransactionForm = document.getElementById('investment-transaction-form'), cancelInvestmentTransactionBtn = document.getElementById('cancel-investment-transaction-btn');
         const investmentDetailModal = document.getElementById('investment-detail-modal'), closeInvestmentDetailModalBtn = document.getElementById('close-investment-detail-modal-btn'), investmentHistoryList = document.getElementById('investment-history-list'), investmentHistoryEmpty = document.getElementById('investment-history-empty');
         const editInvestmentAccountModal = document.getElementById('edit-investment-account-modal'), editInvestmentAccountForm = document.getElementById('edit-investment-account-form'), cancelEditInvestmentAccountBtn = document.getElementById('cancel-edit-investment-account-btn');
+        const updateMarketValueModal = document.getElementById('update-market-value-modal'), updateMarketValueForm = document.getElementById('update-market-value-form'), cancelUpdateMarketValueBtn = document.getElementById('cancel-update-market-value-btn');
         // Report filter elements
         const filterThisMonthBtn = document.getElementById('filter-this-month'), filterCustomDateBtn = document.getElementById('filter-custom-date'), startDateInput = document.getElementById('start-date'), endDateInput = document.getElementById('end-date');
         const filteredTransactionList = document.getElementById('filtered-transaction-list'), filteredEmptyState = document.getElementById('filtered-empty-state');
@@ -641,10 +643,9 @@
                 const income = inv.transactions.filter(t => t.type === 'income').reduce((sum, t) => sum + t.amount, 0);
                 const expense = inv.transactions.filter(t => t.type === 'expense').reduce((sum, t) => sum + t.amount, 0);
                 
-                // Corrected Logic: Total cost is the sum of all expenses (including initial if it was logged as a transaction).
                 const totalCost = expense;
-                const currentValue = inv.initialValue + income - expense;
-                const profit = income - expense; // Profit is simply income minus expense
+                const cashBalance = inv.initialValue + income - expense;
+                const profit = income - expense;
                 const roi = totalCost > 0 ? (profit / totalCost) * 100 : 0;
 
                 const profitColor = profit >= 0 ? 'text-green-600' : 'text-red-600';
@@ -662,21 +663,26 @@
                             <button class="delete-investment-btn text-gray-400 hover:text-red-500 p-1" data-id="${inv.id}">&times;</button>
                         </div>
                     </div>
-                    <div class="mt-2 grid grid-cols-3 gap-2 investment-card-clickable" data-id="${inv.id}">
+                    <div class="mt-2 grid grid-cols-2 gap-y-2 gap-x-4 investment-card-clickable" data-id="${inv.id}">
                         <div>
-                            <p class="text-xs text-gray-500">目前價值</p>
-                            <p class="text-lg font-bold text-blue-600">NT$ ${currentValue.toLocaleString()}</p>
+                            <p class="text-xs text-gray-500">資產現值</p>
+                            <p class="text-lg font-bold text-blue-600">NT$ ${(inv.marketValue || 0).toLocaleString()}</p>
                         </div>
                         <div>
-                            <p class="text-xs text-gray-500">總報酬</p>
+                            <p class="text-xs text-gray-500">總報酬 (已實現)</p>
                             <p class="text-lg font-bold ${profitColor}">${profit >= 0 ? '+' : ''}${profit.toLocaleString()}</p>
+                        </div>
+                        <div>
+                            <p class="text-xs text-gray-500">現金結餘</p>
+                            <p class="text-lg font-bold text-gray-700">NT$ ${cashBalance.toLocaleString()}</p>
                         </div>
                         <div>
                             <p class="text-xs text-gray-500">報酬率</p>
                             <p class="text-lg font-bold ${roiColor}">${roi.toFixed(2)}%</p>
                         </div>
                     </div>
-                    <div class="mt-3 text-right">
+                    <div class="mt-3 flex justify-end gap-2">
+                        <button class="update-market-value-btn bg-yellow-500 text-white font-bold py-1 px-3 rounded-lg hover:bg-yellow-600 text-sm" data-id="${inv.id}" data-name="${inv.name}" data-value="${inv.marketValue || 0}">更新現值</button>
                         <button class="add-investment-tx-btn bg-blue-600 text-white font-bold py-1 px-3 rounded-lg hover:bg-blue-700 text-sm" data-id="${inv.id}" data-name="${inv.name}">新增交易</button>
                     </div>
                 `;
@@ -797,7 +803,7 @@
         }
         
         function updateInvestmentSummary(investments) {
-            let totalValue = 0;
+            let totalMarketValue = 0;
             let totalReturn = 0;
             let totalCostAggregated = 0;
 
@@ -805,17 +811,16 @@
                 const income = inv.transactions.filter(t => t.type === 'income').reduce((sum, t) => sum + t.amount, 0);
                 const expense = inv.transactions.filter(t => t.type === 'expense').reduce((sum, t) => sum + t.amount, 0);
                 const totalCost = expense;
-                const currentValue = inv.initialValue + income - expense;
                 const profit = income - expense;
                 
-                totalValue += currentValue;
+                totalMarketValue += (inv.marketValue || 0);
                 totalCostAggregated += totalCost;
                 totalReturn += profit;
             });
             
             const totalRoi = totalCostAggregated > 0 ? (totalReturn / totalCostAggregated) * 100 : 0;
 
-            totalInvestmentValueEl.textContent = `NT$ ${totalValue.toLocaleString()}`;
+            totalInvestmentValueEl.textContent = `NT$ ${totalMarketValue.toLocaleString()}`;
             totalInvestmentReturnEl.textContent = `NT$ ${totalReturn.toLocaleString()}`;
             totalInvestmentRoiEl.textContent = `${totalRoi.toFixed(2)}%`;
 
@@ -894,6 +899,7 @@
             investmentForm.addEventListener('submit', handleInvestmentFormSubmit);
             investmentTransactionForm.addEventListener('submit', handleInvestmentTransactionSubmit);
             editInvestmentAccountForm.addEventListener('submit', handleEditInvestmentAccountSubmit);
+            updateMarketValueForm.addEventListener('submit', handleUpdateMarketValueSubmit);
 
             repaymentForm.addEventListener('submit', handleRepaymentSubmit);
             debtEditForm.addEventListener('submit', handleDebtEditSubmit);
@@ -903,6 +909,7 @@
             cancelReceivePaymentBtn.addEventListener('click', () => receivePaymentModal.classList.add('hidden'));
             cancelInvestmentTransactionBtn.addEventListener('click', () => investmentTransactionModal.classList.add('hidden'));
             cancelEditInvestmentAccountBtn.addEventListener('click', () => editInvestmentAccountModal.classList.add('hidden'));
+            cancelUpdateMarketValueBtn.addEventListener('click', () => updateMarketValueModal.classList.add('hidden'));
 
             expenseRadio.addEventListener('change', updateTypeSelection);
             document.querySelector('input[name="type"][value="income"]').addEventListener('change', updateTypeSelection);
@@ -932,10 +939,12 @@
                 const addTxBtn = e.target.closest('.add-investment-tx-btn');
                 const editAccountBtn = e.target.closest('.edit-investment-account-btn');
                 const deleteBtn = e.target.closest('.delete-investment-btn');
+                const updateValueBtn = e.target.closest('.update-market-value-btn');
 
                 if (addTxBtn) handleAddInvestmentTxClick(addTxBtn);
                 else if (editAccountBtn) handleEditInvestmentAccountClick(editAccountBtn);
                 else if (deleteBtn) handleDelete(deleteBtn, '.delete-investment-btn', investmentsColRef);
+                else if (updateValueBtn) handleUpdateMarketValueClick(updateValueBtn);
                 else if (cardClick) handleInvestmentCardClick(cardClick.dataset.id);
             });
 
@@ -1052,7 +1061,12 @@
                 const now = new Date();
                 const timestamp = Timestamp.fromDate(now);
 
-                const newInvestmentRef = await addDoc(investmentsColRef, { name, initialValue, createdAt: timestamp });
+                const newInvestmentRef = await addDoc(investmentsColRef, { 
+                    name, 
+                    initialValue, 
+                    marketValue: initialValue, // Set initial market value
+                    createdAt: timestamp 
+                });
                 
                 if (initialValue > 0) {
                     const mainTxPayload = {
@@ -1221,6 +1235,34 @@
                 document.getElementById('investment-transaction-remark').value = tx.remark || '';
                 
                 investmentTransactionModal.classList.remove('hidden');
+            }
+        }
+
+        function handleUpdateMarketValueClick(btn) {
+            const id = btn.dataset.id;
+            const name = btn.dataset.name;
+            const value = btn.dataset.value;
+            document.getElementById('update-market-value-title').textContent = `更新 "${name}" 的現值`;
+            document.getElementById('update-market-value-id').value = id;
+            document.getElementById('update-market-value-amount').value = value;
+            updateMarketValueModal.classList.remove('hidden');
+        }
+
+        async function handleUpdateMarketValueSubmit(e) {
+            e.preventDefault();
+            const id = document.getElementById('update-market-value-id').value;
+            const amount = parseFloat(document.getElementById('update-market-value-amount').value);
+            if (!id || isNaN(amount) || amount < 0) {
+                console.warn("請輸入有效的金額");
+                return;
+            }
+            const investmentRef = doc(investmentsColRef, id);
+            try {
+                await updateDoc(investmentRef, { marketValue: amount });
+                updateMarketValueModal.classList.add('hidden');
+                listenForInvestments(); // Refresh data
+            } catch(error) {
+                console.error("更新資產現值失敗:", error);
             }
         }
 
@@ -1499,4 +1541,4 @@
 * **編輯交易紀錄**：在點進單一投資帳戶的「交易紀錄」彈出視窗中，每一筆交易後面都新增了**編輯**與**刪除**按鈕。
 * **資料同步**：當您編輯或刪除一筆投資交易時，系統會自動找到並同步更新總帳中的對應收支紀錄，確保所有數據都保持一致。
 
-您可以預覽看看新的功能，如果有任何問題或想再調整的地方，隨時都
+您可以預覽看看新的功能，如果有任何問題或想再調整的地方，
