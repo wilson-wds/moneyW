@@ -9,16 +9,24 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
     <style>
         body { font-family: 'Inter', 'Noto Sans TC', sans-serif; }
-        .loader { border: 4px solid #f3f3f3; border-top: 4px solid #3498db; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; }
+        .loader { border: 4px solid #f3f3f3; border-top: 4px solid #3b82f6; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; }
         .loader-small { border: 2px solid #f3f3f3; border-top: 2px solid #fff; border-radius: 50%; width: 20px; height: 20px; animation: spin 1s linear infinite; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
         ::-webkit-scrollbar { width: 8px; } ::-webkit-scrollbar-track { background: #f1f1f1; } ::-webkit-scrollbar-thumb { background: #888; border-radius: 4px; } ::-webkit-scrollbar-thumb:hover { background: #555; }
         .tab-btn.active { border-color: #3b82f6; background-color: #3b82f6; color: white; }
         .debt-card-clickable, .asset-card-clickable, .lending-card-clickable, .investment-card-clickable { cursor: pointer; }
         .category-stat-item.active { background-color: #dbeafe; }
+        /* Simple Toast Notification */
+        #toast { visibility: hidden; min-width: 250px; margin-left: -125px; background-color: #333; color: #fff; text-align: center; border-radius: 8px; padding: 16px; position: fixed; z-index: 100; left: 50%; bottom: 30px; font-size: 17px; transition: visibility 0.5s, opacity 0.5s linear; opacity: 0; }
+        #toast.show { visibility: visible; opacity: 1; }
+        #toast.success { background-color: #28a745; }
+        #toast.error { background-color: #dc3545; }
     </style>
 </head>
 <body class="bg-gray-100 text-gray-800">
+
+    <!-- Toast Notification -->
+    <div id="toast"></div>
 
     <!-- 登入畫面 -->
     <div id="login-view" class="container mx-auto p-8 max-w-md text-center h-screen flex flex-col justify-center">
@@ -62,7 +70,7 @@
                    <div class="bg-teal-100 p-4 rounded-xl shadow-sm"><h2 class="text-base font-semibold text-teal-800">當日收入</h2><p id="today-income" class="text-xl font-bold text-teal-600 mt-1">NT$ 0</p></div>
                    <div class="bg-orange-100 p-4 rounded-xl shadow-sm"><h2 class="text-base font-semibold text-orange-800">當日支出</h2><p id="today-expense" class="text-xl font-bold text-orange-600 mt-1">NT$ 0</p></div>
                    <div class="bg-indigo-100 p-4 rounded-xl shadow-sm"><h2 class="text-base font-semibold text-indigo-800">當日結餘</h2><p id="today-balance" class="text-xl font-bold text-indigo-600 mt-1">NT$ 0</p></div>
-               </div>
+              </div>
             </section>
              <section class="mb-8">
                  <h2 class="text-xl font-bold text-gray-700 mb-4">本月即時</h2>
@@ -70,7 +78,7 @@
                    <div class="bg-pink-100 p-4 rounded-xl shadow-sm"><h2 class="text-base font-semibold text-pink-800">本月收入</h2><p id="monthly-income" class="text-xl font-bold text-pink-600 mt-1">NT$ 0</p></div>
                    <div class="bg-amber-100 p-4 rounded-xl shadow-sm"><h2 class="text-base font-semibold text-amber-800">本月支出</h2><p id="monthly-expense" class="text-xl font-bold text-amber-600 mt-1">NT$ 0</p></div>
                    <div class="bg-purple-100 p-4 rounded-xl shadow-sm"><h2 class="text-base font-semibold text-purple-800">本月結餘</h2><p id="monthly-balance" class="text-xl font-bold text-purple-600 mt-1">NT$ 0</p></div>
-               </div>
+              </div>
             </section>
             <section class="mb-8">
                 <h2 class="text-xl font-bold text-gray-700 mb-4">總覽</h2>
@@ -106,18 +114,22 @@
         <div id="investment-view" class="hidden">
             <section class="mb-8">
                 <h2 class="text-xl font-bold text-gray-700 mb-4">投資總覽</h2>
-                <div id="investment-summary" class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div class="bg-blue-100 p-6 rounded-xl shadow-sm">
-                        <h2 class="text-lg font-semibold text-blue-800">總資產現值</h2>
-                        <p id="total-investment-value" class="text-2xl font-bold text-blue-600 mt-2">NT$ 0</p>
+                <div id="investment-summary" class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <div class="bg-blue-100 p-4 rounded-xl shadow-sm">
+                        <h2 class="text-base font-semibold text-blue-800">總市值</h2>
+                        <p id="total-investment-value" class="text-xl md:text-2xl font-bold text-blue-600 mt-1">NT$ 0</p>
                     </div>
-                    <div class="bg-purple-100 p-6 rounded-xl shadow-sm">
-                        <h2 class="text-lg font-semibold text-purple-800">總報酬 (已實現)</h2>
-                        <p id="total-investment-return" class="text-2xl font-bold text-purple-600 mt-2">NT$ 0</p>
+                    <div class="bg-gray-100 p-4 rounded-xl shadow-sm">
+                        <h2 class="text-base font-semibold text-gray-800">總投資成本</h2>
+                        <p id="total-investment-cost" class="text-xl md:text-2xl font-bold text-gray-600 mt-1">NT$ 0</p>
                     </div>
-                    <div class="bg-teal-100 p-6 rounded-xl shadow-sm">
-                        <h2 class="text-lg font-semibold text-teal-800">總報酬率 (ROI)</h2>
-                        <p id="total-investment-roi" class="text-2xl font-bold text-teal-600 mt-2">0.00%</p>
+                    <div class="bg-purple-100 p-4 rounded-xl shadow-sm">
+                        <h2 class="text-base font-semibold text-purple-800">總損益</h2>
+                        <p id="total-investment-pl" class="text-xl md:text-2xl font-bold text-purple-600 mt-1">NT$ 0</p>
+                    </div>
+                    <div class="bg-teal-100 p-4 rounded-xl shadow-sm">
+                        <h2 class="text-base font-semibold text-teal-800">總報酬率</h2>
+                        <p id="total-investment-roi" class="text-xl md:text-2xl font-bold text-teal-600 mt-1">0.00%</p>
                     </div>
                 </div>
             </section>
@@ -291,17 +303,18 @@
     <div id="update-market-value-modal" class="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center hidden z-50 p-4"><div class="bg-white p-6 md:p-8 rounded-2xl shadow-xl w-full max-w-md"><h3 id="update-market-value-title" class="text-2xl font-bold mb-6">更新資產現值</h3><form id="update-market-value-form"><input type="hidden" id="update-market-value-id"><div class="mb-4"><label for="update-market-value-amount" class="block text-sm font-medium text-gray-700 mb-1">目前資產總價值</label><input type="number" id="update-market-value-amount" placeholder="輸入目前總市價" class="w-full p-3 border border-gray-300 rounded-lg" required></div><div class="flex justify-end gap-4"><button type="button" id="cancel-update-market-value-btn" class="bg-gray-300 text-gray-800 font-bold py-2 px-4 rounded-lg hover:bg-gray-400">取消</button><button type="submit" class="bg-yellow-500 text-white font-bold py-2 px-4 rounded-lg hover:bg-yellow-600">確認更新</button></div></form></div></div>
 
     <script type="module">
+        // Firebase v11 imports
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInAnonymously, onAuthStateChanged, GoogleAuthProvider, signInWithPopup, signOut } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, collection, addDoc, query, onSnapshot, doc, deleteDoc, serverTimestamp, updateDoc, increment, Timestamp, getDocs, writeBatch, getDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getAuth, signInAnonymously, onAuthStateChanged, GoogleAuthProvider, signInWithPopup, signOut, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, collection, addDoc, query, onSnapshot, doc, deleteDoc, serverTimestamp, updateDoc, increment, Timestamp, getDocs, writeBatch, getDoc, where, collectionGroup } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         // --- DOM 元素 ---
         const loginView = document.getElementById('login-view');
         const googleLoginBtn = document.getElementById('google-login-btn');
         const anonymousLoginBtn = document.getElementById('anonymous-login-btn');
         const appContainer = document.getElementById('app-container'), authInfo = document.getElementById('auth-info');
-        const accountingView = document.getElementById('accounting-view'), reportsView = document.getElementById('reports-view'), debtView = document.getElementById('debt-view'), eventsView = document.getElementById('events-view'), lendingView = document.getElementById('lending-view'), investmentView = document.getElementById('investment-view');
-        const tabAccounting = document.getElementById('tab-accounting'), tabReports = document.getElementById('tab-reports'), tabDebt = document.getElementById('tab-debt'), tabEvents = document.getElementById('tab-events'), tabLending = document.getElementById('tab-lending'), tabInvestment = document.getElementById('tab-investment');
+        const accountingView = document.getElementById('accounting-view'), reportsView = document.getElementById('reports-view'), debtView = document.getElementById('debt-view'), eventsView = document.getElementById('events-view'), lendingView = document.getElementById('lending-view'), investmentView = document.getElementById('investment-view'), settingsView = document.getElementById('settings-view');
+        const tabAccounting = document.getElementById('tab-accounting'), tabReports = document.getElementById('tab-reports'), tabDebt = document.getElementById('tab-debt'), tabEvents = document.getElementById('tab-events'), tabLending = document.getElementById('tab-lending'), tabInvestment = document.getElementById('tab-investment'), tabSettings = document.getElementById('tab-settings');
         const form = document.getElementById('transaction-form'), amountInput = document.getElementById('amount'), transactionDateInput = document.getElementById('transaction-date'), remarksInput = document.getElementById('remarks'), transactionList = document.getElementById('transaction-list');
         const categoryInput = document.getElementById('category-input'), categoryDatalist = document.getElementById('category-list');
         const projectInput = document.getElementById('project-input'), projectDatalist = document.getElementById('project-list');
@@ -314,7 +327,6 @@
         const manageCategoriesBtn = document.getElementById('manage-categories-btn'), categoryModal = document.getElementById('category-modal'), customCategoryList = document.getElementById('custom-category-list');
         const manageProjectsBtn = document.getElementById('manage-projects-btn'), projectModal = document.getElementById('project-modal'), customProjectList = document.getElementById('custom-project-list');
         const expenseChartCanvas = document.getElementById('expense-chart'), noExpenseDataMsg = document.getElementById('no-expense-data');
-        // Debt Elements
         const debtForm = document.getElementById('debt-form'), debtList = document.getElementById('debt-list'), debtLoadingIndicator = document.getElementById('debt-loading-indicator'), debtEmptyState = document.getElementById('debt-empty-state');
         const totalInitialDebtEl = document.getElementById('total-initial-debt'), totalCurrentDebtEl = document.getElementById('total-current-debt'), totalMonthlyRepaymentEl = document.getElementById('total-monthly-repayment');
         const repaymentModal = document.getElementById('repayment-modal'), repaymentForm = document.getElementById('repayment-form'), repaymentDebtIdInput = document.getElementById('repayment-debt-id'), repaymentDebtNameInput = document.getElementById('repayment-debt-name'), repaymentAmountInput = document.getElementById('repayment-amount'), repaymentDateInput = document.getElementById('repayment-date'), cancelRepaymentBtn = document.getElementById('cancel-repayment-btn');
@@ -324,119 +336,149 @@
         const editDebtBtn = document.getElementById('edit-debt-btn'), cancelEditDebtBtn = document.getElementById('cancel-edit-debt-btn');
         const editDebtIdInput = document.getElementById('edit-debt-id'), editDebtNameInput = document.getElementById('edit-debt-name'), editDebtTotalInput = document.getElementById('edit-debt-total');
         const repaymentHistoryList = document.getElementById('repayment-history-list'), repaymentHistoryEmpty = document.getElementById('repayment-history-empty');
-        // Event Elements
         const eventForm = document.getElementById('event-form'), eventList = document.getElementById('event-list'), eventLoadingIndicator = document.getElementById('event-loading-indicator'), eventEmptyState = document.getElementById('event-empty-state');
-        // Lending Elements
         const lendingForm = document.getElementById('lending-form'), lendingList = document.getElementById('lending-list'), lendingLoadingIndicator = document.getElementById('lending-loading-indicator'), lendingEmptyState = document.getElementById('lending-empty-state');
         const totalLendingAmountEl = document.getElementById('total-lending-amount'), totalLendingRemainingEl = document.getElementById('total-lending-remaining');
         const receivePaymentModal = document.getElementById('receive-payment-modal'), receivePaymentForm = document.getElementById('receive-payment-form'), cancelReceivePaymentBtn = document.getElementById('cancel-receive-payment-btn');
         const receivePaymentLendingIdInput = document.getElementById('receive-payment-lending-id'), receivePaymentLendingNameInput = document.getElementById('receive-payment-lending-name'), receivePaymentAmountInput = document.getElementById('receive-payment-amount'), receivePaymentDateInput = document.getElementById('receive-payment-date');
-        // Investment Elements
         const investmentForm = document.getElementById('investment-form'), investmentList = document.getElementById('investment-list'), investmentLoadingIndicator = document.getElementById('investment-loading-indicator'), investmentEmptyState = document.getElementById('investment-empty-state');
-        const totalInvestmentValueEl = document.getElementById('total-investment-value'), totalInvestmentReturnEl = document.getElementById('total-investment-return'), totalInvestmentRoiEl = document.getElementById('total-investment-roi');
+        const totalInvestmentValueEl = document.getElementById('total-investment-value'), totalInvestmentCostEl = document.getElementById('total-investment-cost'), totalInvestmentPlEl = document.getElementById('total-investment-pl'), totalInvestmentRoiEl = document.getElementById('total-investment-roi');
         const investmentTransactionModal = document.getElementById('investment-transaction-modal'), investmentTransactionForm = document.getElementById('investment-transaction-form'), cancelInvestmentTransactionBtn = document.getElementById('cancel-investment-transaction-btn');
         const investmentDetailModal = document.getElementById('investment-detail-modal'), closeInvestmentDetailModalBtn = document.getElementById('close-investment-detail-modal-btn'), investmentHistoryList = document.getElementById('investment-history-list'), investmentHistoryEmpty = document.getElementById('investment-history-empty');
         const editInvestmentAccountModal = document.getElementById('edit-investment-account-modal'), editInvestmentAccountForm = document.getElementById('edit-investment-account-form'), cancelEditInvestmentAccountBtn = document.getElementById('cancel-edit-investment-account-btn');
         const updateMarketValueModal = document.getElementById('update-market-value-modal'), updateMarketValueForm = document.getElementById('update-market-value-form'), cancelUpdateMarketValueBtn = document.getElementById('cancel-update-market-value-btn');
-        // Report filter elements
         const filterThisMonthBtn = document.getElementById('filter-this-month'), filterCustomDateBtn = document.getElementById('filter-custom-date'), startDateInput = document.getElementById('start-date'), endDateInput = document.getElementById('end-date');
         const filteredTransactionList = document.getElementById('filtered-transaction-list'), filteredEmptyState = document.getElementById('filtered-empty-state');
         const filteredIncomeEl = document.getElementById('filtered-income'), filteredExpenseEl = document.getElementById('filtered-expense'), filteredBalanceEl = document.getElementById('filtered-balance');
         const expenseStatsList = document.getElementById('expense-stats-list');
         const incomeStatsList = document.getElementById('income-stats-list');
         const backupBtn = document.getElementById('backup-btn');
+        const toastEl = document.getElementById('toast');
 
         // --- Firebase & App 狀態 ---
-        let db, auth, userId, transactionsColRef, categoriesColRef, projectsColRef, debtsColRef, eventsColRef, lendingsColRef, investmentsColRef;
+        let db, auth, app, userId, appId;
+        let transactionsColRef, categoriesColRef, projectsColRef, debtsColRef, eventsColRef, lendingsColRef, investmentsColRef;
         let unsubscribeTransactions, unsubscribeCategories, unsubscribeProjects, unsubscribeDebts, unsubscribeEvents, unsubscribeLendings, unsubscribeInvestments;
         let allTransactions = [], customCategories = [], customProjects = [], allDebts = [], allEvents = [], allLendings = [], allInvestments = [];
         let expenseChart = null;
         let activeCategoryFilter = { type: null, category: null };
-        const defaultCategories = { expense: ['飲食', '交通', '居住', '娛樂', '購物', '醫療', '教育', '負債還款', '投資支出', '其他'], income: ['薪資', '獎金', '投資收入', '兼職', '債權回收', '其他'] };
+        const defaultCategories = { expense: ['飲食', '交通', '居住', '娛樂', '購物', '醫療', '教育', '負債還款', '投資支出', '債權借出', '其他'], income: ['薪資', '獎金', '投資收入', '兼職', '債權回收', '其他'] };
 
-        // Your web app's Firebase configuration
-        const firebaseConfig = {
-          apiKey: "AIzaSyAqFHm6Bn35m8xauc50ZvNNy_rxIZzCMTE",
-          authDomain: "moneyw-f8105.firebaseapp.com",
-          projectId: "moneyw-f8105",
-          storageBucket: "moneyw-f8105.appspot.com",
-          messagingSenderId: "155586195799",
-          appId: "1:155586195799:web:302184fbf613f032a88e12"
-        };
-        
-        // Initialize Firebase
-        const app = initializeApp(firebaseConfig);
-        db = getFirestore(app);
-        auth = getAuth(app);
+        // --- Initialization ---
+        function initializeFirebase() {
+            try {
+                // Use environment variables for Firebase config
+                const firebaseConfig = JSON.parse(typeof __firebase_config !== 'undefined' ? __firebase_config : '{}');
+                appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
 
-        // --- 核心功能 ---
-        onAuthStateChanged(auth, (user) => {
-            if (user) {
-                // User is signed in.
-                userId = user.uid;
-                const basePath = `/users/${userId}`; // Simplified path
-                transactionsColRef = collection(db, `${basePath}/transactions`);
-                categoriesColRef = collection(db, `${basePath}/categories`);
-                projectsColRef = collection(db, `${basePath}/projects`);
-                debtsColRef = collection(db, `${basePath}/debts`);
-                eventsColRef = collection(db, `${basePath}/events`);
-                lendingsColRef = collection(db, `${basePath}/lendings`);
-                investmentsColRef = collection(db, `${basePath}/investments`);
+                // Check if config is valid
+                if (!firebaseConfig.projectId) {
+                    showToast('Firebase 設定無效，請檢查環境變數。', 'error');
+                    console.error("Firebase config is missing or invalid.");
+                    return;
+                }
+
+                app = initializeApp(firebaseConfig);
+                db = getFirestore(app);
+                auth = getAuth(app);
                 
-                setupUIForLoggedInUser(user);
-                
-                listenForTransactions();
-                listenForCustomItems(categoriesColRef, (items) => { customCategories = items; populateCategoryDatalist(); populateModalList(customCategoryList, customCategories, '尚無自訂分類', 'category'); });
-                listenForCustomItems(projectsColRef, (items) => { customProjects = items; populateDatalist(projectDatalist, customProjects.map(p => p.name)); populateModalList(customProjectList, customProjects, '尚無自訂專案', 'project'); });
-                listenForDebts();
-                listenForEvents();
-                listenForLendings();
-                listenForInvestments();
-                
-            } else {
-                // User is signed out.
-                setupUIForLoggedOutUser();
-                // Clean up listeners
-                if (unsubscribeTransactions) unsubscribeTransactions();
-                if (unsubscribeCategories) unsubscribeCategories();
-                if (unsubscribeProjects) unsubscribeProjects();
-                if (unsubscribeDebts) unsubscribeDebts();
-                if (unsubscribeEvents) unsubscribeEvents();
-                if (unsubscribeLendings) unsubscribeLendings();
-                if (unsubscribeInvestments) unsubscribeInvestments();
+                // Start authentication check
+                handleAuthentication();
+            } catch (error) {
+                console.error("Firebase 初始化失敗:", error);
+                showToast('應用程式初始化失敗。', 'error');
             }
-        });
+        }
+
+        // --- Authentication ---
+        async function handleAuthentication() {
+            // This token is provided by the collaborative environment
+            if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                try {
+                    await signInWithCustomToken(auth, __initial_auth_token);
+                } catch (error) {
+                    console.error("Custom token sign-in failed, falling back to manual login.", error);
+                    // If custom token fails, show login options
+                    setupUIForLoggedOutUser();
+                }
+            }
+            
+            onAuthStateChanged(auth, (user) => {
+                if (user) {
+                    userId = user.uid;
+                    // Set up Firestore references with the correct, secure path
+                    const basePath = `/artifacts/${appId}/users/${userId}`;
+                    transactionsColRef = collection(db, `${basePath}/transactions`);
+                    categoriesColRef = collection(db, `${basePath}/categories`);
+                    projectsColRef = collection(db, `${basePath}/projects`);
+                    debtsColRef = collection(db, `${basePath}/debts`);
+                    eventsColRef = collection(db, `${basePath}/events`);
+                    lendingsColRef = collection(db, `${basePath}/lendings`);
+                    investmentsColRef = collection(db, `${basePath}/investments`);
+                    
+                    setupUIForLoggedInUser(user);
+                    attachDataListeners();
+                } else {
+                    setupUIForLoggedOutUser();
+                    detachDataListeners();
+                }
+            });
+        }
         
+        // --- UI Setup ---
         function setupUIForLoggedInUser(user) {
             loginView.classList.add('hidden');
             appContainer.classList.remove('hidden');
-            appContainer.classList.remove('opacity-0');
+            setTimeout(() => appContainer.classList.remove('opacity-0'), 10); // Fade in
             
             let userInfoHtml = '';
             if (user.isAnonymous) {
-                userInfoHtml = `<span>訪客模式 (UID: <span class="font-mono">${user.uid.substring(0, 6)}...</span>)</span>`;
+                userInfoHtml = `<span>訪客模式 (UID: <span class="font-mono text-xs">${user.uid}</span>)</span>`;
             } else {
-                userInfoHtml = `<img src="${user.photoURL}" alt="User Avatar" class="w-8 h-8 rounded-full"><span class="font-semibold">${user.displayName}</span>`;
+                userInfoHtml = `<img src="${user.photoURL || 'https://placehold.co/32x32/dbeafe/3b82f6?text=U'}" alt="User Avatar" class="w-8 h-8 rounded-full"><span class="font-semibold">${user.displayName || '使用者'}</span>`;
             }
             authInfo.innerHTML = `${userInfoHtml}<button id="logout-btn" class="ml-4 bg-red-500 text-white text-xs font-bold py-1 px-3 rounded-full hover:bg-red-600">登出</button>`;
-            document.getElementById('logout-btn').addEventListener('click', () => signOut(auth));
+            document.getElementById('logout-btn').addEventListener('click', () => signOut(auth).catch(e => console.error("登出失敗", e)));
         }
 
         function setupUIForLoggedOutUser() {
             loginView.classList.remove('hidden');
             appContainer.classList.add('hidden');
+            appContainer.classList.add('opacity-0');
             authInfo.innerHTML = '';
-            // Reset UI state if needed
+            // Reset UI state
             transactionList.innerHTML = '';
             debtList.innerHTML = '';
             eventList.innerHTML = '';
             lendingList.innerHTML = '';
             investmentList.innerHTML = '';
-            // etc.
+        }
+
+        // --- Data Listeners ---
+        function attachDataListeners() {
+            // Ensure listeners are not attached multiple times
+            detachDataListeners(); 
+            
+            listenForTransactions();
+            listenForCustomItems(categoriesColRef, (items) => { customCategories = items; populateCategoryDatalist(); populateModalList(customCategoryList, customCategories, '尚無自訂分類', 'category'); });
+            listenForCustomItems(projectsColRef, (items) => { customProjects = items; populateDatalist(projectDatalist, customProjects.map(p => p.name)); populateModalList(customProjectList, customProjects, '尚無自訂專案', 'project'); });
+            listenForDebts();
+            listenForEvents();
+            listenForLendings();
+            listenForInvestments();
+        }
+
+        function detachDataListeners() {
+            if (unsubscribeTransactions) unsubscribeTransactions();
+            if (unsubscribeCategories) unsubscribeCategories();
+            if (unsubscribeProjects) unsubscribeProjects();
+            if (unsubscribeDebts) unsubscribeDebts();
+            if (unsubscribeEvents) unsubscribeEvents();
+            if (unsubscribeLendings) unsubscribeLendings();
+            if (unsubscribeInvestments) unsubscribeInvestments();
         }
 
         function listenForTransactions() {
-            if (unsubscribeTransactions) unsubscribeTransactions();
             unsubscribeTransactions = onSnapshot(query(transactionsColRef), (snapshot) => {
                 loadingIndicator.classList.add('hidden');
                 allTransactions = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
@@ -444,12 +486,7 @@
                 
                 const now = new Date();
                 const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-                const endOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
-                const todayTransactions = allTransactions.filter(tx => {
-                    if (!tx.timestamp) return false;
-                    const txDate = tx.timestamp.toDate();
-                    return txDate >= startOfToday && txDate < endOfToday;
-                });
+                const todayTransactions = allTransactions.filter(tx => tx.timestamp && tx.timestamp.toDate() >= startOfToday);
 
                 renderTransactions(allTransactions);
                 updateSummary(allTransactions);
@@ -457,13 +494,12 @@
                 updateMonthlySummary(allTransactions);
                 updateExpenseChart();
                 updateMonthlyRepaymentSummary();
-                if(reportsView.classList.contains('hidden') === false) { handleFilterThisMonth(); }
+                if(reportsView.offsetParent !== null) { handleFilterThisMonth(); } // Check if visible
                 emptyState.classList.toggle('hidden', allTransactions.length > 0);
-            }, (error) => console.error("監聽交易資料失敗:", error));
+            }, (error) => { console.error("監聽交易資料失敗:", error); showToast('無法載入交易紀錄', 'error'); });
         }
 
         function listenForDebts() {
-            if (unsubscribeDebts) unsubscribeDebts();
             unsubscribeDebts = onSnapshot(query(debtsColRef), (snapshot) => {
                 debtLoadingIndicator.classList.add('hidden');
                 allDebts = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
@@ -471,59 +507,85 @@
                 updateDebtSummary(allDebts);
                 renderDebts(allDebts);
                 debtEmptyState.classList.toggle('hidden', allDebts.length > 0);
-            }, (error) => console.error("監聽負債資料失敗:", error));
+            }, (error) => { console.error("監聽負債資料失敗:", error); showToast('無法載入負債資料', 'error'); });
         }
 
         function listenForEvents() {
-            if (unsubscribeEvents) unsubscribeEvents();
             unsubscribeEvents = onSnapshot(query(eventsColRef), (snapshot) => {
                 eventLoadingIndicator.classList.add('hidden');
                 allEvents = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
                 allEvents.sort((a, b) => (b.date?.toMillis() || 0) - (a.date?.toMillis() || 0));
                 renderEvents(allEvents);
                 eventEmptyState.classList.toggle('hidden', allEvents.length > 0);
-            }, (error) => console.error("監聽事件資料失敗:", error));
+            }, (error) => { console.error("監聽事件資料失敗:", error); showToast('無法載入事件紀錄', 'error'); });
         }
 
         function listenForLendings() {
-            if (unsubscribeLendings) unsubscribeLendings();
             unsubscribeLendings = onSnapshot(query(lendingsColRef), (snapshot) => {
                 lendingLoadingIndicator.classList.add('hidden');
                 allLendings = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
                 updateLendingSummary(allLendings);
                 renderLendings(allLendings);
                 lendingEmptyState.classList.toggle('hidden', allLendings.length > 0);
-            }, (error) => console.error("監聽債權資料失敗:", error));
+            }, (error) => { console.error("監聽債權資料失敗:", error); showToast('無法載入債權資料', 'error'); });
         }
         
         function listenForInvestments() {
             if(unsubscribeInvestments) unsubscribeInvestments();
             unsubscribeInvestments = onSnapshot(query(investmentsColRef), async (snapshot) => {
                 investmentLoadingIndicator.classList.add('hidden');
-                const investmentPromises = snapshot.docs.map(async (investmentDoc) => {
-                    const investmentData = { id: investmentDoc.id, ...investmentDoc.data() };
-                    const investmentTxColRef = collection(db, `${investmentsColRef.path}/${investmentDoc.id}/transactions`);
-                    const txSnapshot = await getDocs(query(investmentTxColRef));
-                    investmentData.transactions = txSnapshot.docs.map(txDoc => ({id: txDoc.id, ...txDoc.data()}));
-                    return investmentData;
-                });
-                allInvestments = await Promise.all(investmentPromises);
-                renderInvestments(allInvestments);
-                updateInvestmentSummary(allInvestments);
-                investmentEmptyState.classList.toggle('hidden', allInvestments.length > 0);
-            }, (error) => console.error("監聽投資資料失敗:", error));
+                try {
+                    const investmentPromises = snapshot.docs.map(async (investmentDoc) => {
+                        const investmentData = { id: investmentDoc.id, ...investmentDoc.data() };
+                        const investmentTxColRef = collection(db, `${investmentsColRef.path}/${investmentDoc.id}/transactions`);
+                        const txSnapshot = await getDocs(query(investmentTxColRef));
+                        investmentData.transactions = txSnapshot.docs.map(txDoc => ({id: txDoc.id, ...txDoc.data()}));
+                        return investmentData;
+                    });
+                    allInvestments = await Promise.all(investmentPromises);
+                    renderInvestments(allInvestments);
+                    updateInvestmentSummary(allInvestments);
+                    investmentEmptyState.classList.toggle('hidden', allInvestments.length > 0);
+                    
+                    // Refresh open modal if it exists
+                    if (!investmentDetailModal.classList.contains('hidden')) {
+                        const titleEl = document.getElementById('investment-detail-title');
+                        const openAccountId = titleEl.dataset.accountId;
+                        if (openAccountId) {
+                            const accountExists = allInvestments.some(inv => inv.id === openAccountId);
+                            if (accountExists) {
+                                renderInvestmentHistory(openAccountId);
+                            } else {
+                                investmentDetailModal.classList.add('hidden');
+                            }
+                        }
+                    }
+                } catch (error) {
+                    console.error("處理投資資料失敗:", error);
+                    showToast('處理投資資料時發生錯誤', 'error');
+                }
+            }, (error) => { console.error("監聽投資資料失敗:", error); showToast('無法載入投資資料', 'error'); });
         }
-
 
         function listenForCustomItems(collectionRef, callback) {
             const q = query(collectionRef);
-            return onSnapshot(q, (snapshot) => {
-                const items = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                callback(items);
-            }, (error) => console.error("監聽自訂項目失敗:", error));
+            // Assign the listener to the correct unsubscribe variable
+            if (collectionRef.id === 'categories') {
+                if(unsubscribeCategories) unsubscribeCategories();
+                unsubscribeCategories = onSnapshot(q, (snapshot) => {
+                    const items = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                    callback(items);
+                }, (error) => console.error("監聽自訂分類失敗:", error));
+            } else if (collectionRef.id === 'projects') {
+                if(unsubscribeProjects) unsubscribeProjects();
+                unsubscribeProjects = onSnapshot(q, (snapshot) => {
+                    const items = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                    callback(items);
+                }, (error) => console.error("監聽自訂專案失敗:", error));
+            }
         }
         
-        // --- 渲染函式 ---
+        // --- Rendering Functions ---
         function renderTransactions(transactions) {
             transactionList.innerHTML = '';
             transactions.forEach(tx => {
@@ -531,8 +593,22 @@
                 const li = document.createElement('li');
                 li.className = 'flex items-center justify-between p-4 rounded-lg hover:bg-gray-50 border-b';
                 li.innerHTML = `
-                    <div class="flex items-center gap-4"><div class="flex-shrink-0"><p class="font-semibold">${tx.category}</p><p class="text-sm text-gray-500">${tx.project || '無專案'}</p></div><div><p class="text-sm text-gray-600">${tx.remarks || '無備註'}</p></div></div>
-                    <div class="text-right"><p class="font-bold text-lg ${isIncome ? 'text-green-600' : 'text-red-600'}">${isIncome ? '+' : '-'} NT$ ${tx.amount.toLocaleString()}</p><div class="flex items-center gap-2 justify-end"><span class="text-xs text-gray-400">${tx.timestamp ? tx.timestamp.toDate().toLocaleDateString('zh-TW') : '...'}</span><button data-id="${tx.id}" class="delete-btn text-gray-400 hover:text-red-500"><svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg></button></div></div>`;
+                    <div class="flex items-center gap-4 flex-1 min-w-0">
+                        <div class="flex-shrink-0">
+                            <p class="font-semibold">${tx.category}</p>
+                            <p class="text-sm text-gray-500">${tx.project || '無專案'}</p>
+                        </div>
+                        <div class="min-w-0">
+                            <p class="text-sm text-gray-600 truncate">${tx.remarks || '無備註'}</p>
+                        </div>
+                    </div>
+                    <div class="text-right flex-shrink-0 ml-4">
+                        <p class="font-bold text-lg ${isIncome ? 'text-green-600' : 'text-red-600'}">${isIncome ? '+' : '-'} NT$ ${tx.amount.toLocaleString()}</p>
+                        <div class="flex items-center gap-2 justify-end">
+                            <span class="text-xs text-gray-400">${tx.timestamp ? tx.timestamp.toDate().toLocaleDateString('zh-TW') : '...'}</span>
+                            <button data-id="${tx.id}" class="delete-btn text-gray-400 hover:text-red-500"><svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg></button>
+                        </div>
+                    </div>`;
                 transactionList.appendChild(li);
             });
         }
@@ -561,14 +637,14 @@
         function renderDebts(debts) {
             debtList.innerHTML = '';
             debts.forEach(debt => {
-                const percentage = debt.totalAmount > 0 ? ((debt.totalAmount - debt.remainingAmount) / debt.totalAmount) * 100 : 100;
+                const percentage = debt.totalAmount > 0 ? Math.max(0, ((debt.totalAmount - debt.remainingAmount) / debt.totalAmount) * 100) : 100;
                 const card = document.createElement('div');
                 card.className = 'bg-gray-50 p-4 rounded-lg shadow-sm border debt-card-clickable hover:shadow-md transition-shadow';
                 card.dataset.id = debt.id;
                 card.innerHTML = `
                     <div class="flex justify-between items-start">
-                        <h3 class="text-md font-bold text-gray-800">${debt.name}</h3>
-                        <button class="delete-debt-btn text-gray-400 hover:text-red-500 z-10 relative" data-id="${debt.id}">&times;</button>
+                        <h3 class="text-md font-bold text-gray-800 flex-grow">${debt.name}</h3>
+                        <button class="delete-debt-btn text-gray-400 hover:text-red-500 z-10 relative text-2xl leading-none -mt-1" data-id="${debt.id}" data-name="${debt.name}">&times;</button>
                     </div>
                     <div class="mt-2">
                         <div class="flex justify-between text-xs text-gray-600 mb-1">
@@ -612,13 +688,13 @@
         function renderLendings(lendings) {
             lendingList.innerHTML = '';
             lendings.forEach(lending => {
-                const percentage = lending.totalAmount > 0 ? ((lending.totalAmount - lending.remainingAmount) / lending.totalAmount) * 100 : 100;
+                const percentage = lending.totalAmount > 0 ? Math.max(0, ((lending.totalAmount - lending.remainingAmount) / lending.totalAmount) * 100) : 100;
                 const card = document.createElement('div');
                 card.className = 'bg-gray-50 p-4 rounded-lg shadow-sm border';
                 card.innerHTML = `
                     <div class="flex justify-between items-start">
-                        <h3 class="text-md font-bold text-gray-800">${lending.name}</h3>
-                        <button class="delete-lending-btn text-gray-400 hover:text-red-500 z-10 relative" data-id="${lending.id}">&times;</button>
+                        <h3 class="text-md font-bold text-gray-800 flex-grow">${lending.name}</h3>
+                        <button class="delete-lending-btn text-gray-400 hover:text-red-500 z-10 relative text-2xl leading-none -mt-1" data-id="${lending.id}" data-name="${lending.name}">&times;</button>
                     </div>
                     <div class="mt-2">
                         <div class="flex justify-between text-xs text-gray-600 mb-1">
@@ -642,14 +718,18 @@
             investments.forEach(inv => {
                 const income = inv.transactions.filter(t => t.type === 'income').reduce((sum, t) => sum + t.amount, 0);
                 const expense = inv.transactions.filter(t => t.type === 'expense').reduce((sum, t) => sum + t.amount, 0);
+                const marketValue = inv.marketValue || 0;
                 
                 const totalCost = expense;
-                const cashBalance = inv.initialValue + income - expense;
-                const profit = income - expense;
-                const roi = totalCost > 0 ? (profit / totalCost) * 100 : 0;
+                const realizedPL = income - expense;
+                const totalPL = (marketValue + income) - totalCost;
+                const unrealizedPL = totalPL - realizedPL;
+                const roi = totalCost > 0 ? (totalPL / totalCost) * 100 : 0;
 
-                const profitColor = profit >= 0 ? 'text-green-600' : 'text-red-600';
+                const totalPLColor = totalPL >= 0 ? 'text-purple-600' : 'text-red-600';
                 const roiColor = roi >= 0 ? 'text-teal-600' : 'text-orange-600';
+                const unrealizedPLColor = unrealizedPL >= 0 ? 'text-green-600' : 'text-red-600';
+                const realizedPLColor = realizedPL >= 0 ? 'text-green-600' : 'text-red-600';
 
                 const card = document.createElement('div');
                 card.className = 'bg-gray-50 p-4 rounded-lg shadow-sm border';
@@ -660,25 +740,33 @@
                             <button class="edit-investment-account-btn text-gray-400 hover:text-blue-500 p-1" data-id="${inv.id}" data-name="${inv.name}">
                                 <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.5L15.232 5.232z" /></svg>
                             </button>
-                            <button class="delete-investment-btn text-gray-400 hover:text-red-500 p-1" data-id="${inv.id}">&times;</button>
+                            <button class="delete-investment-btn text-gray-400 hover:text-red-500 p-1 text-2xl leading-none -mt-1" data-id="${inv.id}" data-name="${inv.name}">&times;</button>
                         </div>
                     </div>
-                    <div class="mt-2 grid grid-cols-2 gap-y-2 gap-x-4 investment-card-clickable" data-id="${inv.id}">
-                        <div>
+                    <div class="mt-2 grid grid-cols-2 gap-y-2 gap-x-4">
+                        <div class="investment-card-clickable" data-id="${inv.id}">
                             <p class="text-xs text-gray-500">資產現值</p>
-                            <p class="text-lg font-bold text-blue-600">NT$ ${(inv.marketValue || 0).toLocaleString()}</p>
+                            <p class="text-lg font-bold text-blue-600">NT$ ${marketValue.toLocaleString()}</p>
                         </div>
                         <div>
-                            <p class="text-xs text-gray-500">總報酬 (已實現)</p>
-                            <p class="text-lg font-bold ${profitColor}">${profit >= 0 ? '+' : ''}${profit.toLocaleString()}</p>
+                            <p class="text-xs text-gray-500">總損益</p>
+                            <p class="text-lg font-bold ${totalPLColor}">${totalPL >= 0 ? '+' : ''}${totalPL.toLocaleString()}</p>
                         </div>
                         <div>
-                            <p class="text-xs text-gray-500">現金結餘</p>
-                            <p class="text-lg font-bold text-gray-700">NT$ ${cashBalance.toLocaleString()}</p>
+                            <p class="text-xs text-gray-500">總成本</p>
+                            <p class="text-sm font-bold text-gray-700">NT$ ${totalCost.toLocaleString()}</p>
                         </div>
                         <div>
-                            <p class="text-xs text-gray-500">報酬率</p>
-                            <p class="text-lg font-bold ${roiColor}">${roi.toFixed(2)}%</p>
+                            <p class="text-xs text-gray-500">總報酬率</p>
+                            <p class="text-sm font-bold ${roiColor}">${roi.toFixed(2)}%</p>
+                        </div>
+                        <div>
+                            <p class="text-xs text-gray-500">未實現損益</p>
+                            <p class="text-sm font-bold ${unrealizedPLColor}">${unrealizedPL >= 0 ? '+' : ''}${unrealizedPL.toLocaleString()}</p>
+                        </div>
+                        <div>
+                            <p class="text-xs text-gray-500">已實現損益</p>
+                            <p class="text-sm font-bold ${realizedPLColor}">${realizedPL >= 0 ? '+' : ''}${realizedPL.toLocaleString()}</p>
                         </div>
                     </div>
                     <div class="mt-3 flex justify-end gap-2">
@@ -760,7 +848,8 @@
                 listElement.appendChild(li);
             });
         }
-
+        
+        // --- Summary Update Functions ---
         function updateSummary(transactions) {
             const income = transactions.filter(t => t.type === 'income').reduce((sum, t) => sum + t.amount, 0);
             const expense = transactions.filter(t => t.type === 'expense').reduce((sum, t) => sum + t.amount, 0);
@@ -804,28 +893,25 @@
         
         function updateInvestmentSummary(investments) {
             let totalMarketValue = 0;
-            let totalReturn = 0;
-            let totalCostAggregated = 0;
+            let totalIncome = 0;
+            let totalCost = 0;
 
             investments.forEach(inv => {
-                const income = inv.transactions.filter(t => t.type === 'income').reduce((sum, t) => sum + t.amount, 0);
-                const expense = inv.transactions.filter(t => t.type === 'expense').reduce((sum, t) => sum + t.amount, 0);
-                const totalCost = expense;
-                const profit = income - expense;
-                
                 totalMarketValue += (inv.marketValue || 0);
-                totalCostAggregated += totalCost;
-                totalReturn += profit;
+                totalIncome += inv.transactions.filter(t => t.type === 'income').reduce((sum, t) => sum + t.amount, 0);
+                totalCost += inv.transactions.filter(t => t.type === 'expense').reduce((sum, t) => sum + t.amount, 0);
             });
             
-            const totalRoi = totalCostAggregated > 0 ? (totalReturn / totalCostAggregated) * 100 : 0;
+            const totalPL = (totalMarketValue + totalIncome) - totalCost;
+            const totalRoi = totalCost > 0 ? (totalPL / totalCost) * 100 : 0;
 
             totalInvestmentValueEl.textContent = `NT$ ${totalMarketValue.toLocaleString()}`;
-            totalInvestmentReturnEl.textContent = `NT$ ${totalReturn.toLocaleString()}`;
+            totalInvestmentCostEl.textContent = `NT$ ${totalCost.toLocaleString()}`;
+            totalInvestmentPlEl.textContent = `NT$ ${totalPL.toLocaleString()}`;
             totalInvestmentRoiEl.textContent = `${totalRoi.toFixed(2)}%`;
 
-            totalInvestmentReturnEl.className = `text-2xl font-bold mt-2 ${totalReturn >= 0 ? 'text-purple-600' : 'text-red-600'}`;
-            totalInvestmentRoiEl.className = `text-2xl font-bold mt-2 ${totalRoi >= 0 ? 'text-teal-600' : 'text-orange-600'}`;
+            totalInvestmentPlEl.className = `text-xl md:text-2xl font-bold mt-1 ${totalPL >= 0 ? 'text-purple-600' : 'text-red-600'}`;
+            totalInvestmentRoiEl.className = `text-xl md:text-2xl font-bold mt-1 ${totalRoi >= 0 ? 'text-teal-600' : 'text-orange-600'}`;
         }
 
         function updateLendingSummary(lendings) {
@@ -858,7 +944,6 @@
             filteredBalanceEl.textContent = `NT$ ${(income - expense).toLocaleString()}`;
         }
 
-
         function updateExpenseChart() {
             const expenseData = allTransactions.filter(t => t.type === 'expense');
             noExpenseDataMsg.classList.toggle('hidden', expenseData.length > 0);
@@ -869,29 +954,37 @@
             if (expenseChart) expenseChart.destroy();
             expenseChart = new Chart(expenseChartCanvas, {
                 type: 'pie',
-                data: { labels: Object.keys(dataByCategory), datasets: [{ label: '支出金額', data: Object.values(dataByCategory), backgroundColor: ['#ff6384', '#36a2eb', '#ffce56', '#4bc0c0', '#9966ff', '#ff9f40', '#c9cbcf'], hoverOffset: 4 }] },
+                data: { labels: Object.keys(dataByCategory), datasets: [{ label: '支出金額', data: Object.values(dataByCategory), backgroundColor: ['#ff6384', '#36a2eb', '#ffce56', '#4bc0c0', '#9966ff', '#ff9f40', '#c9cbcf', '#ef4444', '#10b981', '#6366f1'], hoverOffset: 4 }] },
                 options: { responsive: true, maintainAspectRatio: true }
             });
         }
         
-        // --- UI & Event Listeners ---
+        // --- Event Listeners Setup ---
         function setupEventListeners() {
             googleLoginBtn.addEventListener('click', () => {
                 const provider = new GoogleAuthProvider();
-                signInWithPopup(auth, provider).catch(error => console.error("Google 登入失敗", error));
+                signInWithPopup(auth, provider).catch(error => {
+                    console.error("Google 登入失敗", error);
+                    showToast(`Google 登入失敗: ${error.message}`, 'error');
+                });
             });
             anonymousLoginBtn.addEventListener('click', () => {
-                signInAnonymously(auth).catch(error => console.error("匿名登入失敗", error));
+                signInAnonymously(auth).catch(error => {
+                    console.error("匿名登入失敗", error);
+                    showToast(`匿名登入失敗: ${error.message}`, 'error');
+                });
             });
 
+            // Tabs
             tabAccounting.addEventListener('click', () => switchTab('accounting'));
             tabInvestment.addEventListener('click', () => switchTab('investment'));
             tabReports.addEventListener('click', () => switchTab('reports'));
             tabDebt.addEventListener('click', () => switchTab('debt'));
             tabLending.addEventListener('click', () => switchTab('lending'));
             tabEvents.addEventListener('click', () => switchTab('events'));
-            document.getElementById('tab-settings').addEventListener('click', () => switchTab('settings'));
+            tabSettings.addEventListener('click', () => switchTab('settings'));
 
+            // Forms
             form.addEventListener('submit', handleFormSubmit);
             debtForm.addEventListener('submit', handleDebtFormSubmit);
             lendingForm.addEventListener('submit', handleLendingFormSubmit);
@@ -900,40 +993,43 @@
             investmentTransactionForm.addEventListener('submit', handleInvestmentTransactionSubmit);
             editInvestmentAccountForm.addEventListener('submit', handleEditInvestmentAccountSubmit);
             updateMarketValueForm.addEventListener('submit', handleUpdateMarketValueSubmit);
-
             repaymentForm.addEventListener('submit', handleRepaymentSubmit);
             debtEditForm.addEventListener('submit', handleDebtEditSubmit);
             receivePaymentForm.addEventListener('submit', handleReceivePaymentSubmit);
             
+            // Cancel Buttons
             cancelRepaymentBtn.addEventListener('click', () => repaymentModal.classList.add('hidden'));
             cancelReceivePaymentBtn.addEventListener('click', () => receivePaymentModal.classList.add('hidden'));
             cancelInvestmentTransactionBtn.addEventListener('click', () => investmentTransactionModal.classList.add('hidden'));
             cancelEditInvestmentAccountBtn.addEventListener('click', () => editInvestmentAccountModal.classList.add('hidden'));
             cancelUpdateMarketValueBtn.addEventListener('click', () => updateMarketValueModal.classList.add('hidden'));
 
+            // Main transaction form type selection
             expenseRadio.addEventListener('change', updateTypeSelection);
             document.querySelector('input[name="type"][value="income"]').addEventListener('change', updateTypeSelection);
             
+            // Modals
             setupModal(manageCategoriesBtn, categoryModal, [document.getElementById('close-category-modal-btn'), document.getElementById('close-category-modal-btn-bottom')]);
             setupModal(manageProjectsBtn, projectModal, [document.getElementById('close-project-modal-btn'), document.getElementById('close-project-modal-btn-bottom')]);
             
-            transactionList.addEventListener('click', (e) => handleDelete(e, '.delete-btn', transactionsColRef));
-            eventList.addEventListener('click', (e) => handleDelete(e, '.delete-event-btn', eventsColRef));
-            
+            // Click delegations for dynamic content
+            transactionList.addEventListener('click', (e) => handleDelete(e, '.delete-btn', transactionsColRef, '交易紀錄'));
+            eventList.addEventListener('click', (e) => handleDelete(e, '.delete-event-btn', eventsColRef, '事件'));
+            customCategoryList.addEventListener('click', (e) => handleDelete(e, '.delete-category-btn', categoriesColRef, '分類'));
+            customProjectList.addEventListener('click', (e) => handleDelete(e, '.delete-project-btn', projectsColRef, '專案'));
+
             debtList.addEventListener('click', (e) => {
                 const debtCard = e.target.closest('.debt-card-clickable');
-                if (e.target.closest('.repay-btn') || e.target.closest('.delete-debt-btn')) {
-                    e.stopPropagation(); 
-                    handleDelete(e, '.delete-debt-btn', debtsColRef);
-                    handleRepayClick(e);
-                    return;
-                }
-                if (debtCard) handleDebtCardClick(debtCard.dataset.id);
+                if (e.target.closest('.repay-btn')) { handleRepayClick(e); }
+                else if (e.target.closest('.delete-debt-btn')) { handleDeleteDebt(e); }
+                else if (debtCard) { handleDebtCardClick(debtCard.dataset.id); }
             });
+
             lendingList.addEventListener('click', (e) => {
-                if (e.target.closest('.receive-payment-btn')) handleReceivePaymentClick(e);
-                if (e.target.closest('.delete-lending-btn')) handleDelete(e, '.delete-lending-btn', lendingsColRef);
+                if (e.target.closest('.receive-payment-btn')) { handleReceivePaymentClick(e); }
+                else if (e.target.closest('.delete-lending-btn')) { handleDeleteLending(e); }
             });
+
             investmentList.addEventListener('click', (e) => {
                 const cardClick = e.target.closest('.investment-card-clickable');
                 const addTxBtn = e.target.closest('.add-investment-tx-btn');
@@ -943,39 +1039,39 @@
 
                 if (addTxBtn) handleAddInvestmentTxClick(addTxBtn);
                 else if (editAccountBtn) handleEditInvestmentAccountClick(editAccountBtn);
-                else if (deleteBtn) handleDelete(deleteBtn, '.delete-investment-btn', investmentsColRef);
+                else if (deleteBtn) handleDeleteInvestment(deleteBtn);
                 else if (updateValueBtn) handleUpdateMarketValueClick(updateValueBtn);
                 else if (cardClick) handleInvestmentCardClick(cardClick.dataset.id);
             });
-
-            customCategoryList.addEventListener('click', (e) => handleDelete(e, '.delete-category-btn', categoriesColRef));
-            customProjectList.addEventListener('click', (e) => handleDelete(e, '.delete-project-btn', projectsColRef));
+            
+            // Report Filters
             filterThisMonthBtn.addEventListener('click', handleFilterThisMonth);
             filterCustomDateBtn.addEventListener('click', handleFilterCustomDate);
-            // Debt Detail Modal Listeners
+            
+            // Detail Modals
             closeDebtDetailModalBtn.addEventListener('click', () => debtDetailModal.classList.add('hidden'));
             editDebtBtn.addEventListener('click', toggleDebtEditView);
             cancelEditDebtBtn.addEventListener('click', toggleDebtEditView);
-            // Investment Detail Modal Listener
             closeInvestmentDetailModalBtn.addEventListener('click', () => investmentDetailModal.classList.add('hidden'));
+            
             investmentHistoryList.addEventListener('click', (e) => {
                 if (e.target.closest('.delete-investment-tx-btn')) handleDeleteInvestmentTx(e);
                 if (e.target.closest('.edit-investment-tx-btn')) handleEditInvestmentTxClick(e);
             });
-            // Category Stats Listeners
+            
             expenseStatsList.addEventListener('click', handleCategoryClick);
             incomeStatsList.addEventListener('click', handleCategoryClick);
-            // Backup
             backupBtn.addEventListener('click', handleBackup);
         }
 
+        // --- Event Handlers ---
         function switchTab(tabName) {
-            const views = { accounting: accountingView, investment: investmentView, reports: reportsView, debt: debtView, lending: lendingView, events: eventsView, settings: document.getElementById('settings-view') };
-            const tabs = { accounting: tabAccounting, investment: tabInvestment, reports: tabReports, debt: tabDebt, lending: tabLending, events: tabEvents, settings: document.getElementById('tab-settings') };
+            const views = { accounting: accountingView, investment: investmentView, reports: reportsView, debt: debtView, lending: lendingView, events: eventsView, settings: settingsView };
+            const tabs = { accounting: tabAccounting, investment: tabInvestment, reports: tabReports, debt: tabDebt, lending: tabLending, events: tabEvents, settings: tabSettings };
             
             for (const key in views) {
                 views[key].classList.toggle('hidden', key !== tabName);
-                tabs[key].classList.toggle('active', key === tabName);
+                tabs[key].classList.toggle('active', key !== tabName);
             }
 
             if(tabName === 'reports') {
@@ -988,7 +1084,7 @@
             e.preventDefault();
             if (!userId) return;
             const amount = parseFloat(amountInput.value), category = categoryInput.value.trim(), project = projectInput.value.trim(), date = transactionDateInput.value;
-            if (isNaN(amount) || amount <= 0 || category === '' || !date) { console.warn("請輸入有效的金額、分類和日期！"); return; }
+            if (isNaN(amount) || amount <= 0 || category === '' || !date) { showToast("請輸入有效的金額、分類和日期！", 'error'); return; }
             
             submitBtnText.classList.add('hidden'); submitSpinner.classList.remove('hidden'); form.querySelector('button[type="submit"]').disabled = true;
             try {
@@ -998,7 +1094,8 @@
                 form.reset();
                 transactionDateInput.valueAsDate = new Date();
                 updateTypeSelection();
-            } catch (error) { console.error("新增紀錄失敗:", error); } 
+                showToast("新增成功！", "success");
+            } catch (error) { console.error("新增紀錄失敗:", error); showToast("新增紀錄失敗", "error"); } 
             finally { submitBtnText.classList.remove('hidden'); submitSpinner.classList.add('hidden'); form.querySelector('button[type="submit"]').disabled = false; }
         }
         
@@ -1006,14 +1103,15 @@
             e.preventDefault();
             const name = document.getElementById('debt-name').value.trim();
             const totalAmount = parseFloat(document.getElementById('debt-total-amount').value);
-            if (name === '' || isNaN(totalAmount) || totalAmount <= 0) { console.warn("請輸入有效的負債項目和金額"); return; }
+            if (name === '' || isNaN(totalAmount) || totalAmount <= 0) { showToast("請輸入有效的負債項目和金額", 'error'); return; }
             
             const btnText = document.getElementById('add-debt-btn-text'), spinner = document.getElementById('add-debt-spinner');
             btnText.classList.add('hidden'); spinner.classList.remove('hidden'); debtForm.querySelector('button[type="submit"]').disabled = true;
             try {
                 await addDoc(debtsColRef, { name, totalAmount, remainingAmount: totalAmount, createdAt: Timestamp.now() });
                 debtForm.reset();
-            } catch (error) { console.error("新增負債失敗:", error); }
+                showToast("新增負債成功", "success");
+            } catch (error) { console.error("新增負債失敗:", error); showToast("新增負債失敗", "error"); }
             finally { btnText.classList.remove('hidden'); spinner.classList.add('hidden'); debtForm.querySelector('button[type="submit"]').disabled = false; }
         }
         
@@ -1022,74 +1120,63 @@
             const date = document.getElementById('event-date').value;
             const title = document.getElementById('event-title').value.trim();
             const description = document.getElementById('event-description').value.trim();
-            if (!date || title === '') { console.warn("請輸入日期和標題"); return; }
+            if (!date || title === '') { showToast("請輸入日期和標題", 'error'); return; }
             
             try {
-                await addDoc(eventsColRef, {
-                    date: Timestamp.fromDate(new Date(date)),
-                    title,
-                    description,
-                    createdAt: Timestamp.now()
-                });
+                await addDoc(eventsColRef, { date: Timestamp.fromDate(new Date(date)), title, description, createdAt: Timestamp.now() });
                 eventForm.reset();
                 document.getElementById('event-date').valueAsDate = new Date();
-            } catch (error) {
-                console.error("新增事件失敗:", error);
-            }
+                showToast("新增事件成功", "success");
+            } catch (error) { console.error("新增事件失敗:", error); showToast("新增事件失敗", "error"); }
         }
         
         async function handleLendingFormSubmit(e) {
             e.preventDefault();
             const name = document.getElementById('lending-name').value.trim();
             const totalAmount = parseFloat(document.getElementById('lending-total-amount').value);
-            if (name === '' || isNaN(totalAmount) || totalAmount <= 0) { console.warn("請輸入有效的借款項目和金額"); return; }
+            if (name === '' || isNaN(totalAmount) || totalAmount <= 0) { showToast("請輸入有效的借款項目和金額", 'error'); return; }
             
+            const timestamp = Timestamp.now();
+            const batch = writeBatch(db);
             try {
-                await addDoc(lendingsColRef, { name, totalAmount, remainingAmount: totalAmount, createdAt: Timestamp.now() });
-                await addDoc(transactionsColRef, { type: 'expense', amount: totalAmount, category: '債權借出', project: name, remarks: `借款給: ${name}`, timestamp: Timestamp.now() });
+                // Create the lending item
+                const lendingRef = doc(lendingsColRef);
+                batch.set(lendingRef, { name, totalAmount, remainingAmount: totalAmount, createdAt: timestamp });
+                
+                // Create the corresponding expense transaction
+                const transactionRef = doc(transactionsColRef);
+                batch.set(transactionRef, { type: 'expense', amount: totalAmount, category: '債權借出', project: name, remarks: `借款給: ${name}`, timestamp: timestamp });
+
+                await batch.commit();
                 lendingForm.reset();
-            } catch (error) { console.error("新增債權失敗:", error); }
+                showToast("新增債權成功", "success");
+            } catch (error) { console.error("新增債權失敗:", error); showToast("新增債權失敗", "error"); }
         }
         
         async function handleInvestmentFormSubmit(e) {
             e.preventDefault();
             const name = document.getElementById('investment-name').value.trim();
             const initialValue = parseFloat(document.getElementById('investment-initial-value').value) || 0;
-            if (name === '') { console.warn("請輸入有效的帳戶名稱"); return; }
+            if (name === '') { showToast("請輸入有效的帳戶名稱", 'error'); return; }
 
+            const now = new Date();
+            const timestamp = Timestamp.fromDate(now);
+            const batch = writeBatch(db);
             try {
-                const now = new Date();
-                const timestamp = Timestamp.fromDate(now);
-
-                const newInvestmentRef = await addDoc(investmentsColRef, { 
-                    name, 
-                    initialValue, 
-                    marketValue: initialValue, // Set initial market value
-                    createdAt: timestamp 
-                });
+                const newInvestmentRef = doc(investmentsColRef);
+                batch.set(newInvestmentRef, { name, initialValue, marketValue: initialValue, createdAt: timestamp });
                 
                 if (initialValue > 0) {
-                    const mainTxPayload = {
-                        type: 'expense', 
-                        amount: initialValue, 
-                        category: '投資支出', 
-                        project: name, 
-                        remarks: `建立投資帳戶: ${name}`, 
-                        timestamp: timestamp
-                    };
-                    const mainTxRef = await addDoc(transactionsColRef, mainTxPayload);
+                    const mainTxRef = doc(transactionsColRef);
+                    batch.set(mainTxRef, { type: 'expense', amount: initialValue, category: '投資支出', project: name, remarks: `建立投資帳戶: ${name}`, timestamp: timestamp });
 
-                    const investmentTxColRef = collection(db, `${investmentsColRef.path}/${newInvestmentRef.id}/transactions`);
-                    await addDoc(investmentTxColRef, {
-                        date: timestamp,
-                        type: 'expense',
-                        amount: initialValue,
-                        remark: '初始投入金額',
-                        mainTransactionId: mainTxRef.id
-                    });
+                    const investmentTxRef = doc(collection(db, newInvestmentRef.path, 'transactions'));
+                    batch.set(investmentTxRef, { date: timestamp, type: 'expense', amount: initialValue, remark: '初始投入金額', mainTransactionId: mainTxRef.id });
                 }
+                await batch.commit();
                 investmentForm.reset();
-            } catch (error) { console.error("新增投資帳戶失敗:", error); }
+                showToast("建立投資帳戶成功", "success");
+            } catch (error) { console.error("新增投資帳戶失敗:", error); showToast("新增投資帳戶失敗", "error"); }
         }
         
         function handleAddInvestmentTxClick(btn) {
@@ -1116,84 +1203,64 @@
             const amount = parseFloat(document.getElementById('investment-transaction-amount').value);
             const remark = document.getElementById('investment-transaction-remark').value.trim();
 
-            if (!accountId || !date || isNaN(amount) || amount <= 0) {
-                console.warn("請填寫完整交易資訊");
-                return;
-            }
+            if (!accountId || !date || isNaN(amount) || amount <= 0) { showToast("請填寫完整交易資訊", 'error'); return; }
             
             const transactionTimestamp = Timestamp.fromDate(new Date(date));
             const investmentTxColRef = collection(db, `${investmentsColRef.path}/${accountId}/transactions`);
-
-            const mainTxPayload = {
-                type: type,
-                amount: amount,
-                category: type === 'income' ? '投資收入' : '投資支出',
-                project: accountName,
-                remarks: remark,
-                timestamp: transactionTimestamp
-            };
+            const mainTxPayload = { type, amount, category: type === 'income' ? '投資收入' : '投資支出', project: accountName, remarks: remark, timestamp: transactionTimestamp };
 
             try {
+                const batch = writeBatch(db);
                 if (txId && mainTxId) { // This is an EDIT
                     const investmentTxRef = doc(investmentTxColRef, txId);
                     const mainTxRef = doc(transactionsColRef, mainTxId);
-                    
-                    const batch = writeBatch(db);
                     batch.update(investmentTxRef, { date: transactionTimestamp, type, amount, remark });
                     batch.update(mainTxRef, mainTxPayload);
-                    await batch.commit();
-
                 } else { // This is a NEW transaction
-                    const mainTxRef = await addDoc(transactionsColRef, mainTxPayload);
-                    await addDoc(investmentTxColRef, { ...mainTxPayload, date: transactionTimestamp, remark: remark, mainTransactionId: mainTxRef.id });
+                    const mainTxRef = doc(transactionsColRef);
+                    batch.set(mainTxRef, mainTxPayload);
+                    const investmentTxRef = doc(investmentTxColRef);
+                    batch.set(investmentTxRef, { ...mainTxPayload, date: transactionTimestamp, remark: remark, mainTransactionId: mainTxRef.id });
                 }
-
+                await batch.commit();
                 investmentTransactionForm.reset();
                 investmentTransactionModal.classList.add('hidden');
-                listenForInvestments(); // Manually refresh investment data
-            } catch (error) {
-                console.error("處理投資交易失敗:", error);
-            }
+                listenForInvestments(); // Manually refresh to show new transaction
+                showToast(txId ? "交易更新成功" : "交易新增成功", "success");
+            } catch (error) { console.error("處理投資交易失敗:", error); showToast("處理投資交易失敗", "error"); }
         }
         
         async function handleDeleteInvestmentTx(e) {
             const deleteBtn = e.target.closest('.delete-investment-tx-btn');
-            if (deleteBtn) {
-                const investmentId = deleteBtn.dataset.investmentId;
-                const txId = deleteBtn.dataset.txId;
-                const mainTxId = deleteBtn.dataset.mainTxId;
+            if (!deleteBtn) return;
 
-                if (investmentId && txId) {
-                    const txDocRef = doc(db, investmentsColRef.path, investmentId, 'transactions', txId);
-                    try {
-                        deleteBtn.disabled = true;
-                        const batch = writeBatch(db);
-                        batch.delete(txDocRef);
-                        // Also delete from main transaction log if linked
-                        if (mainTxId) {
-                            const mainTxRef = doc(transactionsColRef, mainTxId);
-                            batch.delete(mainTxRef);
-                        }
-                        await batch.commit();
-                        
-                        listenForInvestments(); // Refresh all investment data
-                        
-                        if (!investmentDetailModal.classList.contains('hidden')) {
-                           renderInvestmentHistory(investmentId);
-                        }
-                    } catch (error) {
-                        console.error("刪除投資交易失敗:", error);
-                        deleteBtn.disabled = false;
-                    }
+            const { investmentId, txId, mainTxId } = deleteBtn.dataset;
+            if (!investmentId || !txId) return;
+
+            deleteBtn.disabled = true;
+            try {
+                const batch = writeBatch(db);
+                const txDocRef = doc(db, investmentsColRef.path, investmentId, 'transactions', txId);
+                batch.delete(txDocRef);
+                
+                if (mainTxId) {
+                    const mainTxRef = doc(transactionsColRef, mainTxId);
+                    batch.delete(mainTxRef);
                 }
+                await batch.commit();
+                showToast("投資交易已刪除", "success");
+                listenForInvestments(); // Always refresh data
+            } catch (error) {
+                console.error("刪除投資交易失敗:", error);
+                showToast("刪除投資交易失敗", "error");
+                deleteBtn.disabled = false;
             }
         }
 
         function handleEditInvestmentAccountClick(btn) {
-            const accountId = btn.dataset.id;
-            const accountName = btn.dataset.name;
-            document.getElementById('edit-investment-account-id').value = accountId;
-            document.getElementById('edit-investment-account-name').value = accountName;
+            const { id, name } = btn.dataset;
+            document.getElementById('edit-investment-account-id').value = id;
+            document.getElementById('edit-investment-account-name').value = name;
             editInvestmentAccountModal.classList.remove('hidden');
         }
 
@@ -1203,45 +1270,36 @@
             const newName = document.getElementById('edit-investment-account-name').value.trim();
             if (!accountId || newName === '') return;
 
-            const accountRef = doc(investmentsColRef, accountId);
-            try {
-                await updateDoc(accountRef, { name: newName });
+            const oldAccount = allInvestments.find(inv => inv.id === accountId);
+            if (!oldAccount || oldAccount.name === newName) {
                 editInvestmentAccountModal.classList.add('hidden');
-                listenForInvestments(); // Refresh
+                return;
+            }
+
+            const batch = writeBatch(db);
+            try {
+                // 1. Update the investment account document itself
+                const accountRef = doc(investmentsColRef, accountId);
+                batch.update(accountRef, { name: newName });
+
+                // 2. Find and update all related transactions in the main log
+                const q = query(transactionsColRef, where("project", "==", oldAccount.name), where("category", "in", ["投資支出", "投資收入"]));
+                const querySnapshot = await getDocs(q);
+                querySnapshot.forEach((doc) => {
+                    batch.update(doc.ref, { project: newName });
+                });
+
+                await batch.commit();
+                editInvestmentAccountModal.classList.add('hidden');
+                showToast("帳戶名稱更新成功", "success");
             } catch (error) {
                 console.error("更新投資帳戶名稱失敗:", error);
+                showToast("更新投資帳戶名稱失敗", "error");
             }
         }
-
-        async function handleEditInvestmentTxClick(e) {
-            const editBtn = e.target.closest('.edit-investment-tx-btn');
-            if (!editBtn) return;
-
-            const investmentId = editBtn.dataset.investmentId;
-            const txId = editBtn.dataset.txId;
-            
-            const investment = allInvestments.find(inv => inv.id === investmentId);
-            const tx = investment?.transactions.find(t => t.id === txId);
-
-            if (investment && tx) {
-                document.getElementById('investment-transaction-title').textContent = `編輯交易 "${investment.name}"`;
-                document.getElementById('investment-transaction-account-id').value = investmentId;
-                document.getElementById('investment-transaction-account-name').value = investment.name;
-                document.getElementById('investment-transaction-id').value = txId;
-                document.getElementById('investment-main-transaction-id').value = tx.mainTransactionId || '';
-                document.getElementById('investment-transaction-date').value = tx.date.toDate().toISOString().split('T')[0];
-                document.getElementById('investment-transaction-type').value = tx.type;
-                document.getElementById('investment-transaction-amount').value = tx.amount;
-                document.getElementById('investment-transaction-remark').value = tx.remark || '';
-                
-                investmentTransactionModal.classList.remove('hidden');
-            }
-        }
-
+        
         function handleUpdateMarketValueClick(btn) {
-            const id = btn.dataset.id;
-            const name = btn.dataset.name;
-            const value = btn.dataset.value;
+            const { id, name, value } = btn.dataset;
             document.getElementById('update-market-value-title').textContent = `更新 "${name}" 的現值`;
             document.getElementById('update-market-value-id').value = id;
             document.getElementById('update-market-value-amount').value = value;
@@ -1252,20 +1310,18 @@
             e.preventDefault();
             const id = document.getElementById('update-market-value-id').value;
             const amount = parseFloat(document.getElementById('update-market-value-amount').value);
-            if (!id || isNaN(amount) || amount < 0) {
-                console.warn("請輸入有效的金額");
-                return;
-            }
+            if (!id || isNaN(amount) || amount < 0) { showToast("請輸入有效的金額", 'error'); return; }
+            
             const investmentRef = doc(investmentsColRef, id);
             try {
                 await updateDoc(investmentRef, { marketValue: amount });
                 updateMarketValueModal.classList.add('hidden');
-                listenForInvestments(); // Refresh data
+                showToast("資產現值更新成功", "success");
             } catch(error) {
                 console.error("更新資產現值失敗:", error);
+                showToast("更新資產現值失敗", "error");
             }
         }
-
 
         function handleRepayClick(e) {
             const repayBtn = e.target.closest('.repay-btn');
@@ -1315,7 +1371,9 @@
             const investment = allInvestments.find(inv => inv.id === investmentId);
             if (!investment) return;
             
-            document.getElementById('investment-detail-title').textContent = `"${investment.name}" 交易紀錄`;
+            const titleEl = document.getElementById('investment-detail-title');
+            titleEl.textContent = `"${investment.name}" 交易紀錄`;
+            titleEl.dataset.accountId = investmentId; // Store ID for refresh logic
             renderInvestmentHistory(investment.id);
             investmentDetailModal.classList.remove('hidden');
         }
@@ -1328,65 +1386,177 @@
         async function handleDebtEditSubmit(e) {
             e.preventDefault();
             const debtId = editDebtIdInput.value, newName = editDebtNameInput.value.trim(), newTotal = parseFloat(editDebtTotalInput.value);
-            if (!debtId || newName === '' || isNaN(newTotal) || newTotal < 0) { console.warn("請輸入有效的項目名稱和總金額"); return; }
+            if (!debtId || newName === '' || isNaN(newTotal) || newTotal < 0) { showToast("請輸入有效的項目名稱和總金額", 'error'); return; }
             
             const debtRef = doc(db, debtsColRef.path, debtId);
+            const currentDebt = allDebts.find(d => d.id === debtId);
+            if (!currentDebt) { console.error("找不到要編輯的負債"); return; }
+
+            const batch = writeBatch(db);
             try {
-                const currentDebt = allDebts.find(d => d.id === debtId);
-                if (!currentDebt) { console.error("找不到要編輯的負債"); return; }
-                
+                // Update debt item
                 const amountPaid = currentDebt.totalAmount - currentDebt.remainingAmount;
                 const newRemainingAmount = newTotal - amountPaid;
+                batch.update(debtRef, { name: newName, totalAmount: newTotal, remainingAmount: Math.max(0, newRemainingAmount) });
 
-                await updateDoc(debtRef, { name: newName, totalAmount: newTotal, remainingAmount: newRemainingAmount < 0 ? 0 : newRemainingAmount });
+                // If name changed, update all related transactions
+                if (currentDebt.name !== newName) {
+                    const q = query(transactionsColRef, where("project", "==", currentDebt.name), where("category", "==", "負債還款"));
+                    const querySnapshot = await getDocs(q);
+                    querySnapshot.forEach((doc) => {
+                        batch.update(doc.ref, { project: newName });
+                    });
+                }
+                
+                await batch.commit();
                 debtDetailModal.classList.add('hidden');
-            } catch (error) { console.error("更新負債失敗:", error); }
+                showToast("負債更新成功", "success");
+            } catch (error) { console.error("更新負債失敗:", error); showToast("更新負債失敗", "error"); }
         }
         
         async function handleRepaymentSubmit(e) {
             e.preventDefault();
             const debtId = repaymentDebtIdInput.value, debtName = repaymentDebtNameInput.value, amount = parseFloat(repaymentAmountInput.value), date = repaymentDateInput.value;
             const remark = document.getElementById('repayment-remark').value.trim();
-            if (isNaN(amount) || amount <= 0 || !date) { console.warn("請輸入有效的還款金額和日期"); return; }
+            if (isNaN(amount) || amount <= 0 || !date) { showToast("請輸入有效的還款金額和日期", 'error'); return; }
             
             const timestamp = Timestamp.fromDate(new Date(date));
-
             const debtRef = doc(db, debtsColRef.path, debtId);
+            const batch = writeBatch(db);
             try {
-                await updateDoc(debtRef, { remainingAmount: increment(-amount) });
-                await addDoc(transactionsColRef, { type: 'expense', amount: amount, category: '負債還款', project: debtName, remarks: remark || `償還負債: ${debtName}`, timestamp: timestamp });
+                batch.update(debtRef, { remainingAmount: increment(-amount) });
+                const txRef = doc(transactionsColRef);
+                batch.set(txRef, { type: 'expense', amount: amount, category: '負債還款', project: debtName, remarks: remark || `償還負債: ${debtName}`, timestamp: timestamp });
+                
+                await batch.commit();
                 repaymentForm.reset();
                 repaymentModal.classList.add('hidden');
-            } catch (error) { console.error("更新還款失敗:", error); }
+                showToast("還款成功", "success");
+            } catch (error) { console.error("更新還款失敗:", error); showToast("更新還款失敗", "error"); }
         }
         
         async function handleReceivePaymentSubmit(e) {
             e.preventDefault();
             const lendingId = receivePaymentLendingIdInput.value, lendingName = receivePaymentLendingNameInput.value, amount = parseFloat(receivePaymentAmountInput.value), date = receivePaymentDateInput.value;
-            if (isNaN(amount) || amount <= 0 || !date) { console.warn("請輸入有效的收款金額和日期"); return; }
+            if (isNaN(amount) || amount <= 0 || !date) { showToast("請輸入有效的收款金額和日期", 'error'); return; }
 
             const timestamp = Timestamp.fromDate(new Date(date));
-
             const lendingRef = doc(db, lendingsColRef.path, lendingId);
+            const batch = writeBatch(db);
             try {
-                await updateDoc(lendingRef, { remainingAmount: increment(-amount) });
-                await addDoc(transactionsColRef, { type: 'income', amount: amount, category: '債權回收', project: lendingName, remarks: `收到還款: ${lendingName}`, timestamp: timestamp });
+                batch.update(lendingRef, { remainingAmount: increment(-amount) });
+                const txRef = doc(transactionsColRef);
+                batch.set(txRef, { type: 'income', amount: amount, category: '債權回收', project: lendingName, remarks: `收到還款: ${lendingName}`, timestamp: timestamp });
+                
+                await batch.commit();
                 receivePaymentForm.reset();
                 receivePaymentModal.classList.add('hidden');
-            } catch (error) { console.error("更新收款失敗:", error); }
+                showToast("收款成功", "success");
+            } catch (error) { console.error("更新收款失敗:", error); showToast("更新收款失敗", "error"); }
         }
         
-        async function handleDelete(eventOrElement, selector, collectionRef) {
-            const deleteBtn = eventOrElement.target ? eventOrElement.target.closest(selector) : eventOrElement;
+        async function handleDelete(event, selector, collectionRef, itemName) {
+            const deleteBtn = event.target.closest(selector);
             if (deleteBtn && collectionRef) {
                 const id = deleteBtn.dataset.id;
                 try {
                     deleteBtn.disabled = true;
                     await deleteDoc(doc(db, collectionRef.path, id));
-                } catch (error) { console.error("刪除失敗:", error); deleteBtn.disabled = false; }
+                    showToast(`${itemName}已刪除`, "success");
+                } catch (error) { 
+                    console.error(`刪除${itemName}失敗:`, error);
+                    showToast(`刪除${itemName}失敗`, "error");
+                    deleteBtn.disabled = false;
+                }
             }
         }
         
+        // --- Data Integrity Deletion Handlers ---
+        async function handleDeleteDebt(e) {
+            const deleteBtn = e.target.closest('.delete-debt-btn');
+            if (!deleteBtn) return;
+            const { id, name } = deleteBtn.dataset;
+
+            deleteBtn.disabled = true;
+            const batch = writeBatch(db);
+            try {
+                // 1. Delete the debt document
+                const debtRef = doc(debtsColRef, id);
+                batch.delete(debtRef);
+
+                // 2. Find and delete all related repayment transactions
+                const q = query(transactionsColRef, where("project", "==", name), where("category", "==", "負債還款"));
+                const querySnapshot = await getDocs(q);
+                querySnapshot.forEach(doc => batch.delete(doc.ref));
+
+                await batch.commit();
+                showToast(`負債 "${name}" 已刪除`, "success");
+            } catch (error) {
+                console.error("刪除負債失敗:", error);
+                showToast("刪除負債失敗", "error");
+                deleteBtn.disabled = false;
+            }
+        }
+
+        async function handleDeleteLending(e) {
+            const deleteBtn = e.target.closest('.delete-lending-btn');
+            if (!deleteBtn) return;
+            const { id, name } = deleteBtn.dataset;
+
+            deleteBtn.disabled = true;
+            const batch = writeBatch(db);
+            try {
+                // 1. Delete the lending document
+                const lendingRef = doc(lendingsColRef, id);
+                batch.delete(lendingRef);
+
+                // 2. Find and delete all related transactions
+                const q = query(transactionsColRef, where("project", "==", name), where("category", "in", ["債權借出", "債權回收"]));
+                const querySnapshot = await getDocs(q);
+                querySnapshot.forEach(doc => batch.delete(doc.ref));
+
+                await batch.commit();
+                showToast(`債權 "${name}" 已刪除`, "success");
+            } catch (error) {
+                console.error("刪除債權失敗:", error);
+                showToast("刪除債權失敗", "error");
+                deleteBtn.disabled = false;
+            }
+        }
+        
+        async function handleDeleteInvestment(deleteBtn) {
+            if (!deleteBtn) return;
+            const { id, name } = deleteBtn.dataset;
+            if (!id || !name) return;
+            
+            deleteBtn.disabled = true;
+            const batch = writeBatch(db);
+            try {
+                // 1. Delete the investment document itself
+                const investmentRef = doc(investmentsColRef, id);
+                batch.delete(investmentRef);
+
+                // 2. Delete all transactions in its subcollection
+                const investmentTxColRef = collection(db, investmentRef.path, 'transactions');
+                const txSnapshot = await getDocs(query(investmentTxColRef));
+                txSnapshot.forEach(txDoc => {
+                    batch.delete(txDoc.ref);
+                    // 3. Delete the corresponding transactions from the main log
+                    const mainTxId = txDoc.data().mainTransactionId;
+                    if (mainTxId) {
+                        batch.delete(doc(transactionsColRef, mainTxId));
+                    }
+                });
+                
+                await batch.commit();
+                showToast(`投資帳戶 "${name}" 已刪除`, "success");
+            } catch (error) {
+                console.error("刪除投資帳戶失敗:", error);
+                showToast("刪除投資帳戶失敗", "error");
+                deleteBtn.disabled = false;
+            }
+        }
+
         // --- Report Filter Handlers ---
         function handleFilterThisMonth() {
             const now = new Date();
@@ -1399,7 +1569,7 @@
 
         function handleFilterCustomDate() {
             const startVal = startDateInput.value, endVal = endDateInput.value;
-            if (!startVal || !endVal) { console.warn("請選擇開始與結束日期"); return; }
+            if (!startVal || !endVal) { showToast("請選擇開始與結束日期", 'error'); return; }
             const start = new Date(startVal), end = new Date(endVal);
             end.setHours(23, 59, 59, 999); 
             filterAndRenderDetails(start, end);
@@ -1412,9 +1582,7 @@
                 return txDate >= startDate && txDate <= endDate;
             });
 
-            // Handle category stats lists
-            const expenseSummary = {};
-            const incomeSummary = {};
+            const expenseSummary = {}, incomeSummary = {};
             filtered.forEach(tx => {
                 if (tx.type === 'expense') {
                     expenseSummary[tx.category] = (expenseSummary[tx.category] || 0) + tx.amount;
@@ -1425,7 +1593,6 @@
             renderCategoryStats(expenseStatsList, expenseSummary, 'expense');
             renderCategoryStats(incomeStatsList, incomeSummary, 'income');
 
-            // Further filter by category if one is selected
             if (category && type) {
                 filtered = filtered.filter(tx => tx.category === category && tx.type === type);
                 activeCategoryFilter = { type, category };
@@ -1441,13 +1608,11 @@
             const statItem = e.target.closest('.category-stat-item');
             if (!statItem) return;
 
-            // Remove active class from all items
             document.querySelectorAll('.category-stat-item').forEach(item => item.classList.remove('active'));
             
             const category = statItem.dataset.category;
             const type = statItem.dataset.type;
 
-            // If clicking the same category again, clear filter. Otherwise, apply new filter.
             if (activeCategoryFilter.category === category && activeCategoryFilter.type === type) {
                 handleFilterCustomDate(); // Re-run the date filter to show all
             } else {
@@ -1469,7 +1634,7 @@
         
         function populateDatalist(datalistElement, items) {
             datalistElement.innerHTML = '';
-            [...new Set(items)].forEach(item => { datalistElement.insertAdjacentHTML('beforeend', `<option value="${item}">${item}</option>`); });
+            [...new Set(items)].forEach(item => { datalistElement.insertAdjacentHTML('beforeend', `<option value="${item}"></option>`); });
         }
         
         function populateCategoryDatalist() {
@@ -1493,7 +1658,7 @@
         async function saveNewCustomItemIfNeeded(itemName, existingItems, collectionRef) {
             const trimmedName = itemName.trim();
             if (trimmedName === '') return;
-            const isNew = !existingItems.some(item => item.name.toLowerCase() === trimmedName.toLowerCase());
+            const isNew = !existingItems.some(item => item.name.toLowerCase() === trimmedName.toLowerCase()) && !Object.values(defaultCategories).flat().includes(trimmedName);
             if (isNew) {
                 try { await addDoc(collectionRef, { name: trimmedName, createdAt: serverTimestamp() }); } 
                 catch (error) { console.error("儲存新項目失敗:", error); }
@@ -1501,17 +1666,25 @@
         }
         
         function handleBackup() {
+            // Helper to safely convert Firestore Timestamps to ISO strings for JSON
+            const replacer = (key, value) => {
+                if (value && typeof value === 'object' && value.seconds !== undefined) {
+                    return new Date(value.seconds * 1000).toISOString();
+                }
+                return value;
+            };
+
             const dataToBackup = {
-                transactions: allTransactions.map(t => ({...t, timestamp: t.timestamp.toDate()})),
-                debts: allDebts.map(d => ({...d, createdAt: d.createdAt.toDate()})),
-                lendings: allLendings.map(l => ({...l, createdAt: l.createdAt.toDate()})),
-                events: allEvents.map(e => ({...e, date: e.date.toDate(), createdAt: e.createdAt.toDate()})),
-                investments: allInvestments.map(i => ({...i, createdAt: i.createdAt.toDate(), transactions: i.transactions.map(t => ({...t, date: t.date.toDate()}))})),
+                transactions: allTransactions,
+                debts: allDebts,
+                lendings: allLendings,
+                events: allEvents,
+                investments: allInvestments,
                 customCategories: customCategories,
                 customProjects: customProjects
             };
 
-            const jsonString = JSON.stringify(dataToBackup, null, 2);
+            const jsonString = JSON.stringify(dataToBackup, replacer, 2);
             const blob = new Blob([jsonString], {type: 'application/json'});
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
@@ -1522,23 +1695,32 @@
             a.click();
             document.body.removeChild(a);
             URL.revokeObjectURL(url);
+            showToast("備份已開始下載", "success");
         }
 
-        setupEventListeners();
-        updateTypeSelection();
-        transactionDateInput.valueAsDate = new Date();
-        document.getElementById('event-date').valueAsDate = new Date();
+        function showToast(message, type = 'info') { // type can be 'success' or 'error'
+            toastEl.className = 'show';
+            if (type === 'success') {
+                toastEl.classList.add('success');
+            } else if (type === 'error') {
+                toastEl.classList.add('error');
+            }
+            toastEl.textContent = message;
+            setTimeout(() => {
+                toastEl.className = toastEl.className.replace('show', '');
+                toastEl.classList.remove('success', 'error');
+            }, 3000);
+        }
+
+        // --- App Entry Point ---
+        document.addEventListener('DOMContentLoaded', () => {
+            initializeFirebase();
+            setupEventListeners();
+            updateTypeSelection();
+            transactionDateInput.valueAsDate = new Date();
+            document.getElementById('event-date').valueAsDate = new Date();
+        });
+
     </script>
 </body>
 </html>
-```
-
-我已經完成了以下主要的更新：
-
-* **投資總覽強化**：現在除了「總投資現值」和「總報酬」，還會顯示「**總報酬率 (ROI)**」。
-* **個股報酬率**：每一個獨立的投資帳戶卡片上，現在也會顯示各自的**報酬**與**報酬率**，方便您快速比較績效。
-* **編輯帳戶名稱**：在每個投資帳戶卡片的右上角，新增了一個**編輯圖示**，點擊後可以修改該帳戶的名稱。
-* **編輯交易紀錄**：在點進單一投資帳戶的「交易紀錄」彈出視窗中，每一筆交易後面都新增了**編輯**與**刪除**按鈕。
-* **資料同步**：當您編輯或刪除一筆投資交易時，系統會自動找到並同步更新總帳中的對應收支紀錄，確保所有數據都保持一致。
-
-您可以預覽看看新的功能，如果有任何問題或想再調整的地方，
