@@ -366,26 +366,39 @@
 
         // --- Initialization ---
         function initializeFirebase() {
+            let firebaseConfig;
             try {
-                // Use environment variables for Firebase config
-                const firebaseConfig = JSON.parse(typeof __firebase_config !== 'undefined' ? __firebase_config : '{}');
+                // Try to get config from environment variable first
+                if (typeof __firebase_config !== 'undefined' && __firebase_config) {
+                    firebaseConfig = JSON.parse(__firebase_config);
+                } else {
+                    // Fallback to a hardcoded config if the environment variable is not available
+                    console.warn("Firebase environment variable not found. Using fallback config.");
+                    firebaseConfig = {
+                        apiKey: "YOUR_API_KEY", // Replace with your actual config
+                        authDomain: "YOUR_AUTH_DOMAIN",
+                        projectId: "YOUR_PROJECT_ID",
+                        storageBucket: "YOUR_STORAGE_BUCKET",
+                        messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
+                        appId: "YOUR_APP_ID"
+                    };
+                }
+
                 appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
 
                 // Check if config is valid
-                if (!firebaseConfig.projectId) {
-                    showToast('Firebase 設定無效，請檢查環境變數。', 'error');
+                if (!firebaseConfig.projectId || firebaseConfig.projectId === "YOUR_PROJECT_ID") {
+                    showToast('Firebase 設定無效，請檢查環境變數或備用設定。', 'error');
                     console.error("Firebase config is missing or invalid.");
                     return;
                 }
                 
-                // DEBUG: Log the authDomain to help with setup
                 console.log("Firebase Auth Domain from config:", firebaseConfig.authDomain);
 
                 app = initializeApp(firebaseConfig);
                 db = getFirestore(app);
                 auth = getAuth(app);
                 
-                // Start authentication check
                 handleAuthentication();
             } catch (error) {
                 console.error("Firebase 初始化失敗:", error);
@@ -395,13 +408,11 @@
 
         // --- Authentication ---
         async function handleAuthentication() {
-            // This token is provided by the collaborative environment
             if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
                 try {
                     await signInWithCustomToken(auth, __initial_auth_token);
                 } catch (error) {
                     console.error("Custom token sign-in failed, falling back to manual login.", error);
-                    // If custom token fails, show login options
                     setupUIForLoggedOutUser();
                 }
             }
@@ -409,7 +420,6 @@
             onAuthStateChanged(auth, (user) => {
                 if (user) {
                     userId = user.uid;
-                    // Set up Firestore references with the correct, secure path
                     const basePath = `/artifacts/${appId}/users/${userId}`;
                     transactionsColRef = collection(db, `${basePath}/transactions`);
                     categoriesColRef = collection(db, `${basePath}/categories`);
@@ -432,7 +442,7 @@
         function setupUIForLoggedInUser(user) {
             loginView.classList.add('hidden');
             appContainer.classList.remove('hidden');
-            setTimeout(() => appContainer.classList.remove('opacity-0'), 10); // Fade in
+            setTimeout(() => appContainer.classList.remove('opacity-0'), 10);
             
             let userInfoHtml = '';
             if (user.isAnonymous) {
@@ -459,7 +469,6 @@
 
         // --- Data Listeners ---
         function attachDataListeners() {
-            // Ensure listeners are not attached multiple times
             detachDataListeners(); 
             
             listenForTransactions();
@@ -497,7 +506,7 @@
                 updateMonthlySummary(allTransactions);
                 updateExpenseChart();
                 updateMonthlyRepaymentSummary();
-                if(reportsView.offsetParent !== null) { handleFilterThisMonth(); } // Check if visible
+                if(reportsView.offsetParent !== null) { handleFilterThisMonth(); }
                 emptyState.classList.toggle('hidden', allTransactions.length > 0);
             }, (error) => { console.error("監聽交易資料失敗:", error); showToast('無法載入交易紀錄', 'error'); });
         }
@@ -550,7 +559,6 @@
                     updateInvestmentSummary(allInvestments);
                     investmentEmptyState.classList.toggle('hidden', allInvestments.length > 0);
                     
-                    // Refresh open modal if it exists
                     if (!investmentDetailModal.classList.contains('hidden')) {
                         const titleEl = document.getElementById('investment-detail-title');
                         const openAccountId = titleEl.dataset.accountId;
@@ -572,7 +580,6 @@
 
         function listenForCustomItems(collectionRef, callback) {
             const q = query(collectionRef);
-            // Assign the listener to the correct unsubscribe variable
             if (collectionRef.id === 'categories') {
                 if(unsubscribeCategories) unsubscribeCategories();
                 unsubscribeCategories = onSnapshot(q, (snapshot) => {
