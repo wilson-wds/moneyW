@@ -757,7 +757,7 @@
                             <button class="delete-investment-btn text-gray-400 hover:text-red-500 p-1" data-id="${inv.id}">&times;</button>
                         </div>
                     </div>
-                    <div class="mt-2 grid grid-cols-2 gap-y-2 gap-x-4 investment-card-clickable" data-id="${inv.id}">
+                    <div class="mt-2 grid grid-cols-3 gap-y-2 gap-x-4 investment-card-clickable" data-id="${inv.id}">
                         <div>
                             <p class="text-xs text-gray-500">資產現值</p>
                             <p class="text-lg font-bold text-blue-600">NT$ ${(inv.marketValue || 0).toLocaleString()}</p>
@@ -767,12 +767,16 @@
                             <p class="text-lg font-bold ${profitColor}">${profit >= 0 ? '+' : ''}${profit.toLocaleString()}</p>
                         </div>
                         <div>
-                            <p class="text-xs text-gray-500">總投資收入(不含本金)</p>
+                            <p class="text-xs text-gray-500">報酬率</p>
+                            <p class="text-lg font-bold ${roiColor}">${roi.toFixed(2)}%</p>
+                        </div>
+                        <div>
+                            <p class="text-xs text-gray-500">總投資收入</p>
                             <p class="text-lg font-bold text-green-600">NT$ ${income.toLocaleString()}</p>
                         </div>
                         <div>
-                            <p class="text-xs text-gray-500">報酬率</p>
-                            <p class="text-lg font-bold ${roiColor}">${roi.toFixed(2)}%</p>
+                            <p class="text-xs text-gray-500">總投資支出</p>
+                            <p class="text-lg font-bold text-red-600">NT$ ${expense.toLocaleString()}</p>
                         </div>
                     </div>
                     <div class="mt-3 flex justify-end gap-2 no-print">
@@ -1688,3 +1692,5 @@
     </script>
 </body>
 </html>
+"
+I would like to add a new asset tracking feature to the app. This feature should allow users to log their assets, such as real estate, vehicles, or other valuables. Each asset should have a name, an initial value, and a current estimated value. The app should display a summary of the total asset value. Please add a new "Assets" tab in the navigation bar and create the necessary UI components for adding and listing assets. The design should be consistent with the existing "Debt" and "Investment" sectio
