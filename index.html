@@ -152,8 +152,10 @@
                 </div>
             </section>
             <section class="bg-white p-6 md:p-8 rounded-2xl shadow-lg mb-8 no-print">
-                <h2 class="text-2xl font-bold mb-6">新增一筆紀錄</h2>
+                <h2 class="text-2xl font-bold mb-6">新增 / 編輯紀錄</h2>
                 <form id="transaction-form" class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <!-- [NEW] Hidden input to store the ID of the transaction being edited -->
+                    <input type="hidden" id="transaction-id">
                     <div class="md:col-span-2"><fieldset class="flex gap-4"><legend class="sr-only">交易類型</legend><div><input type="radio" name="type" id="type-expense" value="expense" class="sr-only" checked><label for="type-expense" class="type-label cursor-pointer block w-full text-center p-3 rounded-lg border-2 border-gray-300 transition">支出</label></div><div><input type="radio" name="type" id="type-income" value="income" class="sr-only"><label for="type-income" class="type-label cursor-pointer block w-full text-center p-3 rounded-lg border-2 border-gray-300 transition">收入</label></div></fieldset></div>
                     <div class="md:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div><label for="amount" class="block text-sm font-medium text-gray-700 mb-1">金額</label><input type="number" id="amount" placeholder="輸入金額" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500" required></div>
@@ -626,7 +628,13 @@
                         <p class="font-bold text-lg ${isIncome ? 'text-green-600' : 'text-red-600'}">${isIncome ? '+' : '-'} NT$ ${tx.amount.toLocaleString()}</p>
                         <div class="flex items-center gap-2 justify-end">
                             <span class="text-xs text-gray-400">${tx.timestamp ? tx.timestamp.toDate().toLocaleDateString('zh-TW') : '...'}</span>
-                            <button data-id="${tx.id}" class="delete-btn text-gray-400 hover:text-red-500 no-print"><svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg></button>
+                            <!-- [NEW] Edit button for transactions -->
+                            <button data-id="${tx.id}" class="edit-btn text-gray-400 hover:text-blue-500 no-print p-1">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.5L15.232 5.232z"></path></svg>
+                            </button>
+                            <button data-id="${tx.id}" class="delete-btn text-gray-400 hover:text-red-500 no-print p-1">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                            </button>
                         </div>
                     </div>`;
                 transactionList.appendChild(li);
@@ -647,7 +655,13 @@
                     <span class="text-gray-500 truncate col-span-1">${tx.remarks || ''}</span>
                     <span class="font-bold text-right col-span-1 ${isIncome ? 'text-green-600' : 'text-red-600'}">${isIncome ? '+' : '-'} ${tx.amount.toLocaleString()}</span>
                     <div class="text-center col-span-1 no-print">
-                         <button data-id="${tx.id}" class="delete-btn text-gray-400 hover:text-red-500 p-1 rounded-full"><svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg></button>
+                         <!-- [NEW] Edit button for filtered transactions -->
+                         <button data-id="${tx.id}" class="edit-btn text-gray-400 hover:text-blue-500 p-1 rounded-full">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.5L15.232 5.232z"></path></svg>
+                         </button>
+                         <button data-id="${tx.id}" class="delete-btn text-gray-400 hover:text-red-500 p-1 rounded-full">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                         </button>
                     </div>
                 `;
                 filteredTransactionList.appendChild(li);
@@ -1019,7 +1033,17 @@
             setupModal(manageCategoriesBtn, categoryModal, [document.getElementById('close-category-modal-btn'), document.getElementById('close-category-modal-btn-bottom')]);
             setupModal(manageProjectsBtn, projectModal, [document.getElementById('close-project-modal-btn'), document.getElementById('close-project-modal-btn-bottom')]);
 
-            transactionList.addEventListener('click', (e) => handleDelete(e, '.delete-btn', transactionsColRef));
+            // [MODIFIED] Consolidated event listeners for both transaction lists
+            const handleTransactionListClick = (e) => {
+                if (e.target.closest('.delete-btn')) {
+                    handleDelete(e, '.delete-btn', transactionsColRef);
+                } else if (e.target.closest('.edit-btn')) {
+                    handleEditTransactionClick(e);
+                }
+            };
+            transactionList.addEventListener('click', handleTransactionListClick);
+            filteredTransactionList.addEventListener('click', handleTransactionListClick);
+
             eventList.addEventListener('click', (e) => handleDelete(e, '.delete-event-btn', eventsColRef));
 
             debtList.addEventListener('click', (e) => {
@@ -1092,23 +1116,102 @@
                 handleFilterThisMonth();
             }
         }
+        
+        // [NEW] Function to reset the transaction form to its default state for adding new entries
+        function resetTransactionForm() {
+            form.reset();
+            document.getElementById('transaction-id').value = '';
+            transactionDateInput.valueAsDate = new Date();
+            submitBtnText.textContent = '新增紀錄';
+            const submitButton = form.querySelector('button[type="submit"]');
+            submitButton.classList.remove('bg-green-600', 'hover:bg-green-700');
+            submitButton.classList.add('bg-blue-600', 'hover:bg-blue-700');
+            updateTypeSelection();
+        }
 
+        // [NEW] Function to handle the click on an edit button for a transaction
+        function handleEditTransactionClick(e) {
+            const editBtn = e.target.closest('.edit-btn');
+            if (!editBtn) return;
+
+            const txId = editBtn.dataset.id;
+            const tx = allTransactions.find(t => t.id === txId);
+
+            if (tx) {
+                document.getElementById('transaction-id').value = tx.id;
+                
+                if (tx.type === 'income') {
+                    document.getElementById('type-income').checked = true;
+                } else {
+                    document.getElementById('type-expense').checked = true;
+                }
+                updateTypeSelection(); 
+
+                amountInput.value = tx.amount;
+                transactionDateInput.value = tx.timestamp.toDate().toISOString().split('T')[0];
+                categoryInput.value = tx.category;
+                projectInput.value = tx.project || '';
+                remarksInput.value = tx.remarks || '';
+
+                submitBtnText.textContent = '儲存變更';
+                const submitButton = form.querySelector('button[type="submit"]');
+                submitButton.classList.remove('bg-blue-600', 'hover:bg-blue-700');
+                submitButton.classList.add('bg-green-600', 'hover:bg-green-700');
+
+                form.scrollIntoView({ behavior: 'smooth' });
+            }
+        }
+
+        // [MODIFIED] Updated form submission to handle both creating and updating transactions
         async function handleFormSubmit(e) {
             e.preventDefault();
             if (!userId) return;
-            const amount = parseFloat(amountInput.value), category = categoryInput.value.trim(), project = projectInput.value.trim(), date = transactionDateInput.value;
-            if (isNaN(amount) || amount <= 0 || category === '' || !date) { console.warn("請輸入有效的金額、分類和日期！"); return; }
+            
+            const txId = document.getElementById('transaction-id').value;
+            const amount = parseFloat(amountInput.value);
+            const category = categoryInput.value.trim();
+            const project = projectInput.value.trim();
+            const date = transactionDateInput.value;
+            
+            if (isNaN(amount) || amount <= 0 || category === '' || !date) { 
+                console.warn("請輸入有效的金額、分類和日期！"); 
+                return; 
+            }
 
-            submitBtnText.classList.add('hidden'); submitSpinner.classList.remove('hidden'); form.querySelector('button[type="submit"]').disabled = true;
+            submitBtnText.classList.add('hidden'); 
+            submitSpinner.classList.remove('hidden'); 
+            form.querySelector('button[type="submit"]').disabled = true;
+
             try {
                 await saveNewCustomItemIfNeeded(category, customCategories, categoriesColRef);
-                if(project) await saveNewCustomItemIfNeeded(project, customProjects, projectsColRef);
-                await addDoc(transactionsColRef, { type: document.querySelector('input[name="type"]:checked').value, amount, category, project, remarks: remarksInput.value.trim(), timestamp: Timestamp.fromDate(new Date(date)) });
-                form.reset();
-                transactionDateInput.valueAsDate = new Date();
-                updateTypeSelection();
-            } catch (error) { console.error("新增紀錄失敗:", error); }
-             finally { submitBtnText.classList.remove('hidden'); submitSpinner.classList.add('hidden'); form.querySelector('button[type="submit"]').disabled = false; }
+                if (project) await saveNewCustomItemIfNeeded(project, customProjects, projectsColRef);
+
+                const payload = {
+                    type: document.querySelector('input[name="type"]:checked').value,
+                    amount,
+                    category,
+                    project,
+                    remarks: remarksInput.value.trim(),
+                    timestamp: Timestamp.fromDate(new Date(date))
+                };
+
+                if (txId) {
+                    // Update existing document
+                    const txRef = doc(transactionsColRef, txId);
+                    await updateDoc(txRef, payload);
+                } else {
+                    // Add new document
+                    await addDoc(transactionsColRef, payload);
+                }
+                
+                resetTransactionForm();
+            } catch (error) { 
+                console.error("處理紀錄失敗:", error); 
+            } finally { 
+                submitBtnText.classList.remove('hidden'); 
+                submitSpinner.classList.add('hidden'); 
+                form.querySelector('button[type="submit"]').disabled = false; 
+            }
         }
 
         async function handleDebtFormSubmit(e) {
@@ -1692,5 +1795,3 @@
     </script>
 </body>
 </html>
-"
-I would like to add a new asset tracking feature to the app. This feature should allow users to log their assets, such as real estate, vehicles, or other valuables. Each asset should have a name, an initial value, and a current estimated value. The app should display a summary of the total asset value. Please add a new "Assets" tab in the navigation bar and create the necessary UI components for adding and listing assets. The design should be consistent with the existing "Debt" and "Investment" sectio
