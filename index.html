@@ -767,8 +767,8 @@
                             <p class="text-lg font-bold ${profitColor}">${profit >= 0 ? '+' : ''}${profit.toLocaleString()}</p>
                         </div>
                         <div>
-                            <p class="text-xs text-gray-500">現金結餘</p>
-                            <p class="text-lg font-bold text-gray-700">NT$ ${(inv.initialValue + income - expense).toLocaleString()}</p>
+                            <p class="text-xs text-gray-500">總投資收入(不含本金)</p>
+                            <p class="text-lg font-bold text-green-600">NT$ ${income.toLocaleString()}</p>
                         </div>
                         <div>
                             <p class="text-xs text-gray-500">報酬率</p>
@@ -1688,5 +1688,3 @@
     </script>
 </body>
 </html>
-"
-I would like to add a new asset tracking feature to the app. This feature should allow users to log their assets, such as real estate, vehicles, or other valuables. Each asset should have a name, an initial value, and a current estimated value. The app should display a summary of the total asset value. Please add a new "Assets" tab in the navigation bar and create the necessary UI components for adding and listing assets. The design should be consistent with the existing "Debt" and "Investment" sectio
