@@ -14,7 +14,7 @@
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
         ::-webkit-scrollbar { width: 8px; } ::-webkit-scrollbar-track { background: #f1f1f1; } ::-webkit-scrollbar-thumb { background: #888; border-radius: 4px; } ::-webkit-scrollbar-thumb:hover { background: #555; }
         .tab-btn.active { border-color: #3b82f6; background-color: #3b82f6; color: white; }
-        .debt-card-clickable, .asset-card-clickable, .lending-card-clickable, .investment-card-clickable { cursor: pointer; }
+        .debt-card-clickable, .asset-card-clickable, .lending-card-clickable, .investment-card-clickable, .loan-card-clickable { cursor: pointer; }
         .category-stat-item.active { background-color: #dbeafe; }
     </style>
     <!-- [MODIFIED] Print-specific styles -->
@@ -360,8 +360,12 @@
         <!-- [NEW] Loan Calculator View -->
         <div id="calculator-view" class="hidden">
             <section class="bg-white p-6 md:p-8 rounded-2xl shadow-lg mb-8">
-                <h2 class="text-2xl font-bold mb-6">貸款試算</h2>
+                <h2 class="text-2xl font-bold mb-6">新增貸款帳戶</h2>
                 <form id="loan-calculator-form" class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <label for="loan-name" class="block text-sm font-medium text-gray-700 mb-1">帳戶名稱</label>
+                        <input type="text" id="loan-name" placeholder="例如: 房屋貸款" class="w-full p-3 border border-gray-300 rounded-lg" required>
+                    </div>
                     <div>
                         <label for="loan-amount" class="block text-sm font-medium text-gray-700 mb-1">貸款金額</label>
                         <input type="number" id="loan-amount" placeholder="輸入總貸款金額" class="w-full p-3 border border-gray-300 rounded-lg" required>
@@ -376,26 +380,31 @@
                             </select>
                         </div>
                     </div>
-                    <div id="loan-term-container">
-                        <label for="loan-term" class="block text-sm font-medium text-gray-700 mb-1">期數 (月)</label>
-                        <input type="number" id="loan-term" placeholder="輸入總期數" class="w-full p-3 border border-gray-300 rounded-lg" required>
-                    </div>
-                    <div>
+                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-1">計算方式</label>
                         <select id="loan-type" class="w-full p-3 border border-gray-300 rounded-lg bg-gray-50">
                             <option value="amortization">本息攤還</option>
                             <option value="interest-only">純繳利息</option>
                         </select>
                     </div>
+                    <div id="loan-term-container">
+                        <label for="loan-term" class="block text-sm font-medium text-gray-700 mb-1">期數 (月)</label>
+                        <input type="number" id="loan-term" placeholder="輸入總期數" class="w-full p-3 border border-gray-300 rounded-lg" required>
+                    </div>
+                    <div class="flex items-center pt-6">
+                        <input id="interest-reduction-checkbox" type="checkbox" class="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500">
+                        <label for="interest-reduction-checkbox" class="ml-2 block text-sm text-gray-900">還本降息</label>
+                    </div>
                     <div class="md:col-span-2">
-                        <button type="submit" class="w-full bg-cyan-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-cyan-700">計算</button>
+                        <button type="submit" class="w-full bg-cyan-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-cyan-700">建立貸款帳戶</button>
                     </div>
                 </form>
             </section>
-            <section id="loan-result-section" class="hidden">
+            <section id="loan-accounts-section">
                  <div class="bg-white p-6 md:p-8 rounded-2xl shadow-lg">
-                    <h2 class="text-2xl font-bold mb-4">試算結果</h2>
-                    <div id="loan-result-display" class="p-6 bg-gray-50 rounded-lg border space-y-3"></div>
+                    <h2 class="text-2xl font-bold mb-4">貸款帳戶列表</h2>
+                    <div id="loan-account-list" class="grid grid-cols-1 md:grid-cols-2 gap-4"></div>
+                    <p id="loan-account-empty-state" class="hidden text-center text-gray-500 py-8">尚未建立任何貸款帳戶。</p>
                  </div>
             </section>
         </div>
@@ -413,6 +422,64 @@
 
     </div>
     <!-- Modals -->
+    <div id="calculator-password-modal" class="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center hidden z-50 p-4">
+        <div class="bg-white p-6 md:p-8 rounded-2xl shadow-xl w-full max-w-sm">
+            <h3 class="text-2xl font-bold mb-6">請輸入密碼</h3>
+            <form id="calculator-password-form">
+                <input type="password" id="calculator-password-input" class="w-full p-3 border border-gray-300 rounded-lg mb-4" required>
+                <p id="calculator-password-error" class="text-red-500 text-sm mb-4 hidden">密碼錯誤</p>
+                <button type="submit" class="w-full bg-blue-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-blue-700">確認</button>
+            </form>
+        </div>
+    </div>
+    <div id="loan-transaction-modal" class="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center hidden z-50 p-4">
+        <div class="bg-white p-6 md:p-8 rounded-2xl shadow-xl w-full max-w-md">
+            <h3 id="loan-transaction-title" class="text-2xl font-bold mb-6">新增還款交易</h3>
+            <form id="loan-transaction-form">
+                <input type="hidden" id="loan-transaction-id">
+                <input type="hidden" id="loan-transaction-account-id">
+                <input type="hidden" id="loan-transaction-original-principal">
+                <input type="hidden" id="loan-transaction-original-interest">
+                <div class="mb-4">
+                    <label for="loan-repayment-principal" class="block text-sm font-medium text-gray-700 mb-1">還款本金</label>
+                    <input type="number" id="loan-repayment-principal" placeholder="輸入本金金額" class="w-full p-3 border border-gray-300 rounded-lg" value="0">
+                </div>
+                <div class="mb-4">
+                    <label for="loan-repayment-interest" class="block text-sm font-medium text-gray-700 mb-1">還款利息</label>
+                    <input type="number" id="loan-repayment-interest" placeholder="輸入利息金額" class="w-full p-3 border border-gray-300 rounded-lg" value="0">
+                </div>
+                 <div class="mb-4">
+                    <label for="loan-repayment-date" class="block text-sm font-medium text-gray-700 mb-1">還款日期</label>
+                    <input type="date" id="loan-repayment-date" class="w-full p-3 border border-gray-300 rounded-lg" required>
+                </div>
+                <div class="flex justify-end gap-4">
+                    <button type="button" id="cancel-loan-transaction-btn" class="bg-gray-300 text-gray-800 font-bold py-2 px-4 rounded-lg hover:bg-gray-400">取消</button>
+                    <button type="submit" id="submit-loan-transaction-btn" class="bg-green-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-green-700">確認還款</button>
+                </div>
+            </form>
+        </div>
+    </div>
+    <!-- [NEW] Loan Detail Modal -->
+    <div id="loan-detail-modal" class="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center hidden z-50 p-4">
+        <div class="bg-white p-6 md:p-8 rounded-2xl shadow-xl w-full max-w-lg">
+            <div class="flex justify-between items-center mb-4">
+                <h3 id="loan-detail-title" class="text-2xl font-bold">貸款詳情</h3>
+                <button id="close-loan-detail-modal-btn" class="text-gray-400 hover:text-gray-600 text-3xl leading-none no-print">&times;</button>
+            </div>
+            <div id="loan-detail-summary" class="mb-4 p-4 bg-gray-50 rounded-lg"></div>
+            <div class="mb-4 p-4 bg-gray-50 rounded-lg flex items-center justify-between">
+                <label for="loan-detail-interest-reduction" class="font-medium text-gray-700">還本降息</label>
+                <div class="relative inline-block w-10 mr-2 align-middle select-none transition duration-200 ease-in">
+                    <input type="checkbox" name="toggle" id="loan-detail-interest-reduction" class="toggle-checkbox absolute block w-6 h-6 rounded-full bg-white border-4 appearance-none cursor-pointer"/>
+                    <label for="loan-detail-interest-reduction" class="toggle-label block overflow-hidden h-6 rounded-full bg-gray-300 cursor-pointer"></label>
+                </div>
+                <style>.toggle-checkbox:checked { right: 0; border-color: #3b82f6; } .toggle-checkbox:checked + .toggle-label { background-color: #3b82f6; }</style>
+            </div>
+            <h4 class="text-lg font-bold mb-2 border-t pt-4">還款紀錄</h4>
+            <ul id="loan-history-list" class="space-y-2 max-h-60 overflow-y-auto"></ul>
+            <p id="loan-history-empty" class="hidden text-center text-gray-500 py-4">尚無還款紀錄</p>
+        </div>
+    </div>
     <div id="category-modal" class="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center hidden z-50 p-4"><div class="bg-white p-6 md:p-8 rounded-2xl shadow-xl w-full max-w-md"><div class="flex justify-between items-center mb-6"><h3 class="text-2xl font-bold">管理分類</h3><button id="close-category-modal-btn" class="text-gray-400 hover:text-gray-600 text-3xl leading-none">&times;</button></div><ul id="custom-category-list" class="space-y-2 max-h-60 overflow-y-auto mb-6 border-t border-b py-4"></ul><div class="flex justify-end"><button type="button" id="close-category-modal-btn-bottom" class="bg-gray-500 text-white font-bold py-2 px-4 rounded-lg hover:bg-gray-600">關閉</button></div></div></div>
     <div id="project-modal" class="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center hidden z-50 p-4"><div class="bg-white p-6 md:p-8 rounded-2xl shadow-xl w-full max-w-md"><div class="flex justify-between items-center mb-6"><h3 class="text-2xl font-bold">管理專案</h3><button id="close-project-modal-btn" class="text-gray-400 hover:text-gray-600 text-3xl leading-none">&times;</button></div><ul id="custom-project-list" class="space-y-2 max-h-60 overflow-y-auto mb-6 border-t border-b py-4"></ul><div class="flex justify-end"><button type="button" id="close-project-modal-btn-bottom" class="bg-gray-500 text-white font-bold py-2 px-4 rounded-lg hover:bg-gray-600">關閉</button></div></div></div>
     <div id="repayment-modal" class="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center hidden z-50 p-4"><div class="bg-white p-6 md:p-8 rounded-2xl shadow-xl w-full max-w-md"><h3 class="text-2xl font-bold mb-6">記錄一筆還款</h3><form id="repayment-form"><input type="hidden" id="repayment-debt-id"><input type="hidden" id="repayment-debt-name"><div class="mb-4"><label for="repayment-amount" class="block text-sm font-medium text-gray-700 mb-1">還款金額</label><input type="number" id="repayment-amount" placeholder="輸入此次還款金額" class="w-full p-3 border border-gray-300 rounded-lg" required></div><div class="mb-4"><label for="repayment-date" class="block text-sm font-medium text-gray-700 mb-1">還款日期</label><input type="date" id="repayment-date" class="w-full p-3 border border-gray-300 rounded-lg" required></div><div class="mb-4"><label for="repayment-remark" class="block text-sm font-medium text-gray-700 mb-1">備註 (選填)</label><input type="text" id="repayment-remark" placeholder="還款備註" class="w-full p-3 border border-gray-300 rounded-lg"></div><div class="flex justify-end gap-4"><button type="button" id="cancel-repayment-btn" class="bg-gray-300 text-gray-800 font-bold py-2 px-4 rounded-lg hover:bg-gray-400">取消</button><button type="submit" class="bg-green-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-green-700">確認還款</button></div></form></div></div>
@@ -485,17 +552,26 @@
         const printInvestmentDetailBtn = document.getElementById('print-investment-detail-btn');
         // [NEW] Loan Calculator Elements
         const loanCalculatorForm = document.getElementById('loan-calculator-form');
-        const loanResultSection = document.getElementById('loan-result-section');
-        const loanResultDisplay = document.getElementById('loan-result-display');
+        const loanAccountList = document.getElementById('loan-account-list');
+        const loanAccountEmptyState = document.getElementById('loan-account-empty-state');
         const loanTypeSelect = document.getElementById('loan-type');
         const loanTermInput = document.getElementById('loan-term');
         const loanTermContainer = document.getElementById('loan-term-container');
+        const calculatorPasswordModal = document.getElementById('calculator-password-modal');
+        const calculatorPasswordForm = document.getElementById('calculator-password-form');
+        const loanTransactionModal = document.getElementById('loan-transaction-modal');
+        const loanTransactionForm = document.getElementById('loan-transaction-form');
+        const cancelLoanTransactionBtn = document.getElementById('cancel-loan-transaction-btn');
+        const loanDetailModal = document.getElementById('loan-detail-modal');
+        const closeLoanDetailModalBtn = document.getElementById('close-loan-detail-modal-btn');
+        const loanHistoryList = document.getElementById('loan-history-list');
+        const loanHistoryEmpty = document.getElementById('loan-history-empty');
 
 
         // --- Firebase & App 狀態 ---
-        let db, auth, userId, transactionsColRef, categoriesColRef, projectsColRef, debtsColRef, eventsColRef, lendingsColRef, investmentsColRef;
-        let unsubscribeTransactions, unsubscribeCategories, unsubscribeProjects, unsubscribeDebts, unsubscribeEvents, unsubscribeLendings, unsubscribeInvestments;
-        let allTransactions = [], customCategories = [], customProjects = [], allDebts = [], allEvents = [], allLendings = [], allInvestments = [];
+        let db, auth, userId, transactionsColRef, categoriesColRef, projectsColRef, debtsColRef, eventsColRef, lendingsColRef, investmentsColRef, loansColRef;
+        let unsubscribeTransactions, unsubscribeCategories, unsubscribeProjects, unsubscribeDebts, unsubscribeEvents, unsubscribeLendings, unsubscribeInvestments, unsubscribeLoans;
+        let allTransactions = [], customCategories = [], customProjects = [], allDebts = [], allEvents = [], allLendings = [], allInvestments = [], allLoans = [];
         let expenseChart = null;
         let activeCategoryFilter = { type: null, category: null };
         const defaultCategories = { expense: ['飲食', '交通', '居住', '娛樂', '購物', '醫療', '教育', '負債還款', '投資支出', '其他'], income: ['薪資', '獎金', '投資收入', '兼職', '債權回收', '其他'] };
@@ -528,6 +604,7 @@
                 eventsColRef = collection(db, `${basePath}/events`);
                 lendingsColRef = collection(db, `${basePath}/lendings`);
                 investmentsColRef = collection(db, `${basePath}/investments`);
+                loansColRef = collection(db, `${basePath}/loans`);
 
                 setupUIForLoggedInUser(user);
 
@@ -538,6 +615,7 @@
                 listenForEvents();
                 listenForLendings();
                 listenForInvestments();
+                listenForLoans();
 
             } else {
                 // User is signed out.
@@ -550,6 +628,7 @@
                 if (unsubscribeEvents) unsubscribeEvents();
                 if (unsubscribeLendings) unsubscribeLendings();
                 if (unsubscribeInvestments) unsubscribeInvestments();
+                if (unsubscribeLoans) unsubscribeLoans();
             }
         });
 
@@ -579,6 +658,7 @@
             eventList.innerHTML = '';
             lendingList.innerHTML = '';
             investmentList.innerHTML = '';
+            loanAccountList.innerHTML = '';
             // etc.
         }
 
@@ -659,6 +739,16 @@
                 updateInvestmentSummary(allInvestments);
                 investmentEmptyState.classList.toggle('hidden', allInvestments.length > 0);
             }, (error) => console.error("監聽投資資料失敗:", error));
+        }
+        
+        // [NEW] Listener for loan accounts
+        function listenForLoans() {
+            if(unsubscribeLoans) unsubscribeLoans();
+            unsubscribeLoans = onSnapshot(query(loansColRef), (snapshot) => {
+                allLoans = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                renderLoanAccounts(allLoans);
+                loanAccountEmptyState.classList.toggle('hidden', allLoans.length > 0);
+            }, (error) => console.error("監聽貸款帳戶失敗:", error));
         }
 
         function listenForCustomItems(collectionRef, callback) {
@@ -863,6 +953,49 @@
                 investmentList.appendChild(card);
             });
         }
+        
+        // [MODIFIED] Render loan accounts with dynamic interest display
+        function renderLoanAccounts(loans) {
+            loanAccountList.innerHTML = '';
+            loans.forEach(loan => {
+                const card = document.createElement('div');
+                card.className = 'bg-gray-50 p-4 rounded-lg shadow-sm border loan-card-clickable hover:shadow-md transition-shadow';
+                card.dataset.id = loan.id;
+                
+                const monthlyRate = (loan.rateType === 'annual' ? loan.rate / 12 : loan.rate) / 100;
+                let nextPaymentHtml = '';
+
+                if (loan.loanType === 'amortization') {
+                    const principalPart = loan.totalAmount / loan.term;
+                    const interestPart = loan.interestReduction ? (loan.remainingPrincipal * monthlyRate) : (loan.totalAmount * monthlyRate);
+                    const nextPayment = principalPart + interestPart;
+                    nextPaymentHtml = `<div><span class="text-gray-500">下期應繳金額:</span><span class="font-semibold ml-1">NT$ ${Math.round(nextPayment).toLocaleString()}</span></div>`;
+                } else { // interest-only
+                    const nextInterest = loan.interestReduction ? (loan.remainingPrincipal * monthlyRate) : (loan.totalAmount * monthlyRate);
+                    nextPaymentHtml = `<div><span class="text-gray-500">下期應繳利息:</span><span class="font-semibold ml-1 text-blue-600">NT$ ${Math.round(nextInterest).toLocaleString()}</span></div>`;
+                }
+                
+                card.innerHTML = `
+                    <div class="flex justify-between items-start">
+                        <h3 class="text-md font-bold text-gray-800">${loan.name}</h3>
+                        <button class="delete-loan-btn text-gray-400 hover:text-red-500 z-10 relative no-print" data-id="${loan.id}">&times;</button>
+                    </div>
+                    <div class="mt-2 grid grid-cols-2 gap-y-2 gap-x-4 text-sm">
+                        <div><span class="text-gray-500">總金額:</span><span class="font-semibold ml-1">NT$ ${loan.totalAmount.toLocaleString()}</span></div>
+                        <div><span class="text-gray-500">利率:</span><span class="font-semibold ml-1">${loan.rate}% (${loan.rateType === 'annual' ? '年' : '月'})</span></div>
+                        <div><span class="text-gray-500">期數:</span><span class="font-semibold ml-1">${isFinite(loan.term) ? `${loan.term} 月` : 'N/A'}</span></div>
+                        ${nextPaymentHtml}
+                        <div><span class="text-gray-500">剩餘本金:</span><span class="font-semibold ml-1 text-red-600">NT$ ${loan.remainingPrincipal.toLocaleString()}</span></div>
+                        <div><span class="text-gray-500">已還總額:</span><span class="font-semibold ml-1 text-green-600">NT$ ${loan.totalRepaid.toLocaleString()}</span></div>
+                    </div>
+                    <div class="mt-3 flex justify-end gap-2 no-print">
+                        <button class="add-loan-tx-btn bg-cyan-600 text-white font-bold py-1 px-3 rounded-lg hover:bg-cyan-700 text-sm" data-id="${loan.id}" data-name="${loan.name}">新增交易</button>
+                    </div>
+                `;
+                loanAccountList.appendChild(card);
+            });
+        }
+
 
         function renderRepaymentHistory(debtName) {
             const history = allTransactions.filter(tx => tx.category === '負債還款' && tx.project === debtName);
@@ -919,6 +1052,41 @@
                 investmentHistoryList.appendChild(li);
             });
         }
+        
+        // [NEW] Render Loan Transaction History
+        function renderLoanTransactionHistory(loanName) {
+            const history = allTransactions.filter(tx => tx.category === '貸款還款' && tx.project === loanName);
+            loanHistoryList.innerHTML = '';
+            loanHistoryEmpty.classList.toggle('hidden', history.length > 0);
+            history.forEach(tx => {
+                const li = document.createElement('li');
+                li.className = 'p-2 bg-gray-50 rounded';
+                const remarks = tx.remarks || '';
+                const principalMatch = remarks.match(/還本金: ([\d,]+)/);
+                const interestMatch = remarks.match(/還利息: ([\d,]+)/);
+                const principal = principalMatch ? principalMatch[1] : '0';
+                const interest = interestMatch ? interestMatch[1] : '0';
+
+                li.innerHTML = `
+                    <div class="grid grid-cols-4 gap-2 items-center">
+                        <span class="text-sm text-gray-600">${tx.timestamp.toDate().toLocaleDateString('zh-TW')}</span>
+                        <span class="text-sm">本金: ${principal}</span>
+                        <span class="text-sm">利息: ${interest}</span>
+                        <div class="flex items-center gap-2 justify-end">
+                             <span class="text-sm font-semibold text-red-600">- NT$ ${tx.amount.toLocaleString()}</span>
+                             <button data-id="${tx.id}" class="edit-loan-tx-btn text-gray-400 hover:text-blue-500 p-1 rounded-full no-print">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.5L15.232 5.232z"></path></svg>
+                             </button>
+                             <button data-id="${tx.id}" class="delete-loan-tx-btn text-gray-400 hover:text-red-500 p-1 rounded-full no-print">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                             </button>
+                        </div>
+                    </div>
+                `;
+                loanHistoryList.appendChild(li);
+            });
+        }
+
 
         function renderCategoryStats(listElement, summaryData, type) {
             listElement.innerHTML = '';
@@ -1137,6 +1305,17 @@
                 else if (updateValueBtn) handleUpdateMarketValueClick(updateValueBtn);
                 else if (cardClick) handleInvestmentCardClick(cardClick.dataset.id);
             });
+            
+            loanAccountList.addEventListener('click', (e) => {
+                const card = e.target.closest('.loan-card-clickable');
+                if (e.target.closest('.add-loan-tx-btn') || e.target.closest('.delete-loan-btn')) {
+                    e.stopPropagation();
+                    if(e.target.closest('.add-loan-tx-btn')) handleAddLoanTxClick(e);
+                    if(e.target.closest('.delete-loan-btn')) handleDelete(e, '.delete-loan-btn', loansColRef);
+                    return;
+                }
+                if(card) handleLoanCardClick(card.dataset.id);
+            });
 
             customCategoryList.addEventListener('click', (e) => handleDelete(e, '.delete-category-btn', categoriesColRef));
             customProjectList.addEventListener('click', (e) => handleDelete(e, '.delete-project-btn', projectsColRef));
@@ -1164,8 +1343,17 @@
             printDebtDetailBtn.addEventListener('click', () => handlePrint('#debt-detail-modal'));
             printInvestmentDetailBtn.addEventListener('click', () => handlePrint('#investment-detail-modal'));
             window.addEventListener('afterprint', handleAfterPrint);
-            // [NEW] Loan calculator type change listener
+            // Loan calculator listeners
+            calculatorPasswordForm.addEventListener('submit', handleCalculatorPasswordSubmit);
+            loanTransactionForm.addEventListener('submit', handleLoanTransactionSubmit);
+            cancelLoanTransactionBtn.addEventListener('click', () => loanTransactionModal.classList.add('hidden'));
             loanTypeSelect.addEventListener('change', handleLoanTypeChange);
+            closeLoanDetailModalBtn.addEventListener('click', () => loanDetailModal.classList.add('hidden'));
+            document.getElementById('loan-detail-interest-reduction').addEventListener('change', handleInterestReductionToggle);
+            loanHistoryList.addEventListener('click', (e) => {
+                if(e.target.closest('.edit-loan-tx-btn')) handleEditLoanTxClick(e);
+                if(e.target.closest('.delete-loan-tx-btn')) handleDeleteLoanTx(e);
+            });
         }
 
         function switchTab(tabName) {
@@ -1173,8 +1361,15 @@
             const tabs = { accounting: tabAccounting, investment: tabInvestment, reports: tabReports, debt: tabDebt, lending: tabLending, events: tabEvents, calculator: tabCalculator, settings: document.getElementById('tab-settings') };
 
             for (const key in views) {
-                views[key].classList.toggle('hidden', key !== tabName);
-                tabs[key].classList.toggle('active', key !== tabName);
+                const isHidden = key !== tabName;
+                views[key].classList.toggle('hidden', isHidden);
+                tabs[key].classList.toggle('active', !isHidden);
+            }
+            
+            if (tabName === 'calculator' && !calculatorView.dataset.unlocked) {
+                calculatorPasswordModal.classList.remove('hidden');
+            } else {
+                 calculatorPasswordModal.classList.add('hidden');
             }
 
             if(tabName === 'reports') {
@@ -1596,6 +1791,46 @@
             renderInvestmentHistory(investment.id);
             investmentDetailModal.classList.remove('hidden');
         }
+        
+        // [NEW] Handle Loan Card Click
+        function handleLoanCardClick(loanId) {
+            const loan = allLoans.find(l => l.id === loanId);
+            if (!loan) return;
+
+            document.getElementById('loan-detail-title').textContent = `"${loan.name}" 詳情`;
+            
+            const summaryEl = document.getElementById('loan-detail-summary');
+            const monthlyRate = (loan.rateType === 'annual' ? loan.rate / 12 : loan.rate) / 100;
+            
+            let nextPaymentHtml = '';
+            if (loan.loanType === 'amortization') {
+                 const principalPart = loan.totalAmount / loan.term;
+                 const interestPart = loan.interestReduction ? (loan.remainingPrincipal * monthlyRate) : (loan.totalAmount * monthlyRate);
+                 const nextPayment = principalPart + interestPart;
+                 nextPaymentHtml = `<div><span class="text-gray-500">下期應繳金額:</span><span class="font-semibold ml-1">NT$ ${Math.round(nextPayment).toLocaleString()}</span></div>`;
+            } else { // interest-only
+                const nextInterest = loan.interestReduction ? (loan.remainingPrincipal * monthlyRate) : (loan.totalAmount * monthlyRate);
+                nextPaymentHtml = `<div><span class="text-gray-500">下期應繳利息:</span><span class="font-semibold ml-1 text-blue-600">NT$ ${Math.round(nextInterest).toLocaleString()}</span></div>`;
+            }
+            
+            summaryEl.innerHTML = `
+                <div class="grid grid-cols-2 gap-y-2 gap-x-4 text-sm">
+                    <div><span class="text-gray-500">總金額:</span><span class="font-semibold ml-1">NT$ ${loan.totalAmount.toLocaleString()}</span></div>
+                    <div><span class="text-gray-500">利率:</span><span class="font-semibold ml-1">${loan.rate}% (${loan.rateType === 'annual' ? '年' : '月'})</span></div>
+                    <div><span class="text-gray-500">期數:</span><span class="font-semibold ml-1">${isFinite(loan.term) ? `${loan.term} 月` : 'N/A'}</span></div>
+                    ${nextPaymentHtml}
+                    <div><span class="text-gray-500">剩餘本金:</span><span class="font-semibold ml-1 text-red-600">NT$ ${loan.remainingPrincipal.toLocaleString()}</span></div>
+                    <div><span class="text-gray-500">已還總額:</span><span class="font-semibold ml-1 text-green-600">NT$ ${loan.totalRepaid.toLocaleString()}</span></div>
+                </div>
+            `;
+            
+            const interestReductionToggle = document.getElementById('loan-detail-interest-reduction');
+            interestReductionToggle.checked = loan.interestReduction;
+            interestReductionToggle.dataset.id = loanId;
+            
+            renderLoanTransactionHistory(loan.name);
+            loanDetailModal.classList.remove('hidden');
+        }
 
         function toggleDebtEditView() {
             debtDetailDisplayView.classList.toggle('hidden');
@@ -1772,63 +2007,148 @@
             }
         }
         
-        // [NEW] Loan Calculator Handler
-        function handleLoanCalculatorSubmit(e) {
+        // [MODIFIED] Loan Calculator Handler
+        async function handleLoanCalculatorSubmit(e) {
             e.preventDefault();
+            const name = document.getElementById('loan-name').value.trim();
             const amount = parseFloat(document.getElementById('loan-amount').value);
             const rate = parseFloat(document.getElementById('interest-rate').value);
             const rateType = document.getElementById('rate-type').value;
             const term = parseInt(loanTermInput.value);
             const loanType = loanTypeSelect.value;
+            const interestReduction = document.getElementById('interest-reduction-checkbox').checked;
 
-            let isInvalid = isNaN(amount) || isNaN(rate) || amount <= 0 || rate <= 0;
+            let isInvalid = isNaN(amount) || isNaN(rate) || amount <= 0 || rate <= 0 || name === '';
             if (loanType === 'amortization' && (isNaN(term) || term <= 0)) {
                 isInvalid = true;
             }
 
             if (isInvalid) {
-                loanResultDisplay.innerHTML = `<p class="text-red-500">請輸入有效的數字。</p>`;
-                loanResultSection.classList.remove('hidden');
+                alert("請輸入有效的貸款名稱、金額、利率與期數。");
                 return;
             }
+            
+            const loanData = {
+                name,
+                totalAmount: amount,
+                rate: rate,
+                rateType: rateType,
+                term: loanType === 'amortization' ? term : Infinity,
+                loanType,
+                interestReduction,
+                remainingPrincipal: amount,
+                totalRepaid: 0,
+                createdAt: Timestamp.now()
+            };
 
-            const monthlyRate = rateType === 'annual' ? rate / 12 / 100 : rate / 100;
-            let monthlyPayment = 0;
-            let termDisplay = `${term} 個月`;
-
-            if (loanType === 'amortization') {
-                // 本息攤還公式
-                const numerator = monthlyRate * Math.pow(1 + monthlyRate, term);
-                const denominator = Math.pow(1 + monthlyRate, term) - 1;
-                monthlyPayment = amount * (numerator / denominator);
-            } else {
-                // 純利息
-                monthlyPayment = amount * monthlyRate;
-                termDisplay = 'N/A (純繳利息)';
+            try {
+                await addDoc(loansColRef, loanData);
+                loanCalculatorForm.reset();
+            } catch (error) {
+                console.error("建立貸款帳戶失敗:", error);
             }
-
-            loanResultDisplay.innerHTML = `
-                <div class="flex justify-between items-center">
-                    <span class="text-gray-600">貸款總金額:</span>
-                    <span class="font-semibold text-lg">NT$ ${amount.toLocaleString()}</span>
-                </div>
-                <div class="flex justify-between items-center">
-                    <span class="text-gray-600">利率:</span>
-                    <span class="font-semibold text-lg">${rate}% (${rateType === 'annual' ? '年利率' : '月利率'})</span>
-                </div>
-                <div class="flex justify-between items-center">
-                    <span class="text-gray-600">期數:</span>
-                    <span class="font-semibold text-lg">${termDisplay}</span>
-                </div>
-                <div class="mt-4 pt-4 border-t flex justify-between items-center">
-                    <span class="text-gray-800 font-bold">每月應繳金額:</span>
-                    <span class="font-bold text-2xl text-cyan-600">NT$ ${Math.round(monthlyPayment).toLocaleString()}</span>
-                </div>
-            `;
-            loanResultSection.classList.remove('hidden');
         }
         
-        // [NEW] Toggles visibility of the loan term input based on loan type
+        // [NEW] Handle Add Loan Transaction Click
+        function handleAddLoanTxClick(e) {
+            const btn = e.target.closest('.add-loan-tx-btn');
+            if(btn) {
+                const accountId = btn.dataset.id;
+                const accountName = btn.dataset.name;
+                loanTransactionForm.reset();
+                document.getElementById('loan-transaction-account-id').value = accountId;
+                document.getElementById('loan-transaction-id').value = ''; // Clear ID for add mode
+                document.getElementById('loan-transaction-title').textContent = `新增還款至 "${accountName}"`;
+                document.getElementById('submit-loan-transaction-btn').textContent = '確認還款';
+                document.getElementById('loan-repayment-date').valueAsDate = new Date();
+                loanTransactionModal.classList.remove('hidden');
+            }
+        }
+        
+        // [NEW] Handle Loan Transaction Submission
+        async function handleLoanTransactionSubmit(e) {
+            e.preventDefault();
+            const accountId = document.getElementById('loan-transaction-account-id').value;
+            const txId = document.getElementById('loan-transaction-id').value;
+            const principal = parseFloat(document.getElementById('loan-repayment-principal').value) || 0;
+            const interest = parseFloat(document.getElementById('loan-repayment-interest').value) || 0;
+            const date = document.getElementById('loan-repayment-date').value;
+
+            if (!accountId || (principal <= 0 && interest <= 0) || !date) {
+                alert("請輸入有效的還款金額與日期。");
+                return;
+            }
+            
+            const totalPayment = principal + interest;
+            const loanRef = doc(loansColRef, accountId);
+            const loanAccount = allLoans.find(l => l.id === accountId);
+
+            try {
+                if (txId) { // EDIT MODE
+                    const originalPrincipal = parseFloat(document.getElementById('loan-transaction-original-principal').value);
+                    const originalInterest = parseFloat(document.getElementById('loan-transaction-original-interest').value);
+                    const originalTotal = originalPrincipal + originalInterest;
+
+                    const principalDiff = principal - originalPrincipal;
+                    const totalDiff = totalPayment - originalTotal;
+
+                    await updateDoc(loanRef, {
+                        remainingPrincipal: increment(-principalDiff),
+                        totalRepaid: increment(totalDiff)
+                    });
+
+                    const txRef = doc(transactionsColRef, txId);
+                    await updateDoc(txRef, {
+                        amount: totalPayment,
+                        remarks: `還本金: ${principal}, 還利息: ${interest}`,
+                        timestamp: Timestamp.fromDate(new Date(date))
+                    });
+
+                } else { // ADD MODE
+                    await updateDoc(loanRef, {
+                        remainingPrincipal: increment(-principal),
+                        totalRepaid: increment(totalPayment)
+                    });
+
+                    // Add to main transaction list
+                    await addDoc(transactionsColRef, {
+                        type: 'expense',
+                        amount: totalPayment,
+                        category: '貸款還款',
+                        project: loanAccount.name,
+                        remarks: `還本金: ${principal}, 還利息: ${interest}`,
+                        timestamp: Timestamp.fromDate(new Date(date)),
+                        loanAccountId: accountId // Link transaction to loan account
+                    });
+                }
+                
+                loanTransactionModal.classList.add('hidden');
+                // If detail modal is open, refresh it
+                if (!loanDetailModal.classList.contains('hidden')) {
+                    handleLoanCardClick(accountId);
+                }
+
+            } catch (error) {
+                console.error("處理貸款交易失敗:", error);
+            }
+        }
+        
+        // [NEW] Handle password submission
+        function handleCalculatorPasswordSubmit(e) {
+            e.preventDefault();
+            const passwordInput = document.getElementById('calculator-password-input');
+            const errorMsg = document.getElementById('calculator-password-error');
+            if (passwordInput.value === '111') {
+                calculatorPasswordModal.classList.add('hidden');
+                calculatorView.dataset.unlocked = "true";
+                errorMsg.classList.add('hidden');
+            } else {
+                errorMsg.classList.remove('hidden');
+            }
+            passwordInput.value = '';
+        }
+        
+        // [MODIFIED] Toggles visibility of the loan term input based on loan type
         function handleLoanTypeChange() {
             if (loanTypeSelect.value === 'interest-only') {
                 loanTermContainer.classList.add('hidden');
@@ -1888,6 +2208,7 @@
                 lendings: allLendings.map(l => ({...l, createdAt: l.createdAt.toDate()})),
                 events: allEvents.map(e => ({...e, date: e.date.toDate(), createdAt: e.createdAt.toDate()})),
                 investments: allInvestments.map(i => ({...i, createdAt: i.createdAt.toDate(), transactions: i.transactions.map(t => ({...t, date: t.date.toDate()}))})),
+                loans: allLoans.map(l => ({...l, createdAt: l.createdAt.toDate()})),
                 customCategories: customCategories,
                 customProjects: customProjects
             };
@@ -1920,6 +2241,19 @@
             document.querySelectorAll('.print-section').forEach(el => {
                 el.classList.remove('print-section');
             });
+        }
+        
+        // [NEW] Handle interest reduction toggle change
+        async function handleInterestReductionToggle(e) {
+            const loanId = e.target.dataset.id;
+            const isChecked = e.target.checked;
+            if (!loanId) return;
+            const loanRef = doc(loansColRef, loanId);
+            try {
+                await updateDoc(loanRef, { interestReduction: isChecked });
+            } catch (error) {
+                console.error("更新還本降息失敗:", error);
+            }
         }
 
         setupEventListeners();
