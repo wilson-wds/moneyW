@@ -132,7 +132,10 @@
         <!-- [MODIFIED] Budget View -->
         <div id="budget-view" class="hidden">
             <section class="bg-white p-6 md:p-8 rounded-2xl shadow-lg mb-8">
-                <h2 class="text-2xl font-bold mb-6">設定投資帳戶收入預算 (<span id="budget-month-label-form"></span>)</h2>
+                <div class="flex justify-between items-center mb-6">
+                    <h2 class="text-2xl font-bold">設定投資帳戶收入預算</h2>
+                    <input type="month" id="budget-month-select" class="p-2 border rounded-lg">
+                </div>
                 <form id="budget-form" class="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
                     <div class="md:col-span-1">
                         <label for="budget-account-select" class="block text-sm font-medium text-gray-700 mb-1">投資帳戶</label>
@@ -153,7 +156,7 @@
             </section>
             <section id="budget-progress-section" class="bg-white p-6 md:p-8 rounded-2xl shadow-lg">
                 <div class="flex justify-between items-center mb-6">
-                     <h2 class="text-2xl font-bold">本月投資收入預算進度</h2>
+                     <h2 class="text-2xl font-bold">預算進度</h2>
                      <div class="text-right">
                          <p class="text-sm text-gray-500">總目標</p>
                          <p id="budget-total-target" class="text-xl font-bold text-blue-600">NT$ 0</p>
@@ -536,11 +539,11 @@
         const loanHistoryEmpty = document.getElementById('loan-history-empty');
         // Budget Elements
         const budgetForm = document.getElementById('budget-form');
+        const budgetMonthSelect = document.getElementById('budget-month-select');
         const budgetAccountSelect = document.getElementById('budget-account-select');
         const budgetAmountInput = document.getElementById('budget-amount');
         const budgetList = document.getElementById('budget-list');
         const budgetTotalTargetEl = document.getElementById('budget-total-target');
-        const budgetMonthLabelForm = document.getElementById('budget-month-label-form');
         const budgetEmptyState = document.getElementById('budget-empty-state');
 
         // --- Firebase & App 狀態 ---
@@ -548,6 +551,7 @@
         let unsubscribeTransactions, unsubscribeCategories, unsubscribeProjects, unsubscribeDebts, unsubscribeEvents, unsubscribeLendings, unsubscribeInvestments, unsubscribeLoans, unsubscribeBudgets;
         let allTransactions = [], customCategories = [], customProjects = [], allDebts = [], allEvents = [], allLendings = [], allInvestments = [], allLoans = [];
         let currentBudget = { accounts: {} };
+        let selectedBudgetDate = new Date();
         let expenseChart = null;
         let activeCategoryFilter = { type: null, category: null };
         const defaultCategories = { expense: ['飲食', '交通', '居住', '娛樂', '購物', '醫療', '教育', '負債還款', '投資支出', '其他'], income: ['薪資', '獎金', '投資收入', '兼職', '債權回收', '其他'] };
@@ -710,7 +714,7 @@
                 renderInvestments(allInvestments);
                 updateInvestmentSummary(allInvestments);
                 investmentEmptyState.classList.toggle('hidden', allInvestments.length > 0);
-                populateBudgetAccountSelect(); // [MODIFIED] Populate budget dropdown when investments are loaded
+                populateBudgetAccountSelect();
             }, (error) => console.error("監聽投資資料失敗:", error));
         }
         
@@ -725,8 +729,9 @@
 
         function listenForBudgets() {
             if (unsubscribeBudgets) unsubscribeBudgets();
-            const now = new Date();
-            const budgetId = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+            const year = selectedBudgetDate.getFullYear();
+            const month = String(selectedBudgetDate.getMonth() + 1).padStart(2, '0');
+            const budgetId = `${year}-${month}`;
             const budgetDocRef = doc(budgetsColRef, budgetId);
 
             unsubscribeBudgets = onSnapshot(budgetDocRef, (doc) => {
@@ -1092,9 +1097,8 @@
         }
 
         function renderBudgetView() {
-            const now = new Date();
-            const monthString = `${now.getFullYear()} 年 ${now.getMonth() + 1} 月`;
-            budgetMonthLabelForm.textContent = monthString;
+            const year = selectedBudgetDate.getFullYear();
+            const month = selectedBudgetDate.getMonth() + 1;
             
             budgetList.innerHTML = '';
             const budgetAccounts = currentBudget.accounts || {};
@@ -1103,8 +1107,8 @@
 
             let totalTarget = 0;
 
-            const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-            const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
+            const startOfMonth = new Date(year, month - 1, 1);
+            const endOfMonth = new Date(year, month, 0, 23, 59, 59, 999);
             const monthlyIncomes = allTransactions.filter(tx => {
                 if (tx.type !== 'income' || !tx.timestamp) return false;
                 const txDate = tx.timestamp.toDate();
@@ -1118,7 +1122,7 @@
                 totalTarget += targetAmount;
 
                 const currentAmount = monthlyIncomes
-                    .filter(tx => tx.project === accountName) // Match by investment account name in project field
+                    .filter(tx => tx.project === accountName)
                     .reduce((sum, tx) => sum + tx.amount, 0);
 
                 const progress = targetAmount > 0 ? Math.min(100, (currentAmount / targetAmount) * 100) : 0;
@@ -1279,6 +1283,7 @@
 
             form.addEventListener('submit', handleFormSubmit);
             budgetForm.addEventListener('submit', handleBudgetFormSubmit);
+            budgetMonthSelect.addEventListener('change', handleBudgetMonthChange);
             debtForm.addEventListener('submit', handleDebtFormSubmit);
             lendingForm.addEventListener('submit', handleLendingFormSubmit);
             eventForm.addEventListener('submit', handleEventFormSubmit);
@@ -1517,9 +1522,10 @@
             btnText.classList.add('hidden');
             spinner.classList.remove('hidden');
             budgetForm.querySelector('button[type="submit"]').disabled = true;
-
-            const now = new Date();
-            const budgetId = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+            
+            const year = selectedBudgetDate.getFullYear();
+            const month = String(selectedBudgetDate.getMonth() + 1).padStart(2, '0');
+            const budgetId = `${year}-${month}`;
             const budgetDocRef = doc(budgetsColRef, budgetId);
 
             try {
@@ -1529,7 +1535,7 @@
                     } 
                 }, { merge: true });
                 budgetForm.reset();
-                populateBudgetAccountSelect(); // Repopulate to reset selection
+                populateBudgetAccountSelect();
             } catch (error) {
                 console.error("儲存預算失敗:", error);
                 alert("儲存預算失敗，請稍後再試。");
@@ -1538,6 +1544,12 @@
                 spinner.classList.add('hidden');
                 budgetForm.querySelector('button[type="submit"]').disabled = false;
             }
+        }
+
+        function handleBudgetMonthChange() {
+            const [year, month] = budgetMonthSelect.value.split('-');
+            selectedBudgetDate = new Date(year, month - 1, 1);
+            listenForBudgets();
         }
 
         async function handleDebtFormSubmit(e) {
@@ -2307,10 +2319,19 @@
             }
         }
 
+        function initializeMonthSelector() {
+            const now = new Date();
+            const year = now.getFullYear();
+            const month = String(now.getMonth() + 1).padStart(2, '0');
+            budgetMonthSelect.value = `${year}-${month}`;
+        }
+
+        // --- App Initialization ---
         setupEventListeners();
         updateTypeSelection();
         transactionDateInput.valueAsDate = new Date();
         document.getElementById('event-date').valueAsDate = new Date();
+        initializeMonthSelector();
     </script>
 </body>
 </html>
