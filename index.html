@@ -17,7 +17,7 @@
         .debt-card-clickable, .asset-card-clickable, .lending-card-clickable, .investment-card-clickable, .loan-card-clickable { cursor: pointer; }
         .category-stat-item.active { background-color: #dbeafe; }
     </style>
-    <!-- [MODIFIED] Print-specific styles -->
+    <!-- Print-specific styles -->
     <style>
         @media print {
             body * { visibility: hidden; }
@@ -61,6 +61,7 @@
         <!-- 分頁導覽 -->
         <nav class="mb-8 flex justify-center border-b flex-wrap no-print">
             <button id="tab-accounting" class="tab-btn active py-3 px-6 text-lg font-semibold border-b-4 transition-colors">記帳</button>
+            <button id="tab-fixed-expense" class="tab-btn py-3 px-6 text-lg font-semibold border-b-4 border-transparent text-gray-500 hover:text-gray-800 transition-colors">固定支出</button>
             <button id="tab-budget" class="tab-btn py-3 px-6 text-lg font-semibold border-b-4 border-transparent text-gray-500 hover:text-gray-800 transition-colors">收入預算</button>
             <button id="tab-investment" class="tab-btn py-3 px-6 text-lg font-semibold border-b-4 border-transparent text-gray-500 hover:text-gray-800 transition-colors">投資</button>
             <button id="tab-debt" class="tab-btn py-3 px-6 text-lg font-semibold border-b-4 border-transparent text-gray-500 hover:text-gray-800 transition-colors">負債</button>
@@ -129,7 +130,37 @@
             </section>
         </div>
 
-        <!-- [MODIFIED] Budget View -->
+        <!-- [NEW] Fixed Expense View -->
+        <div id="fixed-expense-view" class="hidden">
+            <section class="mb-8">
+                <div class="bg-white p-6 rounded-2xl shadow-lg">
+                    <h2 class="text-lg font-semibold text-gray-700">每月固定支出總計</h2>
+                    <p id="total-fixed-expense" class="text-3xl font-bold text-red-600 mt-2">NT$ 0</p>
+                </div>
+            </section>
+            <section class="bg-white p-6 md:p-8 rounded-2xl shadow-lg mb-8">
+                <h2 class="text-2xl font-bold mb-6">新增固定支出項目</h2>
+                <form id="fixed-expense-form" class="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
+                    <div class="md:col-span-1">
+                        <label for="fixed-expense-name" class="block text-sm font-medium text-gray-700 mb-1">項目名稱</label>
+                        <input type="text" id="fixed-expense-name" placeholder="例如: 房租、Netflix" class="w-full p-3 border border-gray-300 rounded-lg" required>
+                    </div>
+                    <div class="md:col-span-1">
+                        <label for="fixed-expense-amount" class="block text-sm font-medium text-gray-700 mb-1">每月金額</label>
+                        <input type="number" id="fixed-expense-amount" placeholder="輸入金額" class="w-full p-3 border border-gray-300 rounded-lg" required>
+                    </div>
+                    <button type="submit" class="md:col-span-1 w-full bg-orange-600 text-white font-bold py-3 px-6 rounded-lg hover:bg-orange-700">新增項目</button>
+                </form>
+            </section>
+            <section class="bg-white p-6 md:p-8 rounded-2xl shadow-lg">
+                <h2 class="text-2xl font-bold mb-6">固定支出列表</h2>
+                <div id="fixed-expense-loading-indicator" class="flex justify-center items-center py-8"><div class="loader"></div></div>
+                <ul id="fixed-expense-list" class="space-y-3"></ul>
+                <p id="fixed-expense-empty-state" class="hidden text-center text-gray-500 py-8">尚未新增任何固定支出項目。</p>
+            </section>
+        </div>
+
+        <!-- Budget View -->
         <div id="budget-view" class="hidden">
             <section class="bg-white p-6 md:p-8 rounded-2xl shadow-lg mb-8">
                 <div class="flex justify-between items-center mb-6">
@@ -242,9 +273,9 @@
                     <button id="filter-custom-date" class="bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700 transition">查詢</button>
                 </div>
                 <div id="filtered-summary" class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-                       <div class="bg-green-100 p-4 rounded-xl"><h3 class="font-semibold text-green-800">期間總收入</h3><p id="filtered-income" class="text-xl font-bold text-green-600">NT$ 0</p></div>
-                       <div class="bg-red-100 p-4 rounded-xl"><h3 class="font-semibold text-red-800">期間總支出</h3><p id="filtered-expense" class="text-xl font-bold text-red-600">NT$ 0</p></div>
-                       <div class="bg-blue-100 p-4 rounded-xl"><h3 class="font-semibold text-blue-800">期間結餘</h3><p id="filtered-balance" class="text-xl font-bold text-blue-600">NT$ 0</p></div>
+                        <div class="bg-green-100 p-4 rounded-xl"><h3 class="font-semibold text-green-800">期間總收入</h3><p id="filtered-income" class="text-xl font-bold text-green-600">NT$ 0</p></div>
+                        <div class="bg-red-100 p-4 rounded-xl"><h3 class="font-semibold text-red-800">期間總支出</h3><p id="filtered-expense" class="text-xl font-bold text-red-600">NT$ 0</p></div>
+                        <div class="bg-blue-100 p-4 rounded-xl"><h3 class="font-semibold text-blue-800">期間結餘</h3><p id="filtered-balance" class="text-xl font-bold text-blue-600">NT$ 0</p></div>
                 </div>
                 <ul id="filtered-transaction-list" class="space-y-2"></ul>
                 <p id="filtered-empty-state" class="hidden text-center text-gray-500 py-8">在選定範圍內沒有交易紀錄。</p>
@@ -336,7 +367,7 @@
             </section>
         </div>
         
-        <!-- [NEW] Loan Calculator View -->
+        <!-- Loan Calculator View -->
         <div id="calculator-view" class="hidden">
             <section class="bg-white p-6 md:p-8 rounded-2xl shadow-lg mb-8">
                 <h2 class="text-2xl font-bold mb-6">新增貸款帳戶</h2>
@@ -478,8 +509,8 @@
         const googleLoginBtn = document.getElementById('google-login-btn');
         const anonymousLoginBtn = document.getElementById('anonymous-login-btn');
         const appContainer = document.getElementById('app-container'), authInfo = document.getElementById('auth-info');
-        const accountingView = document.getElementById('accounting-view'), reportsView = document.getElementById('reports-view'), debtView = document.getElementById('debt-view'), eventsView = document.getElementById('events-view'), lendingView = document.getElementById('lending-view'), investmentView = document.getElementById('investment-view'), calculatorView = document.getElementById('calculator-view'), budgetView = document.getElementById('budget-view');
-        const tabAccounting = document.getElementById('tab-accounting'), tabReports = document.getElementById('tab-reports'), tabDebt = document.getElementById('tab-debt'), tabEvents = document.getElementById('tab-events'), tabLending = document.getElementById('tab-lending'), tabInvestment = document.getElementById('tab-investment'), tabCalculator = document.getElementById('tab-calculator'), tabBudget = document.getElementById('tab-budget');
+        const accountingView = document.getElementById('accounting-view'), reportsView = document.getElementById('reports-view'), debtView = document.getElementById('debt-view'), eventsView = document.getElementById('events-view'), lendingView = document.getElementById('lending-view'), investmentView = document.getElementById('investment-view'), calculatorView = document.getElementById('calculator-view'), budgetView = document.getElementById('budget-view'), fixedExpenseView = document.getElementById('fixed-expense-view');
+        const tabAccounting = document.getElementById('tab-accounting'), tabReports = document.getElementById('tab-reports'), tabDebt = document.getElementById('tab-debt'), tabEvents = document.getElementById('tab-events'), tabLending = document.getElementById('tab-lending'), tabInvestment = document.getElementById('tab-investment'), tabCalculator = document.getElementById('tab-calculator'), tabBudget = document.getElementById('tab-budget'), tabFixedExpense = document.getElementById('tab-fixed-expense');
         const form = document.getElementById('transaction-form'), amountInput = document.getElementById('amount'), transactionDateInput = document.getElementById('transaction-date'), remarksInput = document.getElementById('remarks'), transactionList = document.getElementById('transaction-list');
         const categoryInput = document.getElementById('category-input'), categoryDatalist = document.getElementById('category-list');
         const projectInput = document.getElementById('project-input'), projectDatalist = document.getElementById('project-list');
@@ -545,11 +576,17 @@
         const budgetList = document.getElementById('budget-list');
         const budgetTotalTargetEl = document.getElementById('budget-total-target');
         const budgetEmptyState = document.getElementById('budget-empty-state');
+        // Fixed Expense Elements
+        const fixedExpenseForm = document.getElementById('fixed-expense-form');
+        const fixedExpenseList = document.getElementById('fixed-expense-list');
+        const totalFixedExpenseEl = document.getElementById('total-fixed-expense');
+        const fixedExpenseLoadingIndicator = document.getElementById('fixed-expense-loading-indicator');
+        const fixedExpenseEmptyState = document.getElementById('fixed-expense-empty-state');
 
         // --- Firebase & App 狀態 ---
-        let db, auth, userId, transactionsColRef, categoriesColRef, projectsColRef, debtsColRef, eventsColRef, lendingsColRef, investmentsColRef, loansColRef, budgetsColRef;
-        let unsubscribeTransactions, unsubscribeCategories, unsubscribeProjects, unsubscribeDebts, unsubscribeEvents, unsubscribeLendings, unsubscribeInvestments, unsubscribeLoans, unsubscribeBudgets;
-        let allTransactions = [], customCategories = [], customProjects = [], allDebts = [], allEvents = [], allLendings = [], allInvestments = [], allLoans = [];
+        let db, auth, userId, transactionsColRef, categoriesColRef, projectsColRef, debtsColRef, eventsColRef, lendingsColRef, investmentsColRef, loansColRef, budgetsColRef, fixedExpensesColRef;
+        let unsubscribeTransactions, unsubscribeCategories, unsubscribeProjects, unsubscribeDebts, unsubscribeEvents, unsubscribeLendings, unsubscribeInvestments, unsubscribeLoans, unsubscribeBudgets, unsubscribeFixedExpenses;
+        let allTransactions = [], customCategories = [], customProjects = [], allDebts = [], allEvents = [], allLendings = [], allInvestments = [], allLoans = [], allFixedExpenses = [];
         let currentBudget = { accounts: {} };
         let selectedBudgetDate = new Date();
         let expenseChart = null;
@@ -582,6 +619,7 @@
                 investmentsColRef = collection(db, `${basePath}/investments`);
                 loansColRef = collection(db, `${basePath}/loans`);
                 budgetsColRef = collection(db, `${basePath}/budgets`);
+                fixedExpensesColRef = collection(db, `${basePath}/fixedExpenses`);
 
                 setupUIForLoggedInUser(user);
 
@@ -594,6 +632,7 @@
                 listenForInvestments();
                 listenForLoans();
                 listenForBudgets();
+                listenForFixedExpenses();
 
             } else {
                 setupUIForLoggedOutUser();
@@ -606,6 +645,7 @@
                 if (unsubscribeInvestments) unsubscribeInvestments();
                 if (unsubscribeLoans) unsubscribeLoans();
                 if (unsubscribeBudgets) unsubscribeBudgets();
+                if (unsubscribeFixedExpenses) unsubscribeFixedExpenses();
             }
         });
 
@@ -635,6 +675,7 @@
             lendingList.innerHTML = '';
             investmentList.innerHTML = '';
             loanAccountList.innerHTML = '';
+            fixedExpenseList.innerHTML = '';
         }
 
         function listenForTransactions() {
@@ -742,6 +783,18 @@
                 }
                 renderBudgetView();
             }, (error) => console.error("監聽預算資料失敗:", error));
+        }
+
+        function listenForFixedExpenses() {
+            if (unsubscribeFixedExpenses) unsubscribeFixedExpenses();
+            unsubscribeFixedExpenses = onSnapshot(query(fixedExpensesColRef), (snapshot) => {
+                fixedExpenseLoadingIndicator.classList.add('hidden');
+                allFixedExpenses = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                allFixedExpenses.sort((a, b) => (a.createdAt?.toMillis() || 0) - (b.createdAt?.toMillis() || 0));
+                renderFixedExpenses(allFixedExpenses);
+                updateFixedExpenseSummary(allFixedExpenses);
+                fixedExpenseEmptyState.classList.toggle('hidden', allFixedExpenses.length > 0);
+            }, (error) => console.error("監聽固定支出失敗:", error));
         }
 
         function listenForCustomItems(collectionRef, callback) {
@@ -1150,6 +1203,24 @@
             budgetTotalTargetEl.textContent = `NT$ ${totalTarget.toLocaleString()}`;
         }
 
+        function renderFixedExpenses(expenses) {
+            fixedExpenseList.innerHTML = '';
+            expenses.forEach(expense => {
+                const li = document.createElement('li');
+                li.className = 'flex items-center justify-between p-3 bg-gray-50 rounded-lg border';
+                li.innerHTML = `
+                    <span class="font-medium text-gray-800">${expense.name}</span>
+                    <div class="flex items-center gap-4">
+                        <span class="font-semibold text-red-500">NT$ ${expense.amount.toLocaleString()}</span>
+                        <button data-id="${expense.id}" class="delete-fixed-expense-btn text-gray-400 hover:text-red-600 p-1">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                        </button>
+                    </div>
+                `;
+                fixedExpenseList.appendChild(li);
+            });
+        }
+
         function updateSummary(transactions) {
             const income = transactions.filter(t => t.type === 'income').reduce((sum, t) => sum + t.amount, 0);
             const expense = transactions.filter(t => t.type === 'expense').reduce((sum, t) => sum + t.amount, 0);
@@ -1261,6 +1332,11 @@
             });
         }
 
+        function updateFixedExpenseSummary(expenses) {
+            const total = expenses.reduce((sum, expense) => sum + expense.amount, 0);
+            totalFixedExpenseEl.textContent = `NT$ ${total.toLocaleString()}`;
+        }
+
         // --- UI & Event Listeners ---
         function setupEventListeners() {
             googleLoginBtn.addEventListener('click', () => {
@@ -1272,6 +1348,7 @@
             });
 
             tabAccounting.addEventListener('click', () => switchTab('accounting'));
+            tabFixedExpense.addEventListener('click', () => switchTab('fixed-expense'));
             tabBudget.addEventListener('click', () => switchTab('budget'));
             tabInvestment.addEventListener('click', () => switchTab('investment'));
             tabReports.addEventListener('click', () => switchTab('reports'));
@@ -1282,6 +1359,7 @@
             document.getElementById('tab-settings').addEventListener('click', () => switchTab('settings'));
 
             form.addEventListener('submit', handleFormSubmit);
+            fixedExpenseForm.addEventListener('submit', handleFixedExpenseFormSubmit);
             budgetForm.addEventListener('submit', handleBudgetFormSubmit);
             budgetMonthSelect.addEventListener('change', handleBudgetMonthChange);
             debtForm.addEventListener('submit', handleDebtFormSubmit);
@@ -1320,6 +1398,7 @@
             filteredTransactionList.addEventListener('click', handleTransactionListClick);
 
             eventList.addEventListener('click', (e) => handleDelete(e, '.delete-event-btn', eventsColRef));
+            fixedExpenseList.addEventListener('click', (e) => handleDelete(e, '.delete-fixed-expense-btn', fixedExpensesColRef));
 
             debtList.addEventListener('click', (e) => {
                 const debtCard = e.target.closest('.debt-card-clickable');
@@ -1394,8 +1473,8 @@
         }
 
         function switchTab(tabName) {
-            const views = { accounting: accountingView, budget: budgetView, investment: investmentView, reports: reportsView, debt: debtView, lending: lendingView, events: eventsView, calculator: calculatorView, settings: document.getElementById('settings-view') };
-            const tabs = { accounting: tabAccounting, budget: tabBudget, investment: tabInvestment, reports: tabReports, debt: tabDebt, lending: tabLending, events: tabEvents, calculator: tabCalculator, settings: document.getElementById('tab-settings') };
+            const views = { accounting: accountingView, 'fixed-expense': fixedExpenseView, budget: budgetView, investment: investmentView, reports: reportsView, debt: debtView, lending: lendingView, events: eventsView, calculator: calculatorView, settings: document.getElementById('settings-view') };
+            const tabs = { accounting: tabAccounting, 'fixed-expense': tabFixedExpense, budget: tabBudget, investment: tabInvestment, reports: tabReports, debt: tabDebt, lending: tabLending, events: tabEvents, calculator: tabCalculator, settings: document.getElementById('tab-settings') };
 
             for (const key in views) {
                 const isHidden = key !== tabName;
@@ -2215,6 +2294,26 @@
             }
         }
 
+        async function handleFixedExpenseFormSubmit(e) {
+            e.preventDefault();
+            const name = document.getElementById('fixed-expense-name').value.trim();
+            const amount = parseFloat(document.getElementById('fixed-expense-amount').value);
+            if (name === '' || isNaN(amount) || amount <= 0) {
+                alert("請輸入有效的項目名稱與金額。");
+                return;
+            }
+            try {
+                await addDoc(fixedExpensesColRef, {
+                    name,
+                    amount,
+                    createdAt: Timestamp.now()
+                });
+                fixedExpenseForm.reset();
+            } catch (error) {
+                console.error("新增固定支出失敗:", error);
+            }
+        }
+
 
         // --- Helper Functions ---
         function updateTypeSelection() {
@@ -2274,6 +2373,7 @@
                 investments: allInvestments.map(i => ({...i, createdAt: i.createdAt.toDate(), transactions: i.transactions.map(t => ({...t, date: t.date.toDate()}))})),
                 loans: allLoans.map(l => ({...l, createdAt: l.createdAt.toDate()})),
                 budgets: currentBudget,
+                fixedExpenses: allFixedExpenses.map(f => ({...f, createdAt: f.createdAt.toDate()})),
                 customCategories: customCategories,
                 customProjects: customProjects
             };
