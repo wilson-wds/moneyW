@@ -120,10 +120,16 @@
                 </form>
             </section>
             <section id="main-transaction-list-section" class="bg-white p-6 md:p-8 rounded-2xl shadow-lg">
-                <div class="flex justify-between items-center mb-6">
+                <div class="flex flex-wrap justify-between items-center mb-4 gap-4">
                     <h2 class="text-2xl font-bold">歷史紀錄</h2>
-                    <button id="print-transactions-btn" class="bg-gray-500 text-white font-bold py-2 px-4 rounded-lg hover:bg-gray-600 no-print">列印所有紀錄</button>
+                    <div class="flex items-center gap-2 no-print">
+                        <label for="history-date-filter" class="text-sm font-medium text-gray-600">篩選日期:</label>
+                        <input type="date" id="history-date-filter" class="p-2 border rounded-lg text-sm">
+                        <button id="show-today-btn" class="bg-blue-500 text-white px-3 py-2 rounded-lg hover:bg-blue-600 transition text-sm">顯示本日</button>
+                        <button id="print-transactions-btn" class="bg-gray-500 text-white font-bold py-2 px-3 rounded-lg hover:bg-gray-600 text-sm">列印</button>
+                    </div>
                 </div>
+                <p id="history-display-date" class="text-lg font-semibold text-gray-600 mb-4 text-center"></p>
                 <div id="loading-indicator" class="flex justify-center items-center py-8"><div class="loader"></div></div>
                 <ul id="transaction-list" class="space-y-4"></ul>
                 <p id="empty-state" class="hidden text-center text-gray-500 py-8">還沒有任何紀錄，快來新增第一筆吧！</p>
@@ -553,6 +559,9 @@
         const printReportBtn = document.getElementById('print-report-btn');
         const printDebtDetailBtn = document.getElementById('print-debt-detail-btn');
         const printInvestmentDetailBtn = document.getElementById('print-investment-detail-btn');
+        const historyDateFilter = document.getElementById('history-date-filter');
+        const showTodayBtn = document.getElementById('show-today-btn');
+        const historyDisplayDateEl = document.getElementById('history-display-date');
         const loanCalculatorForm = document.getElementById('loan-calculator-form');
         const loanAccountList = document.getElementById('loan-account-list');
         const loanAccountEmptyState = document.getElementById('loan-account-empty-state');
@@ -694,7 +703,7 @@
                     return txDate >= startOfToday && txDate < endOfToday;
                 });
 
-                renderTransactions(allTransactions);
+                renderMainTransactionList();
                 updateSummary(allTransactions);
                 updateTodaySummary(todayTransactions);
                 updateMonthlySummary(allTransactions);
@@ -702,7 +711,6 @@
                 updateMonthlyRepaymentSummary();
                 renderBudgetView();
                 if(reportsView.classList.contains('hidden') === false) { handleFilterThisMonth(); }
-                emptyState.classList.toggle('hidden', allTransactions.length > 0);
             }, (error) => console.error("監聽交易資料失敗:", error));
         }
 
@@ -1459,6 +1467,11 @@
             printReportBtn.addEventListener('click', () => handlePrint('#filtered-transaction-list-section'));
             printDebtDetailBtn.addEventListener('click', () => handlePrint('#debt-detail-modal'));
             printInvestmentDetailBtn.addEventListener('click', () => handlePrint('#investment-detail-modal'));
+            historyDateFilter.addEventListener('change', renderMainTransactionList);
+            showTodayBtn.addEventListener('click', () => {
+                historyDateFilter.value = new Date().toISOString().split('T')[0];
+                renderMainTransactionList();
+            });
             window.addEventListener('afterprint', handleAfterPrint);
             calculatorPasswordForm.addEventListener('submit', handleCalculatorPasswordSubmit);
             loanTransactionForm.addEventListener('submit', handleLoanTransactionSubmit);
@@ -1494,6 +1507,47 @@
             }
         }
         
+        function renderMainTransactionList() {
+            const filterDateStr = historyDateFilter.value;
+            let dateToFilter;
+
+            if (filterDateStr) {
+                dateToFilter = new Date(filterDateStr);
+            } else {
+                dateToFilter = new Date();
+                historyDateFilter.value = dateToFilter.toISOString().split('T')[0];
+            }
+
+            // Adjust for timezone offset to compare dates correctly
+            const userTimezoneOffset = dateToFilter.getTimezoneOffset() * 60000;
+            const startOfDay = new Date(dateToFilter.getFullYear(), dateToFilter.getMonth(), dateToFilter.getDate());
+            const endOfDay = new Date(startOfDay.getTime() + 24 * 60 * 60 * 1000);
+
+            const filteredTransactions = allTransactions.filter(tx => {
+                if (!tx.timestamp) return false;
+                const txDate = tx.timestamp.toDate();
+                return txDate >= startOfDay && txDate < endOfDay;
+            });
+
+            renderTransactions(filteredTransactions);
+
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+
+            if (startOfDay.getTime() === today.getTime()) {
+                historyDisplayDateEl.textContent = `本日 (${startOfDay.toLocaleDateString('zh-TW')}) 紀錄`;
+            } else {
+                historyDisplayDateEl.textContent = `${startOfDay.toLocaleDateString('zh-TW')} 紀錄`;
+            }
+
+            emptyState.classList.toggle('hidden', filteredTransactions.length > 0 || allTransactions.length > 0);
+             if (filteredTransactions.length === 0 && allTransactions.length > 0) {
+                emptyState.textContent = '此日期無交易紀錄。';
+            } else if (allTransactions.length === 0) {
+                 emptyState.textContent = '還沒有任何紀錄，快來新增第一筆吧！';
+            }
+        }
+
         function resetTransactionForm() {
             form.reset();
             document.getElementById('transaction-id').value = '';
@@ -2430,8 +2484,10 @@
         setupEventListeners();
         updateTypeSelection();
         transactionDateInput.valueAsDate = new Date();
+        historyDateFilter.valueAsDate = new Date();
         document.getElementById('event-date').valueAsDate = new Date();
         initializeMonthSelector();
     </script>
 </body>
 </html>
+
