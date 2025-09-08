@@ -276,6 +276,12 @@
                         <label for="end-date" class="text-sm font-medium">到:</label>
                         <input type="date" id="end-date" class="p-2 border rounded-lg text-sm">
                     </div>
+                    <div class="flex items-center gap-2">
+                        <label for="project-filter" class="text-sm font-medium">專案:</label>
+                        <select id="project-filter" class="p-2 border rounded-lg text-sm bg-white">
+                            <option value="all">全部專案</option>
+                        </select>
+                    </div>
                     <button id="filter-custom-date" class="bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700 transition">查詢</button>
                 </div>
                 <div id="filtered-summary" class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
@@ -550,6 +556,7 @@
         const editInvestmentAccountModal = document.getElementById('edit-investment-account-modal'), editInvestmentAccountForm = document.getElementById('edit-investment-account-form'), cancelEditInvestmentAccountBtn = document.getElementById('cancel-edit-investment-account-btn');
         const updateMarketValueModal = document.getElementById('update-market-value-modal'), updateMarketValueForm = document.getElementById('update-market-value-form'), cancelUpdateMarketValueBtn = document.getElementById('cancel-update-market-value-btn');
         const filterThisMonthBtn = document.getElementById('filter-this-month'), filterCustomDateBtn = document.getElementById('filter-custom-date'), startDateInput = document.getElementById('start-date'), endDateInput = document.getElementById('end-date');
+        const projectFilterSelect = document.getElementById('project-filter');
         const filteredTransactionList = document.getElementById('filtered-transaction-list'), filteredEmptyState = document.getElementById('filtered-empty-state');
         const filteredIncomeEl = document.getElementById('filtered-income'), filteredExpenseEl = document.getElementById('filtered-expense'), filteredBalanceEl = document.getElementById('filtered-balance');
         const expenseStatsList = document.getElementById('expense-stats-list');
@@ -634,7 +641,7 @@
 
                 listenForTransactions();
                 listenForCustomItems(categoriesColRef, (items) => { customCategories = items; populateCategoryDatalist(); populateModalList(customCategoryList, customCategories, '尚無自訂分類', 'category'); });
-                listenForCustomItems(projectsColRef, (items) => { customProjects = items; populateDatalist(projectDatalist, customProjects.map(p => p.name)); populateModalList(customProjectList, customProjects, '尚無自訂專案', 'project'); });
+                listenForCustomItems(projectsColRef, (items) => { customProjects = items; populateDatalist(projectDatalist, customProjects.map(p => p.name)); populateModalList(customProjectList, customProjects, '尚無自訂專案', 'project'); populateProjectFilter(); });
                 listenForDebts();
                 listenForEvents();
                 listenForLendings();
@@ -704,6 +711,7 @@
                 });
 
                 renderMainTransactionList();
+                populateProjectFilter();
                 updateSummary(allTransactions);
                 updateTodaySummary(todayTransactions);
                 updateMonthlySummary(allTransactions);
@@ -1451,6 +1459,7 @@
             customProjectList.addEventListener('click', (e) => handleDelete(e, '.delete-project-btn', projectsColRef));
             filterThisMonthBtn.addEventListener('click', handleFilterThisMonth);
             filterCustomDateBtn.addEventListener('click', handleFilterCustomDate);
+            projectFilterSelect.addEventListener('click', handleFilterCustomDate);
             closeDebtDetailModalBtn.addEventListener('click', () => debtDetailModal.classList.add('hidden'));
             editDebtBtn.addEventListener('click', toggleDebtEditView);
             cancelEditDebtBtn.addEventListener('click', toggleDebtEditView);
@@ -2142,7 +2151,7 @@
             const end = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
             startDateInput.value = start.toISOString().split('T')[0];
             endDateInput.value = end.toISOString().split('T')[0];
-            filterAndRenderDetails(start, end);
+            handleFilterCustomDate();
         }
 
         function handleFilterCustomDate() {
@@ -2150,19 +2159,26 @@
             if (!startVal || !endVal) { console.warn("請選擇開始與結束日期"); return; }
             const start = new Date(startVal), end = new Date(endVal);
             end.setHours(23, 59, 59, 999);
-            filterAndRenderDetails(start, end);
+            const project = projectFilterSelect.value;
+            filterAndRenderDetails(start, end, null, null, project);
         }
 
-        function filterAndRenderDetails(startDate, endDate, category = null, type = null) {
+        function filterAndRenderDetails(startDate, endDate, category = null, type = null, project = null) {
             let filtered = allTransactions.filter(tx => {
                 if (!tx.timestamp) return false;
                 const txDate = tx.timestamp.toDate();
                 return txDate >= startDate && txDate <= endDate;
             });
 
+            const statsFiltered = [...filtered];
+
+            if (project && project !== 'all') {
+                filtered = filtered.filter(tx => tx.project === project);
+            }
+
             const expenseSummary = {};
             const incomeSummary = {};
-            filtered.forEach(tx => {
+            statsFiltered.forEach(tx => {
                 if (tx.type === 'expense') {
                     expenseSummary[tx.category] = (expenseSummary[tx.category] || 0) + tx.amount;
                 } else {
@@ -2177,6 +2193,7 @@
                 activeCategoryFilter = { type, category };
             } else {
                 activeCategoryFilter = { type: null, category: null };
+                document.querySelectorAll('.category-stat-item').forEach(item => item.classList.remove('active'));
             }
 
             renderFilteredTransactions(filtered);
@@ -2187,19 +2204,19 @@
             const statItem = e.target.closest('.category-stat-item');
             if (!statItem) return;
 
-            document.querySelectorAll('.category-stat-item').forEach(item => item.classList.remove('active'));
-
             const category = statItem.dataset.category;
             const type = statItem.dataset.type;
+            const project = projectFilterSelect.value;
 
             if (activeCategoryFilter.category === category && activeCategoryFilter.type === type) {
                 handleFilterCustomDate();
             } else {
+                document.querySelectorAll('.category-stat-item').forEach(item => item.classList.remove('active'));
                 statItem.classList.add('active');
                 const start = new Date(startDateInput.value);
                 const end = new Date(endDateInput.value);
                 end.setHours(23, 59, 59, 999);
-                filterAndRenderDetails(start, end, category, type);
+                filterAndRenderDetails(start, end, category, type, project);
             }
         }
         
@@ -2386,6 +2403,20 @@
             const type = expenseRadio.checked ? 'expense' : 'income';
             const categories = [...defaultCategories[type], ...customCategories.map(c => c.name)];
             populateDatalist(categoryDatalist, categories);
+        }
+
+        function populateProjectFilter() {
+            const projectsFromTransactions = allTransactions.map(tx => tx.project).filter(p => p);
+            const projectsFromCustomList = customProjects.map(p => p.name);
+            const allProjectNames = [...new Set([...projectsFromTransactions, ...projectsFromCustomList])].sort();
+            
+            const currentVal = projectFilterSelect.value;
+            projectFilterSelect.innerHTML = '<option value="all">全部專案</option>'; 
+            
+            allProjectNames.forEach(name => {
+                const selected = name === currentVal ? ' selected' : '';
+                projectFilterSelect.insertAdjacentHTML('beforeend', `<option value="${name}"${selected}>${name}</option>`);
+            });
         }
 
         function populateBudgetAccountSelect() {
