@@ -61,6 +61,8 @@
         <!-- 分頁導覽 -->
         <nav class="mb-8 flex justify-center border-b flex-wrap no-print">
             <button id="tab-accounting" class="tab-btn active py-3 px-6 text-lg font-semibold border-b-4 transition-colors">記帳</button>
+            <button id="tab-distribution" class="tab-btn py-3 px-6 text-lg font-semibold border-b-4 border-transparent text-gray-500 hover:text-gray-800 transition-colors">資金分配</button>
+            <button id="tab-distribution-history" class="tab-btn py-3 px-6 text-lg font-semibold border-b-4 border-transparent text-gray-500 hover:text-gray-800 transition-colors">分配紀錄</button>
             <button id="tab-fixed-expense" class="tab-btn py-3 px-6 text-lg font-semibold border-b-4 border-transparent text-gray-500 hover:text-gray-800 transition-colors">固定支出</button>
             <button id="tab-budget" class="tab-btn py-3 px-6 text-lg font-semibold border-b-4 border-transparent text-gray-500 hover:text-gray-800 transition-colors">收入預算</button>
             <button id="tab-investment" class="tab-btn py-3 px-6 text-lg font-semibold border-b-4 border-transparent text-gray-500 hover:text-gray-800 transition-colors">投資</button>
@@ -133,6 +135,82 @@
                 <div id="loading-indicator" class="flex justify-center items-center py-8"><div class="loader"></div></div>
                 <ul id="transaction-list" class="space-y-4"></ul>
                 <p id="empty-state" class="hidden text-center text-gray-500 py-8">還沒有任何紀錄，快來新增第一筆吧！</p>
+            </section>
+        </div>
+
+        <!-- 資金分配分頁 -->
+        <div id="distribution-view" class="hidden">
+            <section class="bg-white p-6 md:p-8 rounded-2xl shadow-lg mb-8">
+                <h2 class="text-2xl font-bold mb-6">建立資金分配</h2>
+                <form id="distribution-form" class="space-y-6">
+                    <!-- Step 1: Income -->
+                    <div>
+                        <h3 class="text-lg font-semibold border-b pb-2 mb-4">步驟 1: 填寫入帳總額</h3>
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <div>
+                                <label for="distribution-total-amount" class="block text-sm font-medium text-gray-700 mb-1">入帳總金額</label>
+                                <input type="number" id="distribution-total-amount" placeholder="輸入總金額" class="w-full p-3 border border-gray-300 rounded-lg" required>
+                            </div>
+                            <div>
+                                <label for="distribution-income-category" class="block text-sm font-medium text-gray-700 mb-1">收入分類</label>
+                                <input list="category-list-income" id="distribution-income-category" class="w-full p-3 border border-gray-300 rounded-lg" placeholder="選擇或輸入分類" required>
+                            </div>
+                             <div>
+                                <label for="distribution-date" class="block text-sm font-medium text-gray-700 mb-1">日期</label>
+                                <input type="date" id="distribution-date" class="w-full p-3 border border-gray-300 rounded-lg" required>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Step 2: Distribution -->
+                    <div>
+                        <div class="flex justify-between items-center border-b pb-2 mb-4">
+                            <h3 class="text-lg font-semibold">步驟 2: 新增分配項目 (支出)</h3>
+                            <button type="button" id="add-distribution-row-btn" class="bg-blue-500 text-white font-bold py-2 px-4 rounded-lg hover:bg-blue-600">新增項目</button>
+                        </div>
+                        <div id="distribution-rows-container" class="space-y-4">
+                            <!-- Dynamic rows will be inserted here -->
+                        </div>
+                         <datalist id="category-list-income"></datalist>
+                         <datalist id="category-list-expense"></datalist>
+                    </div>
+
+                    <!-- Step 3: Summary & Submit -->
+                    <div>
+                         <h3 class="text-lg font-semibold border-b pb-2 mb-4">步驟 3: 確認並送出</h3>
+                         <div class="p-4 bg-gray-50 rounded-lg grid grid-cols-3 gap-4 text-center">
+                             <div>
+                                 <p class="text-sm text-gray-500">入帳總額</p>
+                                 <p id="summary-dist-total" class="text-xl font-bold text-green-600">NT$ 0</p>
+                             </div>
+                             <div>
+                                 <p class="text-sm text-gray-500">已分配總額</p>
+                                 <p id="summary-dist-allocated" class="text-xl font-bold text-red-600">NT$ 0</p>
+                             </div>
+                             <div>
+                                 <p class="text-sm text-gray-500">待分配餘額</p>
+                                 <p id="summary-dist-balance" class="text-xl font-bold text-gray-700">NT$ 0</p>
+                             </div>
+                         </div>
+                         <div class="mt-6">
+                            <button type="submit" id="process-distribution-btn" class="w-full bg-green-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-green-700 disabled:bg-gray-400 flex justify-center items-center" disabled>
+                                <span id="dist-submit-btn-text">完成並建立所有紀錄</span>
+                                <div id="dist-submit-spinner" class="hidden loader-small"></div>
+                            </button>
+                            <p id="distribution-error" class="text-center text-red-500 mt-2 hidden">待分配餘額必須為 0 才能送出。</p>
+                         </div>
+                    </div>
+                </form>
+            </section>
+        </div>
+
+        <!-- 資金分配紀錄分頁 -->
+        <div id="distribution-history-view" class="hidden">
+            <section class="bg-white p-6 md:p-8 rounded-2xl shadow-lg">
+                <h2 class="text-2xl font-bold mb-6">歷史資金分配紀錄</h2>
+                <div id="distribution-history-loading-indicator" class="flex justify-center items-center py-8"><div class="loader"></div></div>
+                <div id="distribution-history-list" class="space-y-6"></div>
+                <p id="distribution-history-empty-state" class="hidden text-center text-gray-500 py-8">尚未建立任何資金分配紀錄。</p>
             </section>
         </div>
 
@@ -521,8 +599,8 @@
         const googleLoginBtn = document.getElementById('google-login-btn');
         const anonymousLoginBtn = document.getElementById('anonymous-login-btn');
         const appContainer = document.getElementById('app-container'), authInfo = document.getElementById('auth-info');
-        const accountingView = document.getElementById('accounting-view'), reportsView = document.getElementById('reports-view'), debtView = document.getElementById('debt-view'), eventsView = document.getElementById('events-view'), lendingView = document.getElementById('lending-view'), investmentView = document.getElementById('investment-view'), calculatorView = document.getElementById('calculator-view'), budgetView = document.getElementById('budget-view'), fixedExpenseView = document.getElementById('fixed-expense-view');
-        const tabAccounting = document.getElementById('tab-accounting'), tabReports = document.getElementById('tab-reports'), tabDebt = document.getElementById('tab-debt'), tabEvents = document.getElementById('tab-events'), tabLending = document.getElementById('tab-lending'), tabInvestment = document.getElementById('tab-investment'), tabCalculator = document.getElementById('tab-calculator'), tabBudget = document.getElementById('tab-budget'), tabFixedExpense = document.getElementById('tab-fixed-expense');
+        const accountingView = document.getElementById('accounting-view'), reportsView = document.getElementById('reports-view'), debtView = document.getElementById('debt-view'), eventsView = document.getElementById('events-view'), lendingView = document.getElementById('lending-view'), investmentView = document.getElementById('investment-view'), calculatorView = document.getElementById('calculator-view'), budgetView = document.getElementById('budget-view'), fixedExpenseView = document.getElementById('fixed-expense-view'), distributionView = document.getElementById('distribution-view'), distributionHistoryView = document.getElementById('distribution-history-view');
+        const tabAccounting = document.getElementById('tab-accounting'), tabReports = document.getElementById('tab-reports'), tabDebt = document.getElementById('tab-debt'), tabEvents = document.getElementById('tab-events'), tabLending = document.getElementById('tab-lending'), tabInvestment = document.getElementById('tab-investment'), tabCalculator = document.getElementById('tab-calculator'), tabBudget = document.getElementById('tab-budget'), tabFixedExpense = document.getElementById('tab-fixed-expense'), tabDistribution = document.getElementById('tab-distribution'), tabDistributionHistory = document.getElementById('tab-distribution-history');
         const form = document.getElementById('transaction-form'), amountInput = document.getElementById('amount'), transactionDateInput = document.getElementById('transaction-date'), remarksInput = document.getElementById('remarks'), transactionList = document.getElementById('transaction-list');
         const categoryInput = document.getElementById('category-input'), categoryDatalist = document.getElementById('category-list');
         const projectInput = document.getElementById('project-input'), projectDatalist = document.getElementById('project-list');
@@ -598,11 +676,21 @@
         const totalFixedExpenseEl = document.getElementById('total-fixed-expense');
         const fixedExpenseLoadingIndicator = document.getElementById('fixed-expense-loading-indicator');
         const fixedExpenseEmptyState = document.getElementById('fixed-expense-empty-state');
+        // Distribution Elements
+        const distributionForm = document.getElementById('distribution-form');
+        const addDistributionRowBtn = document.getElementById('add-distribution-row-btn');
+        const distributionRowsContainer = document.getElementById('distribution-rows-container');
+        const distributionTotalAmountInput = document.getElementById('distribution-total-amount');
+        const incomeCategoryDatalist = document.getElementById('category-list-income');
+        const expenseCategoryDatalist = document.getElementById('category-list-expense');
+        const distributionHistoryList = document.getElementById('distribution-history-list');
+        const distributionHistoryLoadingIndicator = document.getElementById('distribution-history-loading-indicator');
+        const distributionHistoryEmptyState = document.getElementById('distribution-history-empty-state');
 
         // --- Firebase & App 狀態 ---
-        let db, auth, userId, transactionsColRef, categoriesColRef, projectsColRef, debtsColRef, eventsColRef, lendingsColRef, investmentsColRef, loansColRef, budgetsColRef, fixedExpensesColRef;
-        let unsubscribeTransactions, unsubscribeCategories, unsubscribeProjects, unsubscribeDebts, unsubscribeEvents, unsubscribeLendings, unsubscribeInvestments, unsubscribeLoans, unsubscribeBudgets, unsubscribeFixedExpenses;
-        let allTransactions = [], customCategories = [], customProjects = [], allDebts = [], allEvents = [], allLendings = [], allInvestments = [], allLoans = [], allFixedExpenses = [];
+        let db, auth, userId, transactionsColRef, categoriesColRef, projectsColRef, debtsColRef, eventsColRef, lendingsColRef, investmentsColRef, loansColRef, budgetsColRef, fixedExpensesColRef, distributionsColRef;
+        let unsubscribeTransactions, unsubscribeCategories, unsubscribeProjects, unsubscribeDebts, unsubscribeEvents, unsubscribeLendings, unsubscribeInvestments, unsubscribeLoans, unsubscribeBudgets, unsubscribeFixedExpenses, unsubscribeDistributions;
+        let allTransactions = [], customCategories = [], customProjects = [], allDebts = [], allEvents = [], allLendings = [], allInvestments = [], allLoans = [], allFixedExpenses = [], allDistributions = [];
         let currentBudget = { accounts: {} };
         let selectedBudgetDate = new Date();
         let expenseChart = null;
@@ -636,11 +724,12 @@
                 loansColRef = collection(db, `${basePath}/loans`);
                 budgetsColRef = collection(db, `${basePath}/budgets`);
                 fixedExpensesColRef = collection(db, `${basePath}/fixedExpenses`);
+                distributionsColRef = collection(db, `${basePath}/distributions`);
 
                 setupUIForLoggedInUser(user);
 
                 listenForTransactions();
-                listenForCustomItems(categoriesColRef, (items) => { customCategories = items; populateCategoryDatalist(); populateModalList(customCategoryList, customCategories, '尚無自訂分類', 'category'); });
+                listenForCustomItems(categoriesColRef, (items) => { customCategories = items; populateCategoryDatalist(); populateModalList(customCategoryList, customCategories, '尚無自訂分類', 'category'); populateDistributionCategoryDatalists(); });
                 listenForCustomItems(projectsColRef, (items) => { customProjects = items; populateDatalist(projectDatalist, customProjects.map(p => p.name)); populateModalList(customProjectList, customProjects, '尚無自訂專案', 'project'); populateProjectFilter(); });
                 listenForDebts();
                 listenForEvents();
@@ -649,6 +738,7 @@
                 listenForLoans();
                 listenForBudgets();
                 listenForFixedExpenses();
+                listenForDistributions();
 
             } else {
                 setupUIForLoggedOutUser();
@@ -662,6 +752,7 @@
                 if (unsubscribeLoans) unsubscribeLoans();
                 if (unsubscribeBudgets) unsubscribeBudgets();
                 if (unsubscribeFixedExpenses) unsubscribeFixedExpenses();
+                if (unsubscribeDistributions) unsubscribeDistributions();
             }
         });
 
@@ -692,6 +783,7 @@
             investmentList.innerHTML = '';
             loanAccountList.innerHTML = '';
             fixedExpenseList.innerHTML = '';
+            distributionHistoryList.innerHTML = '';
         }
 
         function listenForTransactions() {
@@ -730,6 +822,7 @@
                 allDebts.sort((a, b) => (a.createdAt?.toMillis() || 0) - (b.createdAt?.toMillis() || 0));
                 updateDebtSummary(allDebts);
                 renderDebts(allDebts);
+                refreshAllDistributionTargets();
                 debtEmptyState.classList.toggle('hidden', allDebts.length > 0);
             }, (error) => console.error("監聽負債資料失敗:", error));
         }
@@ -770,6 +863,7 @@
                 allInvestments = await Promise.all(investmentPromises);
                 renderInvestments(allInvestments);
                 updateInvestmentSummary(allInvestments);
+                refreshAllDistributionTargets();
                 investmentEmptyState.classList.toggle('hidden', allInvestments.length > 0);
                 populateBudgetAccountSelect();
             }, (error) => console.error("監聽投資資料失敗:", error));
@@ -811,6 +905,17 @@
                 updateFixedExpenseSummary(allFixedExpenses);
                 fixedExpenseEmptyState.classList.toggle('hidden', allFixedExpenses.length > 0);
             }, (error) => console.error("監聽固定支出失敗:", error));
+        }
+
+        function listenForDistributions() {
+            if (unsubscribeDistributions) unsubscribeDistributions();
+            unsubscribeDistributions = onSnapshot(query(distributionsColRef), (snapshot) => {
+                distributionHistoryLoadingIndicator.classList.add('hidden');
+                allDistributions = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                allDistributions.sort((a, b) => (b.date?.toMillis() || 0) - (a.date?.toMillis() || 0));
+                renderDistributionHistory(allDistributions);
+                distributionHistoryEmptyState.classList.toggle('hidden', allDistributions.length > 0);
+            }, (error) => console.error("監聽分配紀錄失敗:", error));
         }
 
         function listenForCustomItems(collectionRef, callback) {
@@ -1165,6 +1270,50 @@
             });
         }
 
+        function renderDistributionHistory(distributions) {
+            distributionHistoryList.innerHTML = '';
+            distributions.forEach(dist => {
+                const card = document.createElement('div');
+                card.className = 'bg-white p-4 rounded-lg shadow-md border';
+                
+                let expensesHtml = dist.expenses.map(exp => {
+                    let targetName = '';
+                    if (exp.targetType === 'general_expense') {
+                        targetName = `一般支出: ${exp.category}`;
+                    } else if (exp.targetType === 'debt') {
+                        const debt = allDebts.find(d => d.id === exp.targetId);
+                        targetName = `償還: ${debt ? debt.name : '未知負債'}`;
+                    } else if (exp.targetType === 'investment') {
+                        const inv = allInvestments.find(i => i.id === exp.targetId);
+                        targetName = `投資: ${inv ? inv.name : '未知帳戶'}`;
+                    }
+
+                    return `<li class="flex justify-between items-center text-sm py-1 border-b border-gray-200">
+                        <div>
+                            <p class="font-medium text-gray-700">${targetName}</p>
+                            <p class="text-xs text-gray-500">${exp.remarks || '無備註'}</p>
+                        </div>
+                        <span class="font-semibold text-red-600">- NT$ ${exp.amount.toLocaleString()}</span>
+                    </li>`;
+                }).join('');
+
+                card.innerHTML = `
+                    <div class="flex justify-between items-center pb-2 border-b mb-3">
+                        <div>
+                            <p class="text-sm text-gray-500">${dist.date.toDate().toLocaleDateString('zh-TW')} 分配計畫</p>
+                            <p class="text-lg font-bold text-green-700">${dist.income.category}: + NT$ ${dist.income.amount.toLocaleString()}</p>
+                        </div>
+                        <button class="delete-distribution-btn text-gray-400 hover:text-red-500 p-1 no-print" data-id="${dist.id}">
+                             <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                        </button>
+                    </div>
+                    <ul class="space-y-1">${expensesHtml}</ul>
+                `;
+                distributionHistoryList.appendChild(card);
+            });
+        }
+
+
         function renderBudgetView() {
             const year = selectedBudgetDate.getFullYear();
             const month = selectedBudgetDate.getMonth() + 1;
@@ -1364,6 +1513,8 @@
             });
 
             tabAccounting.addEventListener('click', () => switchTab('accounting'));
+            tabDistribution.addEventListener('click', () => switchTab('distribution'));
+            tabDistributionHistory.addEventListener('click', () => switchTab('distribution-history'));
             tabFixedExpense.addEventListener('click', () => switchTab('fixed-expense'));
             tabBudget.addEventListener('click', () => switchTab('budget'));
             tabInvestment.addEventListener('click', () => switchTab('investment'));
@@ -1386,6 +1537,7 @@
             editInvestmentAccountForm.addEventListener('submit', handleEditInvestmentAccountSubmit);
             updateMarketValueForm.addEventListener('submit', handleUpdateMarketValueSubmit);
             loanCalculatorForm.addEventListener('submit', handleLoanCalculatorSubmit);
+            distributionForm.addEventListener('submit', handleDistributionSubmit);
 
             repaymentForm.addEventListener('submit', handleRepaymentSubmit);
             debtEditForm.addEventListener('submit', handleDebtEditSubmit);
@@ -1399,6 +1551,20 @@
 
             expenseRadio.addEventListener('change', updateTypeSelection);
             document.querySelector('input[name="type"][value="income"]').addEventListener('change', updateTypeSelection);
+            
+            addDistributionRowBtn.addEventListener('click', addDistributionRow);
+            distributionRowsContainer.addEventListener('click', (e) => {
+                if(e.target.closest('.remove-dist-row-btn')) {
+                    e.target.closest('.dist-row').remove();
+                    updateDistributionSummary();
+                }
+            });
+            distributionRowsContainer.addEventListener('change', (e) => {
+                if(e.target.classList.contains('dist-target')) {
+                    handleDistributionTargetChange(e.target);
+                }
+            });
+            distributionForm.addEventListener('input', updateDistributionSummary);
 
             setupModal(manageCategoriesBtn, categoryModal, [document.getElementById('close-category-modal-btn'), document.getElementById('close-category-modal-btn-bottom')]);
             setupModal(manageProjectsBtn, projectModal, [document.getElementById('close-project-modal-btn'), document.getElementById('close-project-modal-btn-bottom')]);
@@ -1415,6 +1581,7 @@
 
             eventList.addEventListener('click', (e) => handleDelete(e, '.delete-event-btn', eventsColRef));
             fixedExpenseList.addEventListener('click', (e) => handleDelete(e, '.delete-fixed-expense-btn', fixedExpensesColRef));
+            distributionHistoryList.addEventListener('click', (e) => handleDelete(e, '.delete-distribution-btn', distributionsColRef));
 
             debtList.addEventListener('click', (e) => {
                 const debtCard = e.target.closest('.debt-card-clickable');
@@ -1459,7 +1626,7 @@
             customProjectList.addEventListener('click', (e) => handleDelete(e, '.delete-project-btn', projectsColRef));
             filterThisMonthBtn.addEventListener('click', handleFilterThisMonth);
             filterCustomDateBtn.addEventListener('click', handleFilterCustomDate);
-            projectFilterSelect.addEventListener('click', handleFilterCustomDate);
+            projectFilterSelect.addEventListener('change', handleFilterCustomDate);
             closeDebtDetailModalBtn.addEventListener('click', () => debtDetailModal.classList.add('hidden'));
             editDebtBtn.addEventListener('click', toggleDebtEditView);
             cancelEditDebtBtn.addEventListener('click', toggleDebtEditView);
@@ -1495,8 +1662,8 @@
         }
 
         function switchTab(tabName) {
-            const views = { accounting: accountingView, 'fixed-expense': fixedExpenseView, budget: budgetView, investment: investmentView, reports: reportsView, debt: debtView, lending: lendingView, events: eventsView, calculator: calculatorView, settings: document.getElementById('settings-view') };
-            const tabs = { accounting: tabAccounting, 'fixed-expense': tabFixedExpense, budget: tabBudget, investment: tabInvestment, reports: tabReports, debt: tabDebt, lending: tabLending, events: tabEvents, calculator: tabCalculator, settings: document.getElementById('tab-settings') };
+            const views = { accounting: accountingView, distribution: distributionView, 'distribution-history': distributionHistoryView, 'fixed-expense': fixedExpenseView, budget: budgetView, investment: investmentView, reports: reportsView, debt: debtView, lending: lendingView, events: eventsView, calculator: calculatorView, settings: document.getElementById('settings-view') };
+            const tabs = { accounting: tabAccounting, distribution: tabDistribution, 'distribution-history': tabDistributionHistory, 'fixed-expense': tabFixedExpense, budget: tabBudget, investment: tabInvestment, reports: tabReports, debt: tabDebt, lending: tabLending, events: tabEvents, calculator: tabCalculator, settings: document.getElementById('tab-settings') };
 
             for (const key in views) {
                 const isHidden = key !== tabName;
@@ -2164,21 +2331,19 @@
         }
 
         function filterAndRenderDetails(startDate, endDate, category = null, type = null, project = null) {
-            let filtered = allTransactions.filter(tx => {
+            const transactionsInDateRange = allTransactions.filter(tx => {
                 if (!tx.timestamp) return false;
                 const txDate = tx.timestamp.toDate();
                 return txDate >= startDate && txDate <= endDate;
             });
 
-            const statsFiltered = [...filtered];
-
-            if (project && project !== 'all') {
-                filtered = filtered.filter(tx => tx.project === project);
-            }
+            const transactionsForStatsAndList = (project && project !== 'all')
+                ? transactionsInDateRange.filter(tx => tx.project === project)
+                : transactionsInDateRange;
 
             const expenseSummary = {};
             const incomeSummary = {};
-            statsFiltered.forEach(tx => {
+            transactionsForStatsAndList.forEach(tx => {
                 if (tx.type === 'expense') {
                     expenseSummary[tx.category] = (expenseSummary[tx.category] || 0) + tx.amount;
                 } else {
@@ -2188,16 +2353,18 @@
             renderCategoryStats(expenseStatsList, expenseSummary, 'expense');
             renderCategoryStats(incomeStatsList, incomeSummary, 'income');
 
+            let finalFilteredList = [...transactionsForStatsAndList];
+
             if (category && type) {
-                filtered = filtered.filter(tx => tx.category === category && tx.type === type);
+                finalFilteredList = finalFilteredList.filter(tx => tx.category === category && tx.type === type);
                 activeCategoryFilter = { type, category };
             } else {
                 activeCategoryFilter = { type: null, category: null };
                 document.querySelectorAll('.category-stat-item').forEach(item => item.classList.remove('active'));
             }
 
-            renderFilteredTransactions(filtered);
-            updateFilteredSummary(filtered);
+            renderFilteredTransactions(finalFilteredList);
+            updateFilteredSummary(finalFilteredList);
         }
 
         function handleCategoryClick(e) {
@@ -2385,6 +2552,169 @@
             }
         }
 
+        // --- Distribution Functions ---
+        function addDistributionRow() {
+            const rowId = `dist-row-${Date.now()}`;
+            const row = document.createElement('div');
+            row.id = rowId;
+            row.className = 'dist-row space-y-2 p-3 bg-gray-50 rounded-lg border relative';
+            row.innerHTML = `
+                <button type="button" class="absolute top-2 right-2 text-red-500 hover:text-red-700 font-bold text-xl remove-dist-row-btn" title="移除此項目">&times;</button>
+                <div class="grid grid-cols-1 md:grid-cols-5 gap-3 items-center">
+                    <div class="md:col-span-2">
+                        <label class="text-xs text-gray-500">分配目標</label>
+                        <select class="w-full p-2 border border-gray-300 rounded-lg dist-target bg-white text-sm" required></select>
+                    </div>
+                    <div class="md:col-span-1 dist-dynamic-fields">
+                        <!-- JS will insert fields here, like category -->
+                    </div>
+                    <div class="md:col-span-2">
+                        <label class="text-xs text-gray-500">金額</label>
+                        <input type="number" class="w-full p-2 border border-gray-300 rounded-lg dist-amount" placeholder="金額" required>
+                    </div>
+                </div>
+                <div class="grid grid-cols-1">
+                    <label class="text-xs text-gray-500">備註 (可填寫銀行代碼/帳號)</label>
+                    <input type="text" class="w-full p-2 border border-gray-300 rounded-lg dist-remarks" placeholder="備註 (選填)">
+                </div>
+            `;
+            distributionRowsContainer.appendChild(row);
+            const targetSelect = row.querySelector('.dist-target');
+            populateDistributionTargetSelect(targetSelect);
+            handleDistributionTargetChange(targetSelect); // Trigger initial dynamic field render
+            updateDistributionSummary();
+        }
+
+        function populateDistributionTargetSelect(selectElement) {
+            const currentValue = selectElement.value;
+            selectElement.innerHTML = `
+                <option value="general_expense">新增一般支出</option>
+                <optgroup label="--- 負債還款 ---"></optgroup>
+                <optgroup label="--- 投資投入 ---"></optgroup>
+            `;
+            const debtOptgroup = selectElement.querySelector('optgroup[label="--- 負債還款 ---"]');
+            allDebts.forEach(debt => {
+                debtOptgroup.insertAdjacentHTML('beforeend', `<option value="debt_${debt.id}">${debt.name}</option>`);
+            });
+
+            const investmentOptgroup = selectElement.querySelector('optgroup[label="--- 投資投入 ---"]');
+            allInvestments.forEach(inv => {
+                investmentOptgroup.insertAdjacentHTML('beforeend', `<option value="investment_${inv.id}">${inv.name}</option>`);
+            });
+            selectElement.value = currentValue;
+        }
+
+        function refreshAllDistributionTargets() {
+            document.querySelectorAll('.dist-target').forEach(select => {
+                populateDistributionTargetSelect(select);
+            });
+        }
+
+        function handleDistributionTargetChange(targetSelect) {
+            const dynamicFieldsContainer = targetSelect.closest('.dist-row').querySelector('.dist-dynamic-fields');
+            if (targetSelect.value === 'general_expense') {
+                dynamicFieldsContainer.innerHTML = `
+                    <label class="text-xs text-gray-500">支出分類</label>
+                    <input list="category-list-expense" class="w-full p-2 border border-gray-300 rounded-lg dist-category" placeholder="支出分類" required>
+                `;
+            } else {
+                dynamicFieldsContainer.innerHTML = '';
+            }
+        }
+
+        function updateDistributionSummary() {
+            const totalAmount = parseFloat(distributionTotalAmountInput.value) || 0;
+            let allocatedAmount = 0;
+            document.querySelectorAll('.dist-amount').forEach(input => {
+                allocatedAmount += parseFloat(input.value) || 0;
+            });
+            const balance = totalAmount - allocatedAmount;
+            
+            document.getElementById('summary-dist-total').textContent = `NT$ ${totalAmount.toLocaleString()}`;
+            document.getElementById('summary-dist-allocated').textContent = `NT$ ${allocatedAmount.toLocaleString()}`;
+            document.getElementById('summary-dist-balance').textContent = `NT$ ${balance.toLocaleString()}`;
+
+            const processBtn = document.getElementById('process-distribution-btn');
+            const errorMsg = document.getElementById('distribution-error');
+            
+            if (balance === 0 && totalAmount > 0 && document.querySelectorAll('.dist-row').length > 0) {
+                processBtn.disabled = false;
+                errorMsg.classList.add('hidden');
+                document.getElementById('summary-dist-balance').classList.remove('text-red-600', 'text-gray-700');
+                document.getElementById('summary-dist-balance').classList.add('text-green-600');
+            } else {
+                processBtn.disabled = true;
+                errorMsg.classList.toggle('hidden', totalAmount === 0 || balance === 0);
+                 document.getElementById('summary-dist-balance').classList.remove('text-green-600');
+                document.getElementById('summary-dist-balance').classList.toggle('text-red-600', balance !== 0);
+                document.getElementById('summary-dist-balance').classList.toggle('text-gray-700', balance === 0);
+            }
+        }
+        
+        async function handleDistributionSubmit(e) {
+            e.preventDefault();
+            const totalAmount = parseFloat(distributionTotalAmountInput.value);
+            const incomeCategory = document.getElementById('distribution-income-category').value.trim();
+            const date = document.getElementById('distribution-date').value;
+
+            if (!date || !incomeCategory || isNaN(totalAmount) || totalAmount <= 0) {
+                alert("請填寫完整的入帳總額資訊 (總金額、收入分類、日期)。");
+                return;
+            }
+            
+            const submitBtnText = document.getElementById('dist-submit-btn-text');
+            const spinner = document.getElementById('dist-submit-spinner');
+            submitBtnText.classList.add('hidden');
+            spinner.classList.remove('hidden');
+            document.getElementById('process-distribution-btn').disabled = true;
+            
+            try {
+                const timestamp = Timestamp.fromDate(new Date(date));
+                const distributionData = {
+                    date: timestamp,
+                    income: {
+                        amount: totalAmount,
+                        category: incomeCategory
+                    },
+                    expenses: []
+                };
+
+                const rows = document.querySelectorAll('.dist-row');
+                for (const row of rows) {
+                    const amount = parseFloat(row.querySelector('.dist-amount').value);
+                    const remarks = row.querySelector('.dist-remarks').value.trim();
+                    const target = row.querySelector('.dist-target').value;
+
+                    if (!target || isNaN(amount) || amount <= 0) continue;
+
+                    const [type, id] = target.split('_');
+                    
+                    const expenseEntry = { amount, remarks, targetType: type, targetId: id };
+
+                    if (type === 'general') {
+                       expenseEntry.targetType = 'general_expense';
+                       expenseEntry.category = row.querySelector('.dist-category').value.trim();
+                    }
+                    distributionData.expenses.push(expenseEntry);
+                }
+                
+                await addDoc(distributionsColRef, distributionData);
+
+                alert('資金分配計畫已儲存！您可以在「分配紀錄」頁面查看。');
+                distributionForm.reset();
+                distributionRowsContainer.innerHTML = '';
+                updateDistributionSummary();
+                switchTab('distribution-history');
+
+            } catch (error) {
+                console.error("資金分配失敗:", error);
+                alert('處理失敗，請查看控制台錯誤訊息。');
+            } finally {
+                submitBtnText.classList.remove('hidden');
+                spinner.classList.add('hidden');
+            }
+        }
+
 
         // --- Helper Functions ---
         function updateTypeSelection() {
@@ -2403,6 +2733,13 @@
             const type = expenseRadio.checked ? 'expense' : 'income';
             const categories = [...defaultCategories[type], ...customCategories.map(c => c.name)];
             populateDatalist(categoryDatalist, categories);
+        }
+
+        function populateDistributionCategoryDatalists() {
+            const incomeCategories = [...defaultCategories.income, ...customCategories.map(c => c.name)];
+            populateDatalist(incomeCategoryDatalist, incomeCategories);
+            const expenseCategories = [...defaultCategories.expense, ...customCategories.map(c => c.name)];
+            populateDatalist(expenseCategoryDatalist, expenseCategories);
         }
 
         function populateProjectFilter() {
@@ -2515,10 +2852,13 @@
         setupEventListeners();
         updateTypeSelection();
         transactionDateInput.valueAsDate = new Date();
+        document.getElementById('distribution-date').valueAsDate = new Date();
         historyDateFilter.valueAsDate = new Date();
         document.getElementById('event-date').valueAsDate = new Date();
         initializeMonthSelector();
     </script>
 </body>
 </html>
+
+
 
