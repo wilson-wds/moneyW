@@ -255,6 +255,41 @@
     <div id="investment-detail-modal" class="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center hidden z-50 p-4"><div class="bg-white p-6 md:p-8 rounded-2xl shadow-xl w-full max-w-lg"><div class="flex justify-between items-center mb-4"><h3 id="investment-detail-title" class="text-2xl font-bold"></h3><div class="flex items-center gap-2 no-print"><button id="close-investment-detail-modal-btn" class="text-gray-400 hover:text-gray-600 text-3xl leading-none">&times;</button></div></div><h4 class="text-lg font-bold mb-2 border-t pt-4">交易紀錄</h4><ul id="investment-history-list" class="space-y-2 max-h-96 overflow-y-auto"></ul><p id="investment-history-empty" class="hidden text-center text-gray-500 py-4">尚無交易紀錄</p></div></div>
     <div id="edit-investment-account-modal" class="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center hidden z-50 p-4"><div class="bg-white p-6 md:p-8 rounded-2xl shadow-xl w-full max-w-md"><h3 class="text-2xl font-bold mb-6">編輯投資帳戶</h3><form id="edit-investment-account-form"><input type="hidden" id="edit-investment-account-id"><div class="mb-4"><label for="edit-investment-account-name" class="block text-sm font-medium text-gray-700 mb-1">帳戶名稱</label><input type="text" id="edit-investment-account-name" class="w-full p-3 border border-gray-300 rounded-lg" required></div><div class="flex justify-end gap-4"><button type="button" id="cancel-edit-investment-account-btn" class="bg-gray-300 text-gray-800 font-bold py-2 px-4 rounded-lg hover:bg-gray-400">取消</button><button type="submit" class="bg-blue-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-blue-700">儲存</button></div></form></div></div>
     <div id="update-market-value-modal" class="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center hidden z-50 p-4"><div class="bg-white p-6 md:p-8 rounded-2xl shadow-xl w-full max-w-md"><h3 id="update-market-value-title" class="text-2xl font-bold mb-6">更新資產現值</h3><form id="update-market-value-form"><input type="hidden" id="update-market-value-id"><div class="mb-4"><label for="update-market-value-amount" class="block text-sm font-medium text-gray-700 mb-1">目前資產總價值</label><input type="number" id="update-market-value-amount" placeholder="輸入目前總市價" class="w-full p-3 border border-gray-300 rounded-lg" required></div><div class="flex justify-end gap-4"><button type="button" id="cancel-update-market-value-btn" class="bg-gray-300 text-gray-800 font-bold py-2 px-4 rounded-lg hover:bg-gray-400">取消</button><button type="submit" class="bg-yellow-500 text-white font-bold py-2 px-4 rounded-lg hover:bg-yellow-600">確認更新</button></div></form></div></div>
+    
+    <!-- [NEW] 編輯投資預算 Modal -->
+    <div id="investment-budget-edit-modal" class="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center hidden z-50 p-4">
+        <div class="bg-white p-6 md:p-8 rounded-2xl shadow-xl w-full max-w-lg">
+            <h3 class="text-2xl font-bold mb-6">編輯收入預算</h3>
+            <form id="investment-budget-edit-form">
+                <input type="hidden" id="edit-budget-id">
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div class="md:col-span-1">
+                        <label for="edit-budget-investment-account" class="block text-sm font-medium text-gray-700 mb-1">投資帳戶</label>
+                        <select id="edit-budget-investment-account" class="w-full p-3 border border-gray-300 rounded-lg bg-white" required>
+                            <!-- 選項將由 JS 填入 -->
+                        </select>
+                    </div>
+                    <div class="md:col-span-1">
+                        <label for="edit-budget-expected-date" class="block text-sm font-medium text-gray-700 mb-1">預期日期</label>
+                        <input type="date" id="edit-budget-expected-date" class="w-full p-3 border border-gray-300 rounded-lg" required>
+                    </div>
+                    <div class="md:col-span-1">
+                        <label for="edit-budget-expected-amount" class="block text-sm font-medium text-gray-700 mb-1">預期金額</Tlabel>
+                        <input type="number" id="edit-budget-expected-amount" placeholder="輸入金額" class="w-full p-3 border border-gray-300 rounded-lg" required>
+                    </div>
+                    <div class="md:col-span-3">
+                        <label for="edit-budget-description" class="block text-sm font-medium text-gray-700 mb-1">說明</label>
+                        <input type="text" id="edit-budget-description" placeholder="例如: 0050 配息" class="w-full p-3 border border-gray-300 rounded-lg" required>
+                    </div>
+                </div>
+                <div class="flex justify-end gap-4 mt-6">
+                    <button type="button" id="cancel-edit-budget-btn" class="bg-gray-300 text-gray-800 font-bold py-2 px-4 rounded-lg hover:bg-gray-400">取消</button>
+                    <button type="submit" class="bg-blue-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-blue-700">儲存變更</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
@@ -305,6 +340,12 @@
         const investmentBudgetList = document.getElementById('investment-budget-list');
         const investmentBudgetLoadingIndicator = document.getElementById('investment-budget-loading-indicator');
         const investmentBudgetEmptyState = document.getElementById('investment-budget-empty-state');
+
+        // [NEW] 編輯投資預算 DOM
+        const investmentBudgetEditModal = document.getElementById('investment-budget-edit-modal');
+        const investmentBudgetEditForm = document.getElementById('investment-budget-edit-form');
+        const cancelEditBudgetBtn = document.getElementById('cancel-edit-budget-btn');
+        const editBudgetInvestmentSelect = document.getElementById('edit-budget-investment-account');
 
 
         // --- Firebase & App 狀態 ---
@@ -449,7 +490,10 @@
                 renderInvestments(allInvestments);
                 updateInvestmentSummary(allInvestments);
                 if (investmentEmptyState) investmentEmptyState.classList.toggle('hidden', allInvestments.length > 0);
-                populateInvestmentBudgetSelect(); // 確保下拉選單更新
+                
+                // [MODIFIED] 更新兩個下拉選單
+                populateInvestmentBudgetSelect(budgetInvestmentSelect); 
+                populateInvestmentBudgetSelect(editBudgetInvestmentSelect);
             }, (error) => console.error("監聽投資資料失敗:", error));
         }
 
@@ -640,17 +684,36 @@
             budgets.forEach(budget => {
                 const li = document.createElement('li');
                 li.className = 'flex items-center justify-between p-3 bg-gray-50 rounded-lg border';
+                
+                // [NEW] 將 data-* 屬性添加到編輯按鈕上
+                const budgetData = `
+                    data-id="${budget.id}"
+                    data-investment-id="${budget.investmentId}"
+                    data-date="${budget.expectedDate.toDate().toISOString().split('T')[0]}"
+                    data-amount="${budget.expectedAmount}"
+                    data-description="${budget.description}"
+                `;
+
                 li.innerHTML = `
                     <div class="flex items-center gap-3">
                         <input type="checkbox" class="realize-budget-btn h-5 w-5 text-green-600 rounded" data-id="${budget.id}">
                         <div>
-                            <p class_id="font-medium text-gray-800">${budget.description}</p>
+                            <p class="font-medium text-gray-800">${budget.description}</p>
                             <p class="text-sm text-gray-500">
                                 ${budget.investmentName} | 預期: ${budget.expectedDate.toDate().toLocaleDateString('zh-TW')}
                             </p>
                         </div>
                     </div>
-                    <span class="font-semibold text-green-600">NT$ ${budget.expectedAmount.toLocaleString()}</span>
+                    <div class="flex items-center gap-2">
+                        <span class="font-semibold text-green-600">NT$ ${budget.expectedAmount.toLocaleString()}</span>
+                        <!-- [NEW] 新增編輯和刪除按鈕 -->
+                        <button class="edit-budget-btn p-1 text-gray-400 hover:text-blue-500" ${budgetData}>
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.5L15.232 5.232z"></path></svg>
+                        </button>
+                        <button class="delete-budget-btn p-1 text-gray-400 hover:text-red-500" data-id="${budget.id}">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                        </button>
+                    </div>
                 `;
                 investmentBudgetList.appendChild(li);
             });
@@ -848,6 +911,7 @@
             if (repaymentForm) repaymentForm.addEventListener('submit', handleRepaymentSubmit);
             if (debtEditForm) debtEditForm.addEventListener('submit', handleDebtEditSubmit);
             if (investmentBudgetForm) investmentBudgetForm.addEventListener('submit', handleInvestmentBudgetSubmit); // 新增預算表單
+            if (investmentBudgetEditForm) investmentBudgetEditForm.addEventListener('submit', handleInvestmentBudgetEditSubmit); // [NEW] 編輯預算表單
 
             // 彈窗按鈕
             if (cancelRepaymentBtn) cancelRepaymentBtn.addEventListener('click', () => repaymentModal.classList.add('hidden'));
@@ -858,6 +922,7 @@
             if (editDebtBtn) editDebtBtn.addEventListener('click', toggleDebtEditView);
             if (cancelEditDebtBtn) cancelEditDebtBtn.addEventListener('click', toggleDebtEditView);
             if (closeInvestmentDetailModalBtn) closeInvestmentDetailModalBtn.addEventListener('click', () => investmentDetailModal.classList.add('hidden'));
+            if (cancelEditBudgetBtn) cancelEditBudgetBtn.addEventListener('click', () => investmentBudgetEditModal.classList.add('hidden')); // [NEW]
 
             // 記帳表單
             if (expenseRadio) expenseRadio.addEventListener('change', updateTypeSelection);
@@ -878,9 +943,15 @@
                 if (e.target.closest('.delete-investment-tx-btn')) handleDeleteInvestmentTx(e);
                 if (e.target.closest('.edit-investment-tx-btn')) handleEditInvestmentTxClick(e);
             });
-            if (investmentBudgetList) investmentBudgetList.addEventListener('change', (e) => { // 監聽 checkbox 變化
-                if (e.target.classList.contains('realize-budget-btn')) {
+            
+            // [MODIFIED] 投資預算列表點擊事件
+            if (investmentBudgetList) investmentBudgetList.addEventListener('click', (e) => { 
+                if (e.target.closest('.realize-budget-btn')) {
                     handleRealizeBudget(e);
+                } else if (e.target.closest('.edit-budget-btn')) {
+                    handleEditInvestmentBudgetClick(e);
+                } else if (e.target.closest('.delete-budget-btn')) {
+                    handleDeleteInvestmentBudget(e);
                 }
             });
 
@@ -1212,6 +1283,90 @@
                 console.error("新增投資預算失敗:", error);
             }
         }
+        
+        // [NEW] 編輯投資預算
+        function handleEditInvestmentBudgetClick(e) {
+            const btn = e.target.closest('.edit-budget-btn');
+            if (!btn || !investmentBudgetEditModal) return;
+
+            // 從按鈕的 data-* 屬性中獲取資料
+            const id = btn.dataset.id;
+            const investmentId = btn.dataset.investmentId;
+            const date = btn.dataset.date;
+            const amount = btn.dataset.amount;
+            const description = btn.dataset.description;
+
+            // 填充編輯表單
+            document.getElementById('edit-budget-id').value = id;
+            document.getElementById('edit-budget-investment-account').value = investmentId;
+            document.getElementById('edit-budget-expected-date').value = date;
+            document.getElementById('edit-budget-expected-amount').value = amount;
+            document.getElementById('edit-budget-description').value = description;
+            
+            // 顯示編輯視窗
+            investmentBudgetEditModal.classList.remove('hidden');
+        }
+
+        // [NEW] 提交編輯投資預算
+        async function handleInvestmentBudgetEditSubmit(e) {
+            e.preventDefault();
+            if (!investmentBudgetEditForm) return;
+
+            const id = document.getElementById('edit-budget-id').value;
+            const selectedOption = editBudgetInvestmentSelect.options[editBudgetInvestmentSelect.selectedIndex];
+
+            if (!id || !selectedOption || !selectedOption.value) {
+                console.warn("編輯資料無效");
+                return;
+            }
+
+            const investmentId = selectedOption.value;
+            const investmentName = selectedOption.dataset.name;
+            const expectedDate = document.getElementById('edit-budget-expected-date').value;
+            const expectedAmount = parseFloat(document.getElementById('edit-budget-expected-amount').value);
+            const description = document.getElementById('edit-budget-description').value.trim();
+
+            if (!investmentId || !investmentName || !expectedDate || isNaN(expectedAmount) || expectedAmount <= 0 || !description) {
+                console.warn("請填寫所有編輯欄位");
+                return;
+            }
+            
+            const budgetDocRef = doc(investmentBudgetsColRef, id);
+            try {
+                await updateDoc(budgetDocRef, {
+                    investmentId,
+                    investmentName,
+                    expectedDate: Timestamp.fromDate(new Date(expectedDate)),
+                    expectedAmount,
+                    description
+                });
+                investmentBudgetEditModal.classList.add('hidden');
+            } catch (error) {
+                console.error("更新投資預算失敗:", error);
+            }
+        }
+
+        // [NEW] 刪除投資預算
+        async function handleDeleteInvestmentBudget(e) {
+            const btn = e.target.closest('.delete-budget-btn');
+            if (!btn) return;
+
+            const id = btn.dataset.id;
+            // 可以在這裡加入一個確認刪除的提示
+            // if (!confirm("確定要刪除這筆預算嗎？")) {
+            //     return;
+            // }
+
+            const budgetDocRef = doc(investmentBudgetsColRef, id);
+            try {
+                btn.disabled = true;
+                await deleteDoc(budgetDocRef);
+            } catch (error) {
+                console.error("刪除投資預算失敗:", error);
+                btn.disabled = false;
+            }
+        }
+
 
         async function handleRealizeBudget(e) {
             const checkbox = e.target;
@@ -1595,16 +1750,18 @@
             populateDatalist(categoryDatalist, categories);
         }
 
-        function populateInvestmentBudgetSelect() {
-            if (!budgetInvestmentSelect) return;
-            const currentVal = budgetInvestmentSelect.value;
-            budgetInvestmentSelect.innerHTML = '<option value="">-- 選擇帳戶 --</option>';
+        // [MODIFIED] 接受一個 select 元素作為參數
+        function populateInvestmentBudgetSelect(selectElement) {
+            if (!selectElement) return;
+            const currentVal = selectElement.value;
+            selectElement.innerHTML = '<option value="">-- 選擇帳戶 --</option>';
             allInvestments.forEach(inv => {
                 const selected = inv.id === currentVal ? ' selected' : '';
                 // 將 investment name 存在 data-* 屬性中
-                budgetInvestmentSelect.insertAdjacentHTML('beforeend', `<option value="${inv.id}" data-name="${inv.name}"${selected}>${inv.name}</option>`);
+                selectElement.insertAdjacentHTML('beforeend', `<option value="${inv.id}" data-name="${inv.name}"${selected}>${inv.name}</option>`);
             });
         }
+
 
         function populateModalList(ulElement, items, emptyMsg, type) {
             if (!ulElement) return;
