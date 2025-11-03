@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>雲端記帳軟體 (簡化版)</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
     <style>
         body { font-family: 'Inter', 'Noto Sans TC', sans-serif; }
@@ -14,68 +13,14 @@
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
         ::-webkit-scrollbar { width: 8px; } ::-webkit-scrollbar-track { background: #f1f1f1; } ::-webkit-scrollbar-thumb { background: #888; border-radius: 4px; } ::-webkit-scrollbar-thumb:hover { background: #555; }
         .tab-btn.active { border-color: #3b82f6; background-color: #3b82f6; color: white; }
-        .debt-card-clickable, .asset-card-clickable, .lending-card-clickable, .investment-card-clickable, .loan-card-clickable { cursor: pointer; }
-        .category-stat-item.active { background-color: #dbeafe; }
-        /* 避免 input[type=number] 的箭頭 */
-        input[type=number]::-webkit-inner-spin-button, 
-        input[type=number]::-webkit-outer-spin-button { 
-          -webkit-appearance: none; 
-          margin: 0; 
-        }
-        input[type=number] {
-          -moz-appearance: textfield;
-        }
-        /* 預算勾選框樣式 */
-        .budget-checkbox {
-            appearance: none;
-            width: 1.5rem;
-            height: 1.5rem;
-            border: 2px solid #cbd5e1;
-            border-radius: 0.375rem;
-            cursor: pointer;
-            transition: all 0.2s ease-in-out;
-            position: relative;
-        }
-        .budget-checkbox:checked {
-            background-color: #2563eb;
-            border-color: #2563eb;
-        }
-        .budget-checkbox:checked::after {
-            content: '\2713'; /* Checkmark */
-            color: white;
-            font-size: 1.25rem;
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            line-height: 1;
-        }
-        .budget-checkbox:disabled {
-            background-color: #e2e8f0;
-            border-color: #cbd5e1;
-            cursor: not-allowed;
-        }
-    </style>
-    <!-- Print-specific styles -->
-    <style>
-        @media print {
-            body * { visibility: hidden; }
-            .print-section, .print-section * { visibility: visible; }
-            .print-section { position: absolute !important; left: 0 !important; top: 0 !important; width: 100% !important; padding: 20px !important; border: none !important; box-shadow: none !important; background-color: white !important; }
-            .print-section .no-print { display: none !important; }
-            .print-section.fixed { position: relative !important; inset: auto !important; }
-            .print-section > div { box-shadow: none !important; max-width: 100% !important; width: 100% !important; padding: 0 !important; border: none !important; }
-            .print-section ul, .print-section li { list-style: none; padding: 0; margin: 0; }
-            .print-section li { border-bottom: 1px solid #ccc; padding: 8px 0; page-break-inside: avoid; }
-            .print-section h1, .print-section h2, .print-section h3, .print-section h4 { margin-bottom: 1rem; color: black !important; }
-            .print-section p, .print-section span, .print-section div { color: black !important; background: none !important; }
-            .print-section a { text-decoration: none; }
-            .print-section .text-green-600, .print-section .text-red-600 { color: black !important; }
-            .print-section .bg-gray-50, .print-section .bg-green-100, .print-section .bg-red-100, .print-section .bg-blue-100 { background: none !important; border: 1px solid #ddd; }
-        }
+        .debt-card-clickable, .investment-card-clickable { cursor: pointer; }
+        /* 確保切換按鈕在選中時保持可見 */
+        .toggle-checkbox:checked { right: 0; border-color: #3b82f6; }
+        .toggle-checkbox:checked + .toggle-label { background-color: #3b82f6; }
     </style>
 </head>
 <body class="bg-gray-100 text-gray-800">
+
     <!-- 登入畫面 -->
     <div id="login-view" class="container mx-auto p-8 max-w-md text-center h-screen flex flex-col justify-center">
         <h1 class="text-4xl font-bold text-gray-800 mb-4">歡迎使用雲端記帳</h1>
@@ -90,11 +35,12 @@
             </button>
         </div>
     </div>
+
     <!-- 主應用程式畫面 (預設隱藏) -->
     <div id="app-container" class="container mx-auto p-4 md:p-8 max-w-5xl opacity-0 transition-opacity duration-500 hidden">
         <header class="mb-6 text-center no-print">
             <div id="auth-info" class="flex justify-center items-center gap-4 mb-4"></div>
-            <h1 class="text-4xl font-bold text-gray-800">雲端記帳軟體</h1>
+            <h1 class="text-4xl font-bold text-gray-800">雲端記帳軟體 (簡化版)</h1>
         </header>
 
         <!-- 分頁導覽 -->
@@ -103,7 +49,6 @@
             <button id="tab-investment" class="tab-btn py-3 px-6 text-lg font-semibold border-b-4 border-transparent text-gray-500 hover:text-gray-800 transition-colors">投資</button>
             <button id="tab-debt" class="tab-btn py-3 px-6 text-lg font-semibold border-b-4 border-transparent text-gray-500 hover:text-gray-800 transition-colors">負債</button>
             <button id="tab-events" class="tab-btn py-3 px-6 text-lg font-semibold border-b-4 border-transparent text-gray-500 hover:text-gray-800 transition-colors">事件紀錄</button>
-            <button id="tab-reports" class="tab-btn py-3 px-6 text-lg font-semibold border-b-4 border-transparent text-gray-500 hover:text-gray-800 transition-colors">報表</button>
         </nav>
 
         <!-- 記帳分頁內容 -->
@@ -160,7 +105,6 @@
                         <label for="history-date-filter" class="text-sm font-medium text-gray-600">篩選日期:</label>
                         <input type="date" id="history-date-filter" class="p-2 border rounded-lg text-sm">
                         <button id="show-today-btn" class="bg-blue-500 text-white px-3 py-2 rounded-lg hover:bg-blue-600 transition text-sm">顯示本日</button>
-                        <button id="print-transactions-btn" class="bg-gray-500 text-white font-bold py-2 px-3 rounded-lg hover:bg-gray-600 text-sm">列印</button>
                     </div>
                 </div>
                 <p id="history-display-date" class="text-lg font-semibold text-gray-600 mb-4 text-center"></p>
@@ -189,14 +133,16 @@
                     </div>
                 </div>
             </section>
-            
-            <!-- 收入預算區塊 -->
+
+            <!-- 收入預算 -->
             <section class="bg-white p-6 md:p-8 rounded-2xl shadow-lg mb-8">
-                <h2 class="text-2xl font-bold mb-6">新增投資收入預算</h2>
-                <form id="investment-budget-form" class="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
+                <h2 class="text-2xl font-bold mb-6">新增收入預算 (預期獲利)</h2>
+                <form id="investment-budget-form" class="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
                     <div class="md:col-span-1">
                         <label for="budget-investment-account" class="block text-sm font-medium text-gray-700 mb-1">投資帳戶</label>
-                        <select id="budget-investment-account" class="w-full p-3 border border-gray-300 rounded-lg bg-white" required></select>
+                        <select id="budget-investment-account" class="w-full p-3 border border-gray-300 rounded-lg bg-white" required>
+                            <option value="">-- 選擇帳戶 --</option>
+                        </select>
                     </div>
                     <div class="md:col-span-1">
                         <label for="budget-expected-date" class="block text-sm font-medium text-gray-700 mb-1">預期日期</label>
@@ -204,23 +150,25 @@
                     </div>
                     <div class="md:col-span-1">
                         <label for="budget-expected-amount" class="block text-sm font-medium text-gray-700 mb-1">預期金額</Tlabel>
-                        <input type="number" id="budget-expected-amount" placeholder="輸入預期獲利金額" class="w-full p-3 border border-gray-300 rounded-lg" required>
+                        <input type="number" id="budget-expected-amount" placeholder="輸入金額" class="w-full p-3 border border-gray-300 rounded-lg" required>
                     </div>
-                    <div class="md:col-span-2">
+                    <div class="md:col-span-4">
                         <label for="budget-description" class="block text-sm font-medium text-gray-700 mb-1">說明</label>
                         <input type="text" id="budget-description" placeholder="例如: 0050 配息" class="w-full p-3 border border-gray-300 rounded-lg" required>
                     </div>
-                    <button type="submit" class="md:col-span-1 w-full bg-green-600 text-white font-bold py-3 px-6 rounded-lg hover:bg-green-700">新增預算</button>
+                    <div class="md:col-span-4">
+                        <button type="submit" class="w-full bg-green-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-green-700">新增預算</button>
+                    </div>
                 </form>
             </section>
 
             <section class="bg-white p-6 md:p-8 rounded-2xl shadow-lg mb-8">
                 <h2 class="text-2xl font-bold mb-6">待實現收入預算</h2>
                 <div id="investment-budget-loading-indicator" class="flex justify-center items-center py-8"><div class="loader"></div></div>
-                <ul id="investment-budget-list" class="space-y-4"></ul>
-                <p id="investment-budget-empty-state" class="hidden text-center text-gray-500 py-8">尚未建立任何待實現的收入預算。</p>
+                <ul id="investment-budget-list" class="space-y-3"></ul>
+                <p id="investment-budget-empty-state" class="hidden text-center text-gray-500 py-8">尚未新增任何待實現的收入預算。</p>
             </section>
-            <!-- 收入預算區塊結束 -->
+            <!-- /收入預算 -->
 
             <section class="bg-white p-6 md:p-8 rounded-2xl shadow-lg mb-8">
                 <h2 class="text-2xl font-bold mb-6">新增投資帳戶</h2>
@@ -256,7 +204,7 @@
                         <p id="total-repaid-debt" class="text-xl font-bold text-green-600 mt-1">NT$ 0</p>
                     </div>
                     <div class="bg-cyan-100 p-4 rounded-xl shadow-sm">
-                        <h2 class="text-base font-semibold text-cyan-800">當月總還款</h2>
+                        <h2 class="text-base font-semibold text-cyan-800">当月總還款</h2>
                         <p id="total-monthly-repayment" class="text-xl font-bold text-cyan-600 mt-1">NT$ 0</p>
                     </div>
                 </div>
@@ -296,91 +244,30 @@
             </section>
         </div>
         
-        <!-- 報表分頁內容 (Re-added) -->
-        <div id="reports-view" class="hidden">
-            <section class="bg-white p-6 md:p-8 rounded-2xl shadow-lg mb-8 no-print">
-                <h2 class="text-2xl font-bold mb-6">支出分類圖</h2>
-                <div id="no-expense-data" class="hidden text-center text-gray-500 py-8">尚無足夠的支出資料可產生報表。</div>
-                <div class="max-w-xl mx-auto"><canvas id="expense-chart"></canvas></div>
-            </section>
-            <section class="bg-white p-6 md:p-8 rounded-2xl shadow-lg mb-8 no-print">
-                <h2 class="text-2xl font-bold mb-6">期間分類統計 (可點擊)</h2>
-                <div class="grid md:grid-cols-2 gap-8">
-                    <div>
-                        <h3 class="text-xl font-bold mb-4 text-red-600">支出</h3>
-                        <ul id="expense-stats-list" class="space-y-1"></ul>
-                    </div>
-                    <div>
-                        <h3 class="text-xl font-bold mb-4 text-green-600">收入</h3>
-                        <ul id="income-stats-list" class="space-y-1"></ul>
-                    </div>
-                </div>
-            </section>
-            <section id="filtered-transaction-list-section" class="bg-white p-6 md:p-8 rounded-2xl shadow-lg">
-                <div class="flex justify-between items-center mb-6">
-                    <h2 class="text-2xl font-bold">交易明細</h2>
-                    <button id="print-report-btn" class="bg-gray-500 text-white font-bold py-2 px-4 rounded-lg hover:bg-gray-600 no-print">列印此報表</button>
-                </div>
-                <div class="flex flex-wrap items-center gap-4 mb-6 p-4 bg-gray-50 rounded-lg border no-print">
-                    <button id="filter-this-month" class="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 transition">本月</button>
-                    <div class="flex items-center gap-2">
-                        <label for="start-date" class="text-sm font-medium">從:</label>
-                        <input type="date" id="start-date" class="p-2 border rounded-lg text-sm">
-                    </div>
-                    <div class="flex items-center gap-2">
-                        <label for="end-date" class="text-sm font-medium">到:</label>
-                        <input type="date" id="end-date" class="p-2 border rounded-lg text-sm">
-                    </div>
-                    <div class="flex items-center gap-2">
-                        <label for="project-filter" class="text-sm font-medium">專案:</label>
-                        <select id="project-filter" class="p-2 border rounded-lg text-sm bg-white">
-                            <option value="all">全部專案</option>
-                        </select>
-                    </div>
-                    <button id="filter-custom-date" class="bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700 transition">查詢</button>
-                </div>
-                <div id="filtered-summary" class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-                        <div class="bg-green-100 p-4 rounded-xl"><h3 class="font-semibold text-green-800">期間總收入</h3><p id="filtered-income" class="text-xl font-bold text-green-600">NT$ 0</p></div>
-                        <div class="bg-red-100 p-4 rounded-xl"><h3 class="font-semibold text-red-800">期間總支出</h3><p id="filtered-expense" class="text-xl font-bold text-red-600">NT$ 0</p></div>
-                        <div class="bg-blue-100 p-4 rounded-xl"><h3 class="font-semibold text-blue-800">期間結餘</h3><p id="filtered-balance" class="text-xl font-bold text-blue-600">NT$ 0</p></div>
-                </div>
-                <ul id="filtered-transaction-list" class="space-y-2"></ul>
-                <p id="filtered-empty-state" class="hidden text-center text-gray-500 py-8">在選定範圍內沒有交易紀錄。</p>
-            </section>
-        </div>
 
     </div>
     <!-- Modals -->
     <div id="category-modal" class="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center hidden z-50 p-4"><div class="bg-white p-6 md:p-8 rounded-2xl shadow-xl w-full max-w-md"><div class="flex justify-between items-center mb-6"><h3 class="text-2xl font-bold">管理分類</h3><button id="close-category-modal-btn" class="text-gray-400 hover:text-gray-600 text-3xl leading-none">&times;</button></div><ul id="custom-category-list" class="space-y-2 max-h-60 overflow-y-auto mb-6 border-t border-b py-4"></ul><div class="flex justify-end"><button type="button" id="close-category-modal-btn-bottom" class="bg-gray-500 text-white font-bold py-2 px-4 rounded-lg hover:bg-gray-600">關閉</button></div></div></div>
     <div id="project-modal" class="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center hidden z-50 p-4"><div class="bg-white p-6 md:p-8 rounded-2xl shadow-xl w-full max-w-md"><div class="flex justify-between items-center mb-6"><h3 class="text-2xl font-bold">管理專案</h3><button id="close-project-modal-btn" class="text-gray-400 hover:text-gray-600 text-3xl leading-none">&times;</button></div><ul id="custom-project-list" class="space-y-2 max-h-60 overflow-y-auto mb-6 border-t border-b py-4"></ul><div class="flex justify-end"><button type="button" id="close-project-modal-btn-bottom" class="bg-gray-500 text-white font-bold py-2 px-4 rounded-lg hover:bg-gray-600">關閉</button></div></div></div>
     <div id="repayment-modal" class="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center hidden z-50 p-4"><div class="bg-white p-6 md:p-8 rounded-2xl shadow-xl w-full max-w-md"><h3 class="text-2xl font-bold mb-6">記錄一筆還款</h3><form id="repayment-form"><input type="hidden" id="repayment-debt-id"><input type="hidden" id="repayment-debt-name"><div class="mb-4"><label for="repayment-amount" class="block text-sm font-medium text-gray-700 mb-1">還款金額</label><input type="number" id="repayment-amount" placeholder="輸入此次還款金額" class="w-full p-3 border border-gray-300 rounded-lg" required></div><div class="mb-4"><label for="repayment-date" class="block text-sm font-medium text-gray-700 mb-1">還款日期</label><input type="date" id="repayment-date" class="w-full p-3 border border-gray-300 rounded-lg" required></div><div class="mb-4"><label for="repayment-remark" class="block text-sm font-medium text-gray-700 mb-1">備註 (選填)</label><input type="text" id="repayment-remark" placeholder="還款備註" class="w-full p-3 border border-gray-300 rounded-lg"></div><div class="flex justify-end gap-4"><button type="button" id="cancel-repayment-btn" class="bg-gray-300 text-gray-800 font-bold py-2 px-4 rounded-lg hover:bg-gray-400">取消</button><button type="submit" class="bg-green-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-green-700">確認還款</button></div></form></div></div>
-    <div id="debt-detail-modal" class="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center hidden z-50 p-4"><div class="bg-white p-6 md:p-8 rounded-2xl shadow-xl w-full max-w-lg"><div class="flex justify-between items-center mb-4"><h3 id="debt-detail-title" class="text-2xl font-bold">負債詳情</h3><button id="close-debt-detail-modal-btn" class="text-gray-400 hover:text-gray-600 text-3xl leading-none no-print">&times;</button></div><div id="debt-detail-display-view"><div class="mb-4 p-4 bg-gray-50 rounded-lg"><p class="text-sm text-gray-500">項目名稱</p><p id="debt-detail-name" class="text-lg font-semibold"></p><p class="text-sm text-gray-500 mt-2">初始總金額</p><p id="debt-detail-total" class="text-lg font-semibold"></p><p class="text-sm text-gray-500 mt-2">本月已還</p><p id="debt-detail-monthly-repayment" class="text-lg font-semibold text-cyan-600"></p></div><div class="flex justify-end mb-4 gap-2 no-print"><button id="print-debt-detail-btn" class="bg-gray-500 text-white font-bold py-2 px-4 rounded-lg hover:bg-gray-600">列印</button><button id="edit-debt-btn" class="bg-blue-500 text-white font-bold py-2 px-4 rounded-lg hover:bg-blue-600">編輯</button></div></div><form id="debt-edit-form" class="hidden mb-4 no-print"><input type="hidden" id="edit-debt-id"><div class="mb-4"><label for="edit-debt-name" class="block text-sm font-medium text-gray-700 mb-1">項目名稱</label><input type="text" id="edit-debt-name" class="w-full p-3 border border-gray-300 rounded-lg" required></div><div class="mb-4"><label for="edit-debt-total" class="block text-sm font-medium text-gray-700 mb-1">初始總金額</label><input type="number" id="edit-debt-total" class="w-full p-3 border border-gray-300 rounded-lg" required></div><div class="flex justify-end gap-4"><button type="button" id="cancel-edit-debt-btn" class="bg-gray-300 text-gray-800 font-bold py-2 px-4 rounded-lg hover:bg-gray-400">取消</button><button type="submit" class="bg-green-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-green-700">儲存變更</button></div></form><h4 class="text-lg font-bold mb-2 border-t pt-4">還款紀錄</h4><ul id="repayment-history-list" class="space-y-2 max-h-48 overflow-y-auto"></ul><p id="repayment-history-empty" class="hidden text-center text-gray-500 py-4">尚無還款紀錄</p></div></div>
+    <div id="debt-detail-modal" class="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center hidden z-50 p-4"><div class="bg-white p-6 md:p-8 rounded-2xl shadow-xl w-full max-w-lg"><div class="flex justify-between items-center mb-4"><h3 id="debt-detail-title" class="text-2xl font-bold">負債詳情</h3><button id="close-debt-detail-modal-btn" class="text-gray-400 hover:text-gray-600 text-3xl leading-none no-print">&times;</button></div><div id="debt-detail-display-view"><div class="mb-4 p-4 bg-gray-50 rounded-lg"><p class="text-sm text-gray-500">項目名稱</p><p id="debt-detail-name" class="text-lg font-semibold"></p><p class="text-sm text-gray-500 mt-2">初始總金額</p><p id="debt-detail-total" class="text-lg font-semibold"></p><p class="text-sm text-gray-500 mt-2">本月已還</p><p id="debt-detail-monthly-repayment" class="text-lg font-semibold text-cyan-600"></p></div><div class="flex justify-end mb-4 gap-2 no-print"><button id="edit-debt-btn" class="bg-blue-500 text-white font-bold py-2 px-4 rounded-lg hover:bg-blue-600">編輯</button></div></div><form id="debt-edit-form" class="hidden mb-4 no-print"><input type="hidden" id="edit-debt-id"><div class="mb-4"><label for="edit-debt-name" class="block text-sm font-medium text-gray-700 mb-1">項目名稱</label><input type="text" id="edit-debt-name" class="w-full p-3 border border-gray-300 rounded-lg" required></div><div class="mb-4"><label for="edit-debt-total" class="block text-sm font-medium text-gray-700 mb-1">初始總金額</label><input type="number" id="edit-debt-total" class="w-full p-3 border border-gray-300 rounded-lg" required></div><div class="flex justify-end gap-4"><button type="button" id="cancel-edit-debt-btn" class="bg-gray-300 text-gray-800 font-bold py-2 px-4 rounded-lg hover:bg-gray-400">取消</button><button type="submit" class="bg-green-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-green-700">儲存變更</button></div></form><h4 class="text-lg font-bold mb-2 border-t pt-4">還款紀錄</h4><ul id="repayment-history-list" class="space-y-2 max-h-48 overflow-y-auto"></ul><p id="repayment-history-empty" class="hidden text-center text-gray-500 py-4">尚無還款紀錄</p></div></div>
     <div id="investment-transaction-modal" class="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center hidden z-50 p-4"><div class="bg-white p-6 md:p-8 rounded-2xl shadow-xl w-full max-w-md"><h3 id="investment-transaction-title" class="text-2xl font-bold mb-6"></h3><form id="investment-transaction-form"><input type="hidden" id="investment-transaction-account-id"><input type="hidden" id="investment-transaction-account-name"><input type="hidden" id="investment-transaction-id"><input type="hidden" id="investment-main-transaction-id"><div class="mb-4"><label for="investment-transaction-date" class="block text-sm font-medium text-gray-700 mb-1">日期</label><input type="date" id="investment-transaction-date" class="w-full p-3 border border-gray-300 rounded-lg" required></div><div class="mb-4"><label class="block text-sm font-medium text-gray-700 mb-1">類型</label><select id="investment-transaction-type" class="w-full p-3 border border-gray-300 rounded-lg bg-white"><option value="expense">支出 (買入/投入)</option><option value="income">收入 (賣出/配息)</option></select></div><div class="mb-4"><label for="investment-transaction-amount" class="block text-sm font-medium text-gray-700 mb-1">金額</label><input type="number" id="investment-transaction-amount" placeholder="輸入金額" class="w-full p-3 border border-gray-300 rounded-lg" required></div><div class="mb-4"><label for="investment-transaction-remark" class="block text-sm font-medium text-gray-700 mb-1">備註</label><input type="text" id="investment-transaction-remark" placeholder="例如: 買入TSMC 1股" class="w-full p-3 border border-gray-300 rounded-lg"></div><div class="flex justify-end gap-4"><button type="button" id="cancel-investment-transaction-btn" class="bg-gray-300 text-gray-800 font-bold py-2 px-4 rounded-lg hover:bg-gray-400">取消</button><button type="submit" class="bg-blue-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-blue-700">確認</button></div></form></div></div>
-    <div id="investment-detail-modal" class="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center hidden z-50 p-4"><div class="bg-white p-6 md:p-8 rounded-2xl shadow-xl w-full max-w-lg"><div class="flex justify-between items-center mb-4"><h3 id="investment-detail-title" class="text-2xl font-bold"></h3><div class="flex items-center gap-2 no-print"><button id="print-investment-detail-btn" class="bg-gray-500 text-white font-bold py-2 px-4 rounded-lg hover:bg-gray-600 text-sm">列印</button><button id="close-investment-detail-modal-btn" class="text-gray-400 hover:text-gray-600 text-3xl leading-none">&times;</button></div></div><h4 class="text-lg font-bold mb-2 border-t pt-4">交易紀錄</h4><ul id="investment-history-list" class="space-y-2 max-h-96 overflow-y-auto"></ul><p id="investment-history-empty" class="hidden text-center text-gray-500 py-4">尚無交易紀錄</p></div></div>
+    <div id="investment-detail-modal" class="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center hidden z-50 p-4"><div class="bg-white p-6 md:p-8 rounded-2xl shadow-xl w-full max-w-lg"><div class="flex justify-between items-center mb-4"><h3 id="investment-detail-title" class="text-2xl font-bold"></h3><div class="flex items-center gap-2 no-print"><button id="close-investment-detail-modal-btn" class="text-gray-400 hover:text-gray-600 text-3xl leading-none">&times;</button></div></div><h4 class="text-lg font-bold mb-2 border-t pt-4">交易紀錄</h4><ul id="investment-history-list" class="space-y-2 max-h-96 overflow-y-auto"></ul><p id="investment-history-empty" class="hidden text-center text-gray-500 py-4">尚無交易紀錄</p></div></div>
     <div id="edit-investment-account-modal" class="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center hidden z-50 p-4"><div class="bg-white p-6 md:p-8 rounded-2xl shadow-xl w-full max-w-md"><h3 class="text-2xl font-bold mb-6">編輯投資帳戶</h3><form id="edit-investment-account-form"><input type="hidden" id="edit-investment-account-id"><div class="mb-4"><label for="edit-investment-account-name" class="block text-sm font-medium text-gray-700 mb-1">帳戶名稱</label><input type="text" id="edit-investment-account-name" class="w-full p-3 border border-gray-300 rounded-lg" required></div><div class="flex justify-end gap-4"><button type="button" id="cancel-edit-investment-account-btn" class="bg-gray-300 text-gray-800 font-bold py-2 px-4 rounded-lg hover:bg-gray-400">取消</button><button type="submit" class="bg-blue-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-blue-700">儲存</button></div></form></div></div>
     <div id="update-market-value-modal" class="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center hidden z-50 p-4"><div class="bg-white p-6 md:p-8 rounded-2xl shadow-xl w-full max-w-md"><h3 id="update-market-value-title" class="text-2xl font-bold mb-6">更新資產現值</h3><form id="update-market-value-form"><input type="hidden" id="update-market-value-id"><div class="mb-4"><label for="update-market-value-amount" class="block text-sm font-medium text-gray-700 mb-1">目前資產總價值</label><input type="number" id="update-market-value-amount" placeholder="輸入目前總市價" class="w-full p-3 border border-gray-300 rounded-lg" required></div><div class="flex justify-end gap-4"><button type="button" id="cancel-update-market-value-btn" class="bg-gray-300 text-gray-800 font-bold py-2 px-4 rounded-lg hover:bg-gray-400">取消</button><button type="submit" class="bg-yellow-500 text-white font-bold py-2 px-4 rounded-lg hover:bg-yellow-600">確認更新</button></div></form></div></div>
-    
-    <!-- 全局提示訊息 -->
-    <div id="global-toast" class="fixed bottom-8 right-8 bg-gray-900 text-white py-3 px-6 rounded-lg shadow-lg opacity-0 transition-all duration-300 translate-y-4 hidden z-50">
-        <span id="toast-message"></span>
-    </div>
-
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        // *** FIX: Added signInWithCustomToken ***
-        import { getAuth, signInAnonymously, onAuthStateChanged, GoogleAuthProvider, signInWithPopup, signOut, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, collection, addDoc, query, onSnapshot, doc, deleteDoc, serverTimestamp, updateDoc, increment, Timestamp, getDocs, writeBatch, getDoc, setDoc, where } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getAuth, signInAnonymously, onAuthStateChanged, GoogleAuthProvider, signInWithPopup, signOut } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, collection, addDoc, query, onSnapshot, doc, deleteDoc, serverTimestamp, updateDoc, increment, Timestamp, writeBatch, getDocs, where } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         // --- DOM 元素 ---
         const loginView = document.getElementById('login-view');
         const googleLoginBtn = document.getElementById('google-login-btn');
         const anonymousLoginBtn = document.getElementById('anonymous-login-btn');
         const appContainer = document.getElementById('app-container'), authInfo = document.getElementById('auth-info');
-        // Added reportsView
-        const accountingView = document.getElementById('accounting-view'), debtView = document.getElementById('debt-view'), eventsView = document.getElementById('events-view'), investmentView = document.getElementById('investment-view'), reportsView = document.getElementById('reports-view');
-        // Added tabReports
-        const tabAccounting = document.getElementById('tab-accounting'), tabDebt = document.getElementById('tab-debt'), tabEvents = document.getElementById('tab-events'), tabInvestment = document.getElementById('tab-investment'), tabReports = document.getElementById('tab-reports');
+        const accountingView = document.getElementById('accounting-view'), debtView = document.getElementById('debt-view'), eventsView = document.getElementById('events-view'), investmentView = document.getElementById('investment-view');
+        const tabAccounting = document.getElementById('tab-accounting'), tabDebt = document.getElementById('tab-debt'), tabEvents = document.getElementById('tab-events'), tabInvestment = document.getElementById('tab-investment');
         const form = document.getElementById('transaction-form'), amountInput = document.getElementById('amount'), transactionDateInput = document.getElementById('transaction-date'), remarksInput = document.getElementById('remarks'), transactionList = document.getElementById('transaction-list');
         const categoryInput = document.getElementById('category-input'), categoryDatalist = document.getElementById('category-list');
         const projectInput = document.getElementById('project-input'), projectDatalist = document.getElementById('project-list');
@@ -408,120 +295,75 @@
         const investmentDetailModal = document.getElementById('investment-detail-modal'), closeInvestmentDetailModalBtn = document.getElementById('close-investment-detail-modal-btn'), investmentHistoryList = document.getElementById('investment-history-list'), investmentHistoryEmpty = document.getElementById('investment-history-empty');
         const editInvestmentAccountModal = document.getElementById('edit-investment-account-modal'), editInvestmentAccountForm = document.getElementById('edit-investment-account-form'), cancelEditInvestmentAccountBtn = document.getElementById('cancel-edit-investment-account-btn');
         const updateMarketValueModal = document.getElementById('update-market-value-modal'), updateMarketValueForm = document.getElementById('update-market-value-form'), cancelUpdateMarketValueBtn = document.getElementById('cancel-update-market-value-btn');
-        const printTransactionsBtn = document.getElementById('print-transactions-btn');
-        const printDebtDetailBtn = document.getElementById('print-debt-detail-btn');
-        const printInvestmentDetailBtn = document.getElementById('print-investment-detail-btn');
         const historyDateFilter = document.getElementById('history-date-filter');
         const showTodayBtn = document.getElementById('show-today-btn');
         const historyDisplayDateEl = document.getElementById('history-display-date');
-        const globalToast = document.getElementById('global-toast');
-        const toastMessage = document.getElementById('toast-message');
 
-        // [New] Investment Budget Elements
+        // 投資收入預算 DOM
         const investmentBudgetForm = document.getElementById('investment-budget-form');
         const budgetInvestmentSelect = document.getElementById('budget-investment-account');
         const investmentBudgetList = document.getElementById('investment-budget-list');
         const investmentBudgetLoadingIndicator = document.getElementById('investment-budget-loading-indicator');
         const investmentBudgetEmptyState = document.getElementById('investment-budget-empty-state');
 
-        // [Re-added] Report Elements
-        const expenseChartCanvas = document.getElementById('expense-chart'), noExpenseDataMsg = document.getElementById('no-expense-data');
-        const filterThisMonthBtn = document.getElementById('filter-this-month'), filterCustomDateBtn = document.getElementById('filter-custom-date'), startDateInput = document.getElementById('start-date'), endDateInput = document.getElementById('end-date');
-        const projectFilterSelect = document.getElementById('project-filter');
-        const filteredTransactionList = document.getElementById('filtered-transaction-list'), filteredEmptyState = document.getElementById('filtered-empty-state');
-        const filteredIncomeEl = document.getElementById('filtered-income'), filteredExpenseEl = document.getElementById('filtered-expense'), filteredBalanceEl = document.getElementById('filtered-balance');
-        const expenseStatsList = document.getElementById('expense-stats-list');
-        const incomeStatsList = document.getElementById('income-stats-list');
-        const printReportBtn = document.getElementById('print-report-btn');
-
 
         // --- Firebase & App 狀態 ---
-        // *** FIX: Added appId ***
-        let db, auth, userId, appId, transactionsColRef, categoriesColRef, projectsColRef, debtsColRef, eventsColRef, investmentsColRef, investmentBudgetsColRef;
+        let db, auth, userId, transactionsColRef, categoriesColRef, projectsColRef, debtsColRef, eventsColRef, investmentsColRef, investmentBudgetsColRef;
         let unsubscribeTransactions, unsubscribeCategories, unsubscribeProjects, unsubscribeDebts, unsubscribeEvents, unsubscribeInvestments, unsubscribeInvestmentBudgets;
         let allTransactions = [], customCategories = [], customProjects = [], allDebts = [], allEvents = [], allInvestments = [], allInvestmentBudgets = [];
-        let expenseChart = null;
-        let activeCategoryFilter = { type: null, category: null }; // Re-added
-        let toastTimeout;
-        const defaultCategories = { expense: ['飲食', '交通', '居住', '娛樂', '購物', '醫療', '教育', '負債還款', '投資支出', '其他'], income: ['薪資', '獎金', '投資收入', '兼職', '其他'] };
-        
-        // Firebase 配置 (此處留空，由 Canvas 環境注入)
-        const firebaseConfig = {
-          apiKey: "",
-          authDomain: "",
-          projectId: "",
-          storageBucket: "",
-          messagingSenderId: "",
-          appId: ""
-        };
-        
-        // 本地測試用配置 (如果 `__firebase_config` 未定義)
-        const localFirebaseConfig = {
-            apiKey: "AIzaSyAqFHm6Bn35m8xauc50ZvNNy_rxIZzCMTE",
-            authDomain: "moneyw-f8105.firebaseapp.com",
-            projectId: "moneyw-f8105",
-            storageBucket: "moneyw-f8105.appspot.com",
-            messagingSenderId: "155586195799",
-            appId: "1:155586195799:web:302184fbf613f032a88e12"
-        };
+        const defaultCategories = { expense: ['飲食', '交通', '居住', '娛樂', '購物', '醫療', '教育', '負債還款', '投資支出', '其他'], income: ['薪資', '獎金', '投資收入', '兼職', '債權回收', '其他'] };
 
-        const config = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : localFirebaseConfig;
+        // Firebase 配置
+        const firebaseConfig = {
+          apiKey: "AIzaSyAqFHm6Bn35m8xauc50ZvNNy_rxIZzCMTE",
+          authDomain: "moneyw-f8105.firebaseapp.com",
+          projectId: "moneyw-f8105",
+          storageBucket: "moneyw-f8105.appspot.com",
+          messagingSenderId: "155586195799",
+          appId: "1:155586195799:web:302184fbf613f032a88e12"
+        };
         
-        const app = initializeApp(config);
+        const app = initializeApp(firebaseConfig);
         db = getFirestore(app);
         auth = getAuth(app);
 
-        onAuthStateChanged(auth, async (user) => {
+        // 監聽認證狀態
+        onAuthStateChanged(auth, (user) => {
             if (user) {
                 userId = user.uid;
-                // *** FIX: Initialize appId ***
-                appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
-                // *** FIX: Update basePath to include appId ***
-                const basePath = `/artifacts/${appId}/users/${userId}`;
-
+                
+                // **** 使用者原有的路徑 ****
+                const basePath = `/users/${userId}`; 
+                
                 transactionsColRef = collection(db, `${basePath}/transactions`);
                 categoriesColRef = collection(db, `${basePath}/categories`);
                 projectsColRef = collection(db, `${basePath}/projects`);
                 debtsColRef = collection(db, `${basePath}/debts`);
                 eventsColRef = collection(db, `${basePath}/events`);
                 investmentsColRef = collection(db, `${basePath}/investments`);
-                investmentBudgetsColRef = collection(db, `${basePath}/investmentBudgets`); // New collection
+                investmentBudgetsColRef = collection(db, `${basePath}/investmentBudgets`); // 新增的路徑
 
                 setupUIForLoggedInUser(user);
 
+                // 啟動所有監聽器
                 listenForTransactions();
                 listenForCustomItems(categoriesColRef, (items) => { customCategories = items; populateCategoryDatalist(); populateModalList(customCategoryList, customCategories, '尚無自訂分類', 'category'); });
-                // Modified to include populateProjectFilter
-                listenForCustomItems(projectsColRef, (items) => { customProjects = items; populateDatalist(projectDatalist, customProjects.map(p => p.name)); populateModalList(customProjectList, customProjects, '尚無自訂專案', 'project'); populateProjectFilter(); });
+                listenForCustomItems(projectsColRef, (items) => { customProjects = items; populateDatalist(projectDatalist, customProjects.map(p => p.name)); populateModalList(customProjectList, customProjects, '尚無自訂專案', 'project'); });
                 listenForDebts();
                 listenForEvents();
                 listenForInvestments();
-                listenForInvestmentBudgets(); // New listener
+                listenForInvestmentBudgets(); // 啟動新預算的監聽器
 
             } else {
-                // 如果有 __initial_auth_token (在 Canvas 環境中)，嘗試使用它登入
-                if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
-                    try {
-                        await signInWithCustomToken(auth, __initial_auth_token);
-                        // 登入成功，onAuthStateChanged 會再次觸發並進入 user 存在的邏輯
-                    } catch (error) {
-                        console.error("Custom token sign-in failed:", error);
-                        // Token 登入失敗，顯示訪客登入畫面
-                        setupUIForLoggedOutUser();
-                    }
-                } else {
-                    // 沒有 token，顯示访客登入畫面
-                    setupUIForLoggedOutUser();
-                }
-
-                // 清理所有監聽器
+                setupUIForLoggedOutUser();
+                // 登出時取消所有監聽
                 if (unsubscribeTransactions) unsubscribeTransactions();
                 if (unsubscribeCategories) unsubscribeCategories();
                 if (unsubscribeProjects) unsubscribeProjects();
                 if (unsubscribeDebts) unsubscribeDebts();
                 if (unsubscribeEvents) unsubscribeEvents();
                 if (unsubscribeInvestments) unsubscribeInvestments();
-                if (unsubscribeInvestmentBudgets) unsubscribeInvestmentBudgets(); // New
+                if (unsubscribeInvestmentBudgets) unsubscribeInvestmentBudgets(); // 取消新預算的監聽
             }
         });
 
@@ -533,10 +375,8 @@
             let userInfoHtml = '';
             if (user.isAnonymous) {
                 userInfoHtml = `<span>訪客模式 (UID: <span class="font-mono">${user.uid.substring(0, 6)}...</span>)</span>`;
-            } else if (user.displayName) {
-                userInfoHtml = `<img src="${user.photoURL || 'https://placehold.co/32x32/gray/white?text=' + user.displayName[0]}" alt="User Avatar" class="w-8 h-8 rounded-full"><span class="font-semibold">${user.displayName}</span>`;
             } else {
-                userInfoHtml = `<span>已登入 (UID: <span class="font-mono">${user.uid.substring(0, 6)}...</span>)</span>`;
+                userInfoHtml = `<img src="${user.photoURL}" alt="User Avatar" class="w-8 h-8 rounded-full"><span class="font-semibold">${user.displayName}</span>`;
             }
             authInfo.innerHTML = `${userInfoHtml}<button id="logout-btn" class="ml-4 bg-red-500 text-white text-xs font-bold py-1 px-3 rounded-full hover:bg-red-600">登出</button>`;
             document.getElementById('logout-btn').addEventListener('click', () => signOut(auth));
@@ -551,66 +391,53 @@
             debtList.innerHTML = '';
             eventList.innerHTML = '';
             investmentList.innerHTML = '';
-            investmentBudgetList.innerHTML = ''; // New
+            investmentBudgetList.innerHTML = ''; // 登出時清空預算列表
         }
+
+        // --- 資料監聽器 ---
 
         function listenForTransactions() {
             if (unsubscribeTransactions) unsubscribeTransactions();
             unsubscribeTransactions = onSnapshot(query(transactionsColRef), (snapshot) => {
-                loadingIndicator.classList.add('hidden');
+                if (loadingIndicator) loadingIndicator.classList.add('hidden');
                 allTransactions = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
                 allTransactions.sort((a, b) => (b.timestamp?.toMillis() || 0) - (a.timestamp?.toMillis() || 0));
 
-                const now = new Date();
-                const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-                const endOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
-                const todayTransactions = allTransactions.filter(tx => {
-                    if (!tx.timestamp) return false;
-                    const txDate = tx.timestamp.toDate();
-                    return txDate >= startOfToday && txDate < endOfToday;
-                });
-
-                renderMainTransactionList();
-                populateProjectFilter(); // Re-added
+                renderMainTransactionList(); // 使用新的篩選邏輯
                 updateSummary(allTransactions);
-                updateTodaySummary(todayTransactions);
+                updateTodaySummary(allTransactions); // 改為傳入 allTransactions
                 updateMonthlySummary(allTransactions);
-                updateExpenseChart(); // Re-added
-                updateMonthlyRepaymentSummary(); // 更新負債總覽中的當月還款
-                // Re-added logic to refresh report view if active
-                if(reportsView && reportsView.classList.contains('hidden') === false) { 
-                    handleFilterThisMonth(); 
-                }
+                updateMonthlyRepaymentSummary();
             }, (error) => console.error("監聽交易資料失敗:", error));
         }
 
         function listenForDebts() {
             if (unsubscribeDebts) unsubscribeDebts();
             unsubscribeDebts = onSnapshot(query(debtsColRef), (snapshot) => {
-                debtLoadingIndicator.classList.add('hidden');
+                if (debtLoadingIndicator) debtLoadingIndicator.classList.add('hidden');
                 allDebts = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
                 allDebts.sort((a, b) => (a.createdAt?.toMillis() || 0) - (b.createdAt?.toMillis() || 0));
                 updateDebtSummary(allDebts);
                 renderDebts(allDebts);
-                debtEmptyState.classList.toggle('hidden', allDebts.length > 0);
+                if (debtEmptyState) debtEmptyState.classList.toggle('hidden', allDebts.length > 0);
             }, (error) => console.error("監聽負債資料失敗:", error));
         }
 
         function listenForEvents() {
             if (unsubscribeEvents) unsubscribeEvents();
             unsubscribeEvents = onSnapshot(query(eventsColRef), (snapshot) => {
-                eventLoadingIndicator.classList.add('hidden');
+                if (eventLoadingIndicator) eventLoadingIndicator.classList.add('hidden');
                 allEvents = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
                 allEvents.sort((a, b) => (b.date?.toMillis() || 0) - (a.date?.toMillis() || 0));
                 renderEvents(allEvents);
-                eventEmptyState.classList.toggle('hidden', allEvents.length > 0);
+                if (eventEmptyState) eventEmptyState.classList.toggle('hidden', allEvents.length > 0);
             }, (error) => console.error("監聽事件資料失敗:", error));
         }
 
         function listenForInvestments() {
             if(unsubscribeInvestments) unsubscribeInvestments();
             unsubscribeInvestments = onSnapshot(query(investmentsColRef), async (snapshot) => {
-                investmentLoadingIndicator.classList.add('hidden');
+                if (investmentLoadingIndicator) investmentLoadingIndicator.classList.add('hidden');
                 const investmentPromises = snapshot.docs.map(async (investmentDoc) => {
                     const investmentData = { id: investmentDoc.id, ...investmentDoc.data() };
                     const investmentTxColRef = collection(db, `${investmentsColRef.path}/${investmentDoc.id}/transactions`);
@@ -621,37 +448,42 @@
                 allInvestments = await Promise.all(investmentPromises);
                 renderInvestments(allInvestments);
                 updateInvestmentSummary(allInvestments);
-                investmentEmptyState.classList.toggle('hidden', allInvestments.length > 0);
-                populateInvestmentBudgetSelect(); // New
+                if (investmentEmptyState) investmentEmptyState.classList.toggle('hidden', allInvestments.length > 0);
+                populateInvestmentBudgetSelect(); // 確保下拉選單更新
             }, (error) => console.error("監聽投資資料失敗:", error));
         }
 
-        // [New] Listener for Investment Budgets
         function listenForInvestmentBudgets() {
             if (unsubscribeInvestmentBudgets) unsubscribeInvestmentBudgets();
             
-            // 暫時移除 where 查詢，改為客戶端過濾
+            // 移除 where 查詢，改為客戶端過濾
             const q = query(investmentBudgetsColRef);
 
             unsubscribeInvestmentBudgets = onSnapshot(q, (snapshot) => {
-                investmentBudgetLoadingIndicator.classList.add('hidden');
+                if (investmentBudgetLoadingIndicator) investmentBudgetLoadingIndicator.classList.add('hidden');
                 
-                // 在客戶端過濾 isRealized 為 false 的項目
+                // 在客戶端過濾 isRealized === false
                 allInvestmentBudgets = snapshot.docs
                     .map(doc => ({ id: doc.id, ...doc.data() }))
-                    .filter(budget => budget.isRealized === false); // Client-side filtering
-                
+                    .filter(budget => budget.isRealized === false); // 在這裡過濾
+                    
                 allInvestmentBudgets.sort((a, b) => (a.expectedDate?.toMillis() || 0) - (b.expectedDate?.toMillis() || 0));
                 renderInvestmentBudgets(allInvestmentBudgets);
-                investmentBudgetEmptyState.classList.toggle('hidden', allInvestmentBudgets.length > 0);
+                
+                if (investmentBudgetEmptyState) {
+                    // 檢查過濾後的列表是否為空
+                    investmentBudgetEmptyState.classList.toggle('hidden', allInvestmentBudgets.length > 0);
+                }
             }, (error) => {
-                console.error("監聽投資預算資料失敗:", error);
-                investmentBudgetLoadingIndicator.classList.add('hidden');
+                console.error("監聽投資預算失敗:", error);
+                // 即使出錯也隱藏加載指示器
+                if (investmentBudgetLoadingIndicator) investmentBudgetLoadingIndicator.classList.add('hidden');
             });
         }
 
 
         function listenForCustomItems(collectionRef, callback) {
+            if (!collectionRef) return;
             const q = query(collectionRef);
             return onSnapshot(q, (snapshot) => {
                 const items = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
@@ -661,6 +493,7 @@
 
         // --- 渲染函式 ---
         function renderTransactions(transactions) {
+            if (!transactionList) return;
             transactionList.innerHTML = '';
             transactions.forEach(tx => {
                 const isIncome = tx.type === 'income';
@@ -691,35 +524,9 @@
                 transactionList.appendChild(li);
             });
         }
-        
-        // [Re-added]
-        function renderFilteredTransactions(transactions) {
-            filteredTransactionList.innerHTML = '';
-            filteredEmptyState.classList.toggle('hidden', transactions.length > 0);
-            transactions.forEach(tx => {
-                const isIncome = tx.type === 'income';
-                const li = document.createElement('li');
-                li.className = 'grid grid-cols-6 gap-2 items-center p-2 rounded-md hover:bg-gray-50 text-sm border-b';
-                li.innerHTML = `
-                    <span class="text-gray-600 col-span-1">${tx.timestamp ? tx.timestamp.toDate().toLocaleDateString('zh-TW') : '...'}</span>
-                    <span class="font-medium col-span-1">${tx.category}</span>
-                    <span class="text-gray-500 col-span-1">${tx.project || ''}</span>
-                    <span class="text-gray-500 truncate col-span-1">${tx.remarks || ''}</span>
-                    <span class="font-bold text-right col-span-1 ${isIncome ? 'text-green-600' : 'text-red-600'}">${isIncome ? '+' : '-'} ${tx.amount.toLocaleString()}</span>
-                    <div class="text-center col-span-1 no-print">
-                         <button data-id="${tx.id}" class="edit-btn text-gray-400 hover:text-blue-500 p-1 rounded-full">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.5L15.232 5.232z"></path></svg>
-                         </button>
-                         <button data-id="${tx.id}" class="delete-btn text-gray-400 hover:text-red-500 p-1 rounded-full">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
-                         </button>
-                    </div>
-                `;
-                filteredTransactionList.appendChild(li);
-            });
-        }
 
         function renderDebts(debts) {
+            if (!debtList) return;
             debtList.innerHTML = '';
             debts.forEach(debt => {
                 const percentage = debt.totalAmount > 0 ? ((debt.totalAmount - debt.remainingAmount) / debt.totalAmount) * 100 : 100;
@@ -749,6 +556,7 @@
         }
 
         function renderEvents(events) {
+            if (!eventList) return;
             eventList.innerHTML = '';
             events.forEach(event => {
                 const eventEl = document.createElement('div');
@@ -771,6 +579,7 @@
         }
 
         function renderInvestments(investments) {
+            if (!investmentList) return;
             investmentList.innerHTML = '';
             investments.forEach(inv => {
                 const income = inv.transactions.filter(t => t.type === 'income').reduce((sum, t) => sum + t.amount, 0);
@@ -824,39 +633,31 @@
                 investmentList.appendChild(card);
             });
         }
-        
-        // [New] Render Investment Budgets
+
         function renderInvestmentBudgets(budgets) {
+            if (!investmentBudgetList) return;
             investmentBudgetList.innerHTML = '';
             budgets.forEach(budget => {
                 const li = document.createElement('li');
-                li.className = 'flex items-start justify-between p-4 rounded-lg bg-gray-50 border gap-4';
+                li.className = 'flex items-center justify-between p-3 bg-gray-50 rounded-lg border';
                 li.innerHTML = `
-                    <div class="flex-shrink-0 pt-1">
-                        <input type="checkbox" 
-                               data-id="${budget.id}" 
-                               data-investment-id="${budget.investmentId}"
-                               data-investment-name="${budget.investmentName}"
-                               data-amount="${budget.expectedAmount}"
-                               data-description="${budget.description}"
-                               data-date="${budget.expectedDate.toDate().toISOString().split('T')[0]}"
-                               class="realize-budget-checkbox budget-checkbox">
+                    <div class="flex items-center gap-3">
+                        <input type="checkbox" class="realize-budget-btn h-5 w-5 text-green-600 rounded" data-id="${budget.id}">
+                        <div>
+                            <p class_id="font-medium text-gray-800">${budget.description}</p>
+                            <p class="text-sm text-gray-500">
+                                ${budget.investmentName} | 預期: ${budget.expectedDate.toDate().toLocaleDateString('zh-TW')}
+                            </p>
+                        </div>
                     </div>
-                    <div class="flex-grow">
-                        <p class="font-bold text-gray-800">${budget.description}</p>
-                        <p class="text-sm text-gray-500">帳戶: ${budget.investmentName}</p>
-                    </div>
-                    <div class="text-right flex-shrink-0">
-                        <p class="text-lg font-bold text-green-600">+ NT$ ${budget.expectedAmount.toLocaleString()}</p>
-                        <p class="text-sm text-gray-500">預期: ${budget.expectedDate.toDate().toLocaleDateString('zh-TW')}</p>
-                    </div>
-                    <button data-id="${budget.id}" class="delete-investment-budget-btn text-gray-400 hover:text-red-500 p-1 no-print self-start">&times;</button>
+                    <span class="font-semibold text-green-600">NT$ ${budget.expectedAmount.toLocaleString()}</span>
                 `;
                 investmentBudgetList.appendChild(li);
             });
         }
 
         function renderRepaymentHistory(debtName) {
+            if (!repaymentHistoryList || !repaymentHistoryEmpty) return;
             const history = allTransactions.filter(tx => tx.category === '負債還款' && tx.project === debtName);
             repaymentHistoryList.innerHTML = '';
             repaymentHistoryEmpty.classList.toggle('hidden', history.length > 0);
@@ -882,6 +683,7 @@
         }
 
         function renderInvestmentHistory(investmentId) {
+            if (!investmentHistoryList || !investmentHistoryEmpty) return;
             const investment = allInvestments.find(inv => inv.id === investmentId);
             if (!investment) return;
             investmentHistoryList.innerHTML = '';
@@ -911,51 +713,38 @@
                 investmentHistoryList.appendChild(li);
             });
         }
-        
-        // [Re-added]
-        function renderCategoryStats(listElement, summaryData, type) {
-            listElement.innerHTML = '';
-            const sortedSummary = Object.entries(summaryData).sort(([, a], [, b]) => b - a);
 
-            if (sortedSummary.length === 0) {
-                listElement.innerHTML = `<li class="text-center text-gray-400 text-sm py-2">無資料</li>`;
-                return;
-            }
-            sortedSummary.forEach(([category, amount]) => {
-                const li = document.createElement('li');
-                li.className = 'flex justify-between p-2 hover:bg-gray-100 rounded cursor-pointer category-stat-item';
-                li.dataset.category = category;
-                li.dataset.type = type;
-                li.innerHTML = `
-                    <span>${category}</span>
-                    <span class="font-mono">${amount.toLocaleString()}</span>
-                `;
-                listElement.appendChild(li);
-            });
-        }
-        
-        // --- 總覽更新函式 (Update Summary Functions) ---
-        
+        // --- 總覽更新函式 ---
+
         function updateSummary(transactions) {
-            if (!totalIncomeEl || !totalExpenseEl || !balanceEl) return; // 防禦性檢查
             const income = transactions.filter(t => t.type === 'income').reduce((sum, t) => sum + t.amount, 0);
             const expense = transactions.filter(t => t.type === 'expense').reduce((sum, t) => sum + t.amount, 0);
-            totalIncomeEl.textContent = `NT$ ${income.toLocaleString()}`;
-            totalExpenseEl.textContent = `NT$ ${expense.toLocaleString()}`;
-            balanceEl.textContent = `NT$ ${(income - expense).toLocaleString()}`;
+            
+            if (totalIncomeEl) totalIncomeEl.textContent = `NT$ ${income.toLocaleString()}`;
+            if (totalExpenseEl) totalExpenseEl.textContent = `NT$ ${expense.toLocaleString()}`;
+            if (balanceEl) balanceEl.textContent = `NT$ ${(income - expense).toLocaleString()}`;
         }
 
         function updateTodaySummary(transactions) {
-            if (!todayIncomeEl || !todayExpenseEl || !todayBalanceEl) return; // 防禦性檢查
-            const income = transactions.filter(t => t.type === 'income').reduce((sum, t) => sum + t.amount, 0);
-            const expense = transactions.filter(t => t.type === 'expense').reduce((sum, t) => sum + t.amount, 0);
-            todayIncomeEl.textContent = `NT$ ${income.toLocaleString()}`;
-            todayExpenseEl.textContent = `NT$ ${expense.toLocaleString()}`;
-            todayBalanceEl.textContent = `NT$ ${(income - expense).toLocaleString()}`;
+            const now = new Date();
+            const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+            const endOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
+
+            const todayTransactions = transactions.filter(tx => {
+                if (!tx.timestamp) return false;
+                const txDate = tx.timestamp.toDate();
+                return txDate >= startOfToday && txDate < endOfToday;
+            });
+
+            const income = todayTransactions.filter(t => t.type === 'income').reduce((sum, t) => sum + t.amount, 0);
+            const expense = todayTransactions.filter(t => t.type === 'expense').reduce((sum, t) => sum + t.amount, 0);
+            
+            if (todayIncomeEl) todayIncomeEl.textContent = `NT$ ${income.toLocaleString()}`;
+            if (todayExpenseEl) todayExpenseEl.textContent = `NT$ ${expense.toLocaleString()}`;
+            if (todayBalanceEl) todayBalanceEl.textContent = `NT$ ${(income - expense).toLocaleString()}`;
         }
 
         function updateMonthlySummary(transactions) {
-            if (!monthlyIncomeEl || !monthlyExpenseEl || !monthlyBalanceEl) return; // 防禦性檢查
             const now = new Date();
             const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
             const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
@@ -968,23 +757,23 @@
 
             const income = monthlyTransactions.filter(t => t.type === 'income').reduce((sum, t) => sum + t.amount, 0);
             const expense = monthlyTransactions.filter(t => t.type === 'expense').reduce((sum, t) => sum + t.amount, 0);
-            monthlyIncomeEl.textContent = `NT$ ${income.toLocaleString()}`;
-            monthlyExpenseEl.textContent = `NT$ ${expense.toLocaleString()}`;
-            monthlyBalanceEl.textContent = `NT$ ${(income - expense).toLocaleString()}`;
+            
+            if (monthlyIncomeEl) monthlyIncomeEl.textContent = `NT$ ${income.toLocaleString()}`;
+            if (monthlyExpenseEl) monthlyExpenseEl.textContent = `NT$ ${expense.toLocaleString()}`;
+            if (monthlyBalanceEl) monthlyBalanceEl.textContent = `NT$ ${(income - expense).toLocaleString()}`;
         }
 
         function updateDebtSummary(debts) {
-            if (!totalInitialDebtEl || !totalCurrentDebtEl || !totalRepaidDebtEl) return; // 防禦性檢查
             const initialDebt = debts.reduce((sum, d) => sum + d.totalAmount, 0);
             const currentDebt = debts.reduce((sum, d) => sum + d.remainingAmount, 0);
             const repaidDebt = initialDebt - currentDebt;
-            totalInitialDebtEl.textContent = `NT$ ${initialDebt.toLocaleString()}`;
-            totalCurrentDebtEl.textContent = `NT$ ${currentDebt.toLocaleString()}`;
-            totalRepaidDebtEl.textContent = `NT$ ${repaidDebt.toLocaleString()}`;
+            
+            if (totalInitialDebtEl) totalInitialDebtEl.textContent = `NT$ ${initialDebt.toLocaleString()}`;
+            if (totalCurrentDebtEl) totalCurrentDebtEl.textContent = `NT$ ${currentDebt.toLocaleString()}`;
+            if (totalRepaidDebtEl) totalRepaidDebtEl.textContent = `NT$ ${repaidDebt.toLocaleString()}`;
         }
 
         function updateInvestmentSummary(investments) {
-            if (!totalInvestmentValueEl || !totalInvestmentReturnEl || !totalInvestmentRoiEl) return; // 防禦性檢查
             let totalMarketValue = 0;
             let totalReturn = 0;
             let totalCostAggregated = 0;
@@ -1002,17 +791,20 @@
 
             const totalRoi = totalCostAggregated > 0 ? (totalReturn / totalCostAggregated) * 100 : 0;
 
-            totalInvestmentValueEl.textContent = `NT$ ${totalMarketValue.toLocaleString()}`;
-            totalInvestmentReturnEl.textContent = `NT$ ${totalReturn.toLocaleString()}`;
-            totalInvestmentRoiEl.textContent = `${totalRoi.toFixed(2)}%`;
-
-            totalInvestmentReturnEl.className = `text-2xl font-bold mt-2 ${totalReturn >= 0 ? 'text-purple-600' : 'text-red-600'}`;
-            totalInvestmentRoiEl.className = `text-2xl font-bold mt-2 ${totalRoi >= 0 ? 'text-teal-600' : 'text-orange-600'}`;
+            if (totalInvestmentValueEl) totalInvestmentValueEl.textContent = `NT$ ${totalMarketValue.toLocaleString()}`;
+            if (totalInvestmentReturnEl) {
+                totalInvestmentReturnEl.textContent = `NT$ ${totalReturn.toLocaleString()}`;
+                totalInvestmentReturnEl.className = `text-2xl font-bold mt-2 ${totalReturn >= 0 ? 'text-purple-600' : 'text-red-600'}`;
+            }
+            if (totalInvestmentRoiEl) {
+                totalInvestmentRoiEl.textContent = `${totalRoi.toFixed(2)}%`;
+                totalInvestmentRoiEl.className = `text-2xl font-bold mt-2 ${totalRoi >= 0 ? 'text-teal-600' : 'text-orange-600'}`;
+            }
         }
-
+        
         function updateMonthlyRepaymentSummary() {
-            if (!totalMonthlyRepaymentEl) return; // 防禦性檢查
-            
+            if (!allTransactions || !totalMonthlyRepaymentEl) return;
+
             const now = new Date();
             const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
             const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
@@ -1026,111 +818,74 @@
             const totalMonthlyPayment = monthlyRepayments.reduce((sum, tx) => sum + tx.amount, 0);
             totalMonthlyRepaymentEl.textContent = `NT$ ${totalMonthlyPayment.toLocaleString()}`;
         }
-        
-        // [Re-added]
-        function updateFilteredSummary(transactions) {
-            const income = transactions.filter(t => t.type === 'income').reduce((sum, t) => sum + t.amount, 0);
-            const expense = transactions.filter(t => t.type === 'expense').reduce((sum, t) => sum + t.amount, 0);
-            filteredIncomeEl.textContent = `NT$ ${income.toLocaleString()}`;
-            filteredExpenseEl.textContent = `NT$ ${expense.toLocaleString()}`;
-            filteredBalanceEl.textContent = `NT$ ${(income - expense).toLocaleString()}`;
-        }
-
-        // [Re-added]
-        function updateExpenseChart() {
-            if (!expenseChartCanvas || !noExpenseDataMsg) return; // 防禦性檢查
-            
-            const expenseData = allTransactions.filter(t => t.type === 'expense');
-            noExpenseDataMsg.classList.toggle('hidden', expenseData.length > 0);
-            expenseChartCanvas.classList.toggle('hidden', expenseData.length === 0);
-            if(expenseData.length === 0) { 
-                if(expenseChart) expenseChart.destroy(); 
-                return; 
-            }
-            
-            const dataByCategory = expenseData.reduce((acc, curr) => { 
-                acc[curr.category] = (acc[curr.category] || 0) + curr.amount; 
-                return acc; 
-            }, {});
-            
-            if (expenseChart) expenseChart.destroy();
-            
-            expenseChart = new Chart(expenseChartCanvas, {
-                type: 'pie',
-                data: { 
-                    labels: Object.keys(dataByCategory), 
-                    datasets: [{ 
-                        label: '支出金額', 
-                        data: Object.values(dataByCategory), 
-                        backgroundColor: ['#ff6384', '#36a2eb', '#ffce56', '#4bc0c0', '#9966ff', '#ff9f40', '#c9cbcf', '#ef4444', '#f97316', '#84cc16', '#10b981', '#06b6d4', '#6366f1', '#d946ef', '#f43f5e'], 
-                        hoverOffset: 4 
-                    }] 
-                },
-                options: { 
-                    responsive: true, 
-                    maintainAspectRatio: true,
-                    plugins: {
-                        legend: {
-                            position: 'bottom',
-                        }
-                    }
-                }
-            });
-        }
 
 
         // --- UI & Event Listeners ---
         function setupEventListeners() {
-            googleLoginBtn.addEventListener('click', () => {
+            // 登入/登出
+            if (googleLoginBtn) googleLoginBtn.addEventListener('click', () => {
                 const provider = new GoogleAuthProvider();
                 signInWithPopup(auth, provider).catch(error => console.error("Google 登入失敗", error));
             });
-            anonymousLoginBtn.addEventListener('click', () => {
+            if (anonymousLoginBtn) anonymousLoginBtn.addEventListener('click', () => {
                 signInAnonymously(auth).catch(error => console.error("匿名登入失敗", error));
             });
 
-            tabAccounting.addEventListener('click', () => switchTab('accounting'));
-            tabInvestment.addEventListener('click', () => switchTab('investment'));
-            tabDebt.addEventListener('click', () => switchTab('debt'));
-            tabEvents.addEventListener('click', () => switchTab('events'));
-            tabReports.addEventListener('click', () => switchTab('reports')); // Re-added
+            // 頁籤切換
+            if (tabAccounting) tabAccounting.addEventListener('click', () => switchTab('accounting'));
+            if (tabInvestment) tabInvestment.addEventListener('click', () => switchTab('investment'));
+            if (tabDebt) tabDebt.addEventListener('click', () => switchTab('debt'));
+            if (tabEvents) tabEvents.addEventListener('click', () => switchTab('events'));
 
-            form.addEventListener('submit', handleFormSubmit);
-            debtForm.addEventListener('submit', handleDebtFormSubmit);
-            eventForm.addEventListener('submit', handleEventFormSubmit);
-            investmentForm.addEventListener('submit', handleInvestmentFormSubmit);
-            investmentTransactionForm.addEventListener('submit', handleInvestmentTransactionSubmit);
-            editInvestmentAccountForm.addEventListener('submit', handleEditInvestmentAccountSubmit);
-            updateMarketValueForm.addEventListener('submit', handleUpdateMarketValueSubmit);
-            investmentBudgetForm.addEventListener('submit', handleInvestmentBudgetSubmit); // New
+            // 表單提交
+            if (form) form.addEventListener('submit', handleFormSubmit);
+            if (debtForm) debtForm.addEventListener('submit', handleDebtFormSubmit);
+            if (eventForm) eventForm.addEventListener('submit', handleEventFormSubmit);
+            if (investmentForm) investmentForm.addEventListener('submit', handleInvestmentFormSubmit);
+            if (investmentTransactionForm) investmentTransactionForm.addEventListener('submit', handleInvestmentTransactionSubmit);
+            if (editInvestmentAccountForm) editInvestmentAccountForm.addEventListener('submit', handleEditInvestmentAccountSubmit);
+            if (updateMarketValueForm) updateMarketValueForm.addEventListener('submit', handleUpdateMarketValueSubmit);
+            if (repaymentForm) repaymentForm.addEventListener('submit', handleRepaymentSubmit);
+            if (debtEditForm) debtEditForm.addEventListener('submit', handleDebtEditSubmit);
+            if (investmentBudgetForm) investmentBudgetForm.addEventListener('submit', handleInvestmentBudgetSubmit); // 新增預算表單
 
-            repaymentForm.addEventListener('submit', handleRepaymentSubmit);
-            debtEditForm.addEventListener('submit', handleDebtEditSubmit);
+            // 彈窗按鈕
+            if (cancelRepaymentBtn) cancelRepaymentBtn.addEventListener('click', () => repaymentModal.classList.add('hidden'));
+            if (cancelInvestmentTransactionBtn) cancelInvestmentTransactionBtn.addEventListener('click', () => investmentTransactionModal.classList.add('hidden'));
+            if (cancelEditInvestmentAccountBtn) cancelEditInvestmentAccountBtn.addEventListener('click', () => editInvestmentAccountModal.classList.add('hidden'));
+            if (cancelUpdateMarketValueBtn) cancelUpdateMarketValueBtn.addEventListener('click', () => updateMarketValueModal.classList.add('hidden'));
+            if (closeDebtDetailModalBtn) closeDebtDetailModalBtn.addEventListener('click', () => debtDetailModal.classList.add('hidden'));
+            if (editDebtBtn) editDebtBtn.addEventListener('click', toggleDebtEditView);
+            if (cancelEditDebtBtn) cancelEditDebtBtn.addEventListener('click', toggleDebtEditView);
+            if (closeInvestmentDetailModalBtn) closeInvestmentDetailModalBtn.addEventListener('click', () => investmentDetailModal.classList.add('hidden'));
 
-            cancelRepaymentBtn.addEventListener('click', () => repaymentModal.classList.add('hidden'));
-            cancelInvestmentTransactionBtn.addEventListener('click', () => investmentTransactionModal.classList.add('hidden'));
-            cancelEditInvestmentAccountBtn.addEventListener('click', () => editInvestmentAccountModal.classList.add('hidden'));
-            cancelUpdateMarketValueBtn.addEventListener('click', () => updateMarketValueModal.classList.add('hidden'));
-
-            expenseRadio.addEventListener('change', updateTypeSelection);
-            document.querySelector('input[name="type"][value="income"]').addEventListener('change', updateTypeSelection);
+            // 記帳表單
+            if (expenseRadio) expenseRadio.addEventListener('change', updateTypeSelection);
+            const incomeRadio = document.querySelector('input[name="type"][value="income"]');
+            if (incomeRadio) incomeRadio.addEventListener('change', updateTypeSelection);
             
-            setupModal(manageCategoriesBtn, categoryModal, [document.getElementById('close-category-modal-btn'), document.getElementById('close-category-modal-btn-bottom')]);
-            setupModal(manageProjectsBtn, projectModal, [document.getElementById('close-project-modal-btn'), document.getElementById('close-project-modal-btn-bottom')]);
+            // 分類/專案管理
+            if (manageCategoriesBtn) setupModal(manageCategoriesBtn, categoryModal, [document.getElementById('close-category-modal-btn'), document.getElementById('close-category-modal-btn-bottom')]);
+            if (manageProjectsBtn) setupModal(manageProjectsBtn, projectModal, [document.getElementById('close-project-modal-btn'), document.getElementById('close-project-modal-btn-bottom')]);
 
-            const handleTransactionListClick = (e) => {
-                if (e.target.closest('.delete-btn')) {
-                    handleDelete(e, '.delete-btn', transactionsColRef);
-                } else if (e.target.closest('.edit-btn')) {
-                    handleEditTransactionClick(e);
+            // 列表點擊事件
+            if (transactionList) transactionList.addEventListener('click', handleTransactionListClick);
+            if (eventList) eventList.addEventListener('click', (e) => handleDelete(e, '.delete-event-btn', eventsColRef));
+            if (customCategoryList) customCategoryList.addEventListener('click', (e) => handleDelete(e, '.delete-category-btn', categoriesColRef));
+            if (customProjectList) customProjectList.addEventListener('click', (e) => handleDelete(e, '.delete-project-btn', projectsColRef));
+            if (repaymentHistoryList) repaymentHistoryList.addEventListener('click', handleDeleteRepayment);
+            if (investmentHistoryList) investmentHistoryList.addEventListener('click', (e) => {
+                if (e.target.closest('.delete-investment-tx-btn')) handleDeleteInvestmentTx(e);
+                if (e.target.closest('.edit-investment-tx-btn')) handleEditInvestmentTxClick(e);
+            });
+            if (investmentBudgetList) investmentBudgetList.addEventListener('change', (e) => { // 監聽 checkbox 變化
+                if (e.target.classList.contains('realize-budget-btn')) {
+                    handleRealizeBudget(e);
                 }
-            };
-            transactionList.addEventListener('click', handleTransactionListClick);
-            filteredTransactionList.addEventListener('click', handleTransactionListClick); // Re-added
+            });
 
-            eventList.addEventListener('click', (e) => handleDelete(e, '.delete-event-btn', eventsColRef));
-
-            debtList.addEventListener('click', (e) => {
+            // 負債列表
+            if (debtList) debtList.addEventListener('click', (e) => {
                 const debtCard = e.target.closest('.debt-card-clickable');
                 if (e.target.closest('.repay-btn') || e.target.closest('.delete-debt-btn')) {
                     e.stopPropagation();
@@ -1140,7 +895,9 @@
                 }
                 if (debtCard) handleDebtCardClick(debtCard.dataset.id);
             });
-            investmentList.addEventListener('click', (e) => {
+
+            // 投資列表
+            if (investmentList) investmentList.addEventListener('click', (e) => {
                 const cardClick = e.target.closest('.investment-card-clickable');
                 const addTxBtn = e.target.closest('.add-investment-tx-btn');
                 const editAccountBtn = e.target.closest('.edit-investment-account-btn');
@@ -1154,69 +911,34 @@
                 else if (cardClick) handleInvestmentCardClick(cardClick.dataset.id);
             });
             
-            // [New] Event listeners for investment budget list
-            investmentBudgetList.addEventListener('click', (e) => {
-                if (e.target.closest('.delete-investment-budget-btn')) {
-                    handleDelete(e, '.delete-investment-budget-btn', investmentBudgetsColRef);
+            // 記帳日期篩選
+            if (historyDateFilter) historyDateFilter.addEventListener('change', renderMainTransactionList);
+            if (showTodayBtn) showTodayBtn.addEventListener('click', () => {
+                if (historyDateFilter) {
+                    historyDateFilter.value = new Date().toISOString().split('T')[0];
+                    renderMainTransactionList();
                 }
             });
-            investmentBudgetList.addEventListener('change', (e) => {
-                if (e.target.classList.contains('realize-budget-checkbox')) {
-                    handleRealizeBudget(e.target);
-                }
-            });
-
-
-            customCategoryList.addEventListener('click', (e) => handleDelete(e, '.delete-category-btn', categoriesColRef));
-            customProjectList.addEventListener('click', (e) => handleDelete(e, '.delete-project-btn', projectsColRef));
-            closeDebtDetailModalBtn.addEventListener('click', () => debtDetailModal.classList.add('hidden'));
-            editDebtBtn.addEventListener('click', toggleDebtEditView);
-            cancelEditDebtBtn.addEventListener('click', toggleDebtEditView);
-            repaymentHistoryList.addEventListener('click', handleDeleteRepayment);
-            closeInvestmentDetailModalBtn.addEventListener('click', () => investmentDetailModal.classList.add('hidden'));
-            investmentHistoryList.addEventListener('click', (e) => {
-                if (e.target.closest('.delete-investment-tx-btn')) handleDeleteInvestmentTx(e);
-                if (e.target.closest('.edit-investment-tx-btn')) handleEditInvestmentTxClick(e);
-            });
-            
-            // [Re-added] Report listeners
-            filterThisMonthBtn.addEventListener('click', handleFilterThisMonth);
-            filterCustomDateBtn.addEventListener('click', handleFilterCustomDate);
-            projectFilterSelect.addEventListener('change', handleFilterCustomDate);
-            expenseStatsList.addEventListener('click', handleCategoryClick);
-            incomeStatsList.addEventListener('click', handleCategoryClick);
-            printReportBtn.addEventListener('click', () => handlePrint('#filtered-transaction-list-section'));
-
-            printTransactionsBtn.addEventListener('click', () => handlePrint('#main-transaction-list-section'));
-            printDebtDetailBtn.addEventListener('click', () => handlePrint('#debt-detail-modal'));
-            printInvestmentDetailBtn.addEventListener('click', () => handlePrint('#investment-detail-modal'));
-            historyDateFilter.addEventListener('change', renderMainTransactionList);
-            showTodayBtn.addEventListener('click', () => {
-                historyDateFilter.value = new Date().toISOString().split('T')[0];
-                renderMainTransactionList();
-            });
-            window.addEventListener('afterprint', handleAfterPrint);
         }
 
         function switchTab(tabName) {
-            // Added reports
-            const views = { accounting: accountingView, investment: investmentView, debt: debtView, events: eventsView, reports: reportsView };
-            const tabs = { accounting: tabAccounting, investment: tabInvestment, debt: tabDebt, events: tabEvents, reports: tabReports };
+            const views = { accounting: accountingView, investment: investmentView, debt: debtView, events: eventsView };
+            const tabs = { accounting: tabAccounting, investment: tabInvestment, debt: tabDebt, events: tabEvents };
 
             for (const key in views) {
-                const isHidden = key !== tabName;
-                views[key].classList.toggle('hidden', isHidden);
-                tabs[key].classList.toggle('active', !isHidden);
-            }
-            
-            // [Re-added] Logic to initialize report view
-            if(tabName === 'reports') {
-                updateExpenseChart();
-                handleFilterThisMonth();
+                if (views[key]) {
+                    const isHidden = key !== tabName;
+                    views[key].classList.toggle('hidden', isHidden);
+                }
+                if (tabs[key]) {
+                    tabs[key].classList.toggle('active', key === tabName);
+                }
             }
         }
         
         function renderMainTransactionList() {
+            if (!historyDateFilter || !allTransactions || !transactionList || !historyDisplayDateEl || !emptyState) return;
+
             const filterDateStr = historyDateFilter.value;
             let dateToFilter;
 
@@ -1228,7 +950,6 @@
             }
 
             // Adjust for timezone offset to compare dates correctly
-            const userTimezoneOffset = dateToFilter.getTimezoneOffset() * 60000;
             const startOfDay = new Date(dateToFilter.getFullYear(), dateToFilter.getMonth(), dateToFilter.getDate());
             const endOfDay = new Date(startOfDay.getTime() + 24 * 60 * 60 * 1000);
 
@@ -1258,19 +979,30 @@
         }
 
         function resetTransactionForm() {
+            if (!form || !transactionDateInput || !submitBtnText) return;
             form.reset();
             document.getElementById('transaction-id').value = '';
             transactionDateInput.valueAsDate = new Date();
             submitBtnText.textContent = '新增紀錄';
             const submitButton = form.querySelector('button[type="submit"]');
-            submitButton.classList.remove('bg-green-600', 'hover:bg-green-700');
-            submitButton.classList.add('bg-blue-600', 'hover:bg-blue-700');
+            if (submitButton) {
+                submitButton.classList.remove('bg-green-600', 'hover:bg-green-700');
+                submitButton.classList.add('bg-blue-600', 'hover:bg-blue-700');
+            }
             updateTypeSelection();
+        }
+
+        function handleTransactionListClick(e) {
+            if (e.target.closest('.delete-btn')) {
+                handleDelete(e, '.delete-btn', transactionsColRef);
+            } else if (e.target.closest('.edit-btn')) {
+                handleEditTransactionClick(e);
+            }
         }
 
         function handleEditTransactionClick(e) {
             const editBtn = e.target.closest('.edit-btn');
-            if (!editBtn) return;
+            if (!editBtn || !form) return;
 
             const txId = editBtn.dataset.id;
             const tx = allTransactions.find(t => t.id === txId);
@@ -1285,16 +1017,18 @@
                 }
                 updateTypeSelection(); 
 
-                amountInput.value = tx.amount;
-                transactionDateInput.value = tx.timestamp.toDate().toISOString().split('T')[0];
-                categoryInput.value = tx.category;
-                projectInput.value = tx.project || '';
-                remarksInput.value = tx.remarks || '';
+                if (amountInput) amountInput.value = tx.amount;
+                if (transactionDateInput) transactionDateInput.value = tx.timestamp.toDate().toISOString().split('T')[0];
+                if (categoryInput) categoryInput.value = tx.category;
+                if (projectInput) projectInput.value = tx.project || '';
+                if (remarksInput) remarksInput.value = tx.remarks || '';
 
-                submitBtnText.textContent = '儲存變更';
+                if (submitBtnText) submitBtnText.textContent = '儲存變更';
                 const submitButton = form.querySelector('button[type="submit"]');
-                submitButton.classList.remove('bg-blue-600', 'hover:bg-blue-700');
-                submitButton.classList.add('bg-green-600', 'hover:bg-green-700');
+                if (submitButton) {
+                    submitButton.classList.remove('bg-blue-600', 'hover:bg-blue-700');
+                    submitButton.classList.add('bg-green-600', 'hover:bg-green-700');
+                }
 
                 form.scrollIntoView({ behavior: 'smooth' });
             }
@@ -1302,7 +1036,7 @@
 
         async function handleFormSubmit(e) {
             e.preventDefault();
-            if (!userId) return;
+            if (!userId || !amountInput || !categoryInput || !transactionDateInput) return;
             
             const txId = document.getElementById('transaction-id').value;
             const amount = parseFloat(amountInput.value);
@@ -1311,13 +1045,14 @@
             const date = transactionDateInput.value;
             
             if (isNaN(amount) || amount <= 0 || category === '' || !date) { 
-                showToast("請輸入有效的金額、分類和日期！", "error");
+                console.warn("請輸入有效的金額、分類和日期！"); 
                 return; 
             }
 
-            submitBtnText.classList.add('hidden'); 
-            submitSpinner.classList.remove('hidden'); 
-            form.querySelector('button[type="submit"]').disabled = true;
+            if (submitBtnText) submitBtnText.classList.add('hidden'); 
+            if (submitSpinner) submitSpinner.classList.remove('hidden'); 
+            const submitButton = form.querySelector('button[type="submit"]');
+            if (submitButton) submitButton.disabled = true;
 
             try {
                 await saveNewCustomItemIfNeeded(category, customCategories, categoriesColRef);
@@ -1335,54 +1070,52 @@
                 if (txId) {
                     const txRef = doc(transactionsColRef, txId);
                     await updateDoc(txRef, payload);
-                    showToast("紀錄已更新");
                 } else {
                     await addDoc(transactionsColRef, payload);
-                    showToast("紀錄已新增");
                 }
                 
                 resetTransactionForm();
             } catch (error) { 
                 console.error("處理紀錄失敗:", error); 
-                showToast("處理失敗", "error");
             } finally { 
-                submitBtnText.classList.remove('hidden'); 
-                submitSpinner.classList.add('hidden'); 
-                form.querySelector('button[type="submit"]').disabled = false; 
+                if (submitBtnText) submitBtnText.classList.remove('hidden'); 
+                if (submitSpinner) submitSpinner.classList.add('hidden'); 
+                if (submitButton) submitButton.disabled = false; 
             }
         }
 
         async function handleDebtFormSubmit(e) {
             e.preventDefault();
+            if (!debtForm) return;
             const name = document.getElementById('debt-name').value.trim();
             const totalAmount = parseFloat(document.getElementById('debt-total-amount').value);
-            if (name === '' || isNaN(totalAmount) || totalAmount <= 0) { 
-                showToast("請輸入有效的負債項目和金額", "error"); 
-                return; 
-            }
+            if (name === '' || isNaN(totalAmount) || totalAmount <= 0) { console.warn("請輸入有效的負債項目和金額"); return; }
 
             const btnText = document.getElementById('add-debt-btn-text'), spinner = document.getElementById('add-debt-spinner');
-            btnText.classList.add('hidden'); spinner.classList.remove('hidden'); debtForm.querySelector('button[type="submit"]').disabled = true;
+            const submitButton = debtForm.querySelector('button[type="submit"]');
+            
+            if (btnText) btnText.classList.add('hidden'); 
+            if (spinner) spinner.classList.remove('hidden'); 
+            if (submitButton) submitButton.disabled = true;
+            
             try {
                 await addDoc(debtsColRef, { name, totalAmount, remainingAmount: totalAmount, createdAt: Timestamp.now() });
                 debtForm.reset();
-                showToast("負債已新增");
-            } catch (error) { 
-                console.error("新增負債失敗:", error); 
-                showToast("新增失敗", "error");
+            } catch (error) { console.error("新增負債失敗:", error); }
+            finally { 
+                if (btnText) btnText.classList.remove('hidden'); 
+                if (spinner) spinner.classList.add('hidden'); 
+                if (submitButton) submitButton.disabled = false; 
             }
-            finally { btnText.classList.remove('hidden'); spinner.classList.add('hidden'); debtForm.querySelector('button[type="submit"]').disabled = false; }
         }
 
         async function handleEventFormSubmit(e) {
             e.preventDefault();
+            if (!eventForm) return;
             const date = document.getElementById('event-date').value;
             const title = document.getElementById('event-title').value.trim();
             const description = document.getElementById('event-description').value.trim();
-            if (!date || title === '') { 
-                showToast("請輸入日期和標題", "error"); 
-                return; 
-            }
+            if (!date || title === '') { console.warn("請輸入日期和標題"); return; }
 
             try {
                 await addDoc(eventsColRef, {
@@ -1392,22 +1125,19 @@
                     createdAt: Timestamp.now()
                 });
                 eventForm.reset();
-                document.getElementById('event-date').valueAsDate = new Date();
-                showToast("事件已記錄");
+                const eventDateInput = document.getElementById('event-date');
+                if (eventDateInput) eventDateInput.valueAsDate = new Date();
             } catch (error) {
                 console.error("新增事件失敗:", error);
-                showToast("新增失敗", "error");
             }
         }
 
         async function handleInvestmentFormSubmit(e) {
             e.preventDefault();
+            if (!investmentForm) return;
             const name = document.getElementById('investment-name').value.trim();
             const initialValue = parseFloat(document.getElementById('investment-initial-value').value) || 0;
-            if (name === '') { 
-                showToast("請輸入有效的帳戶名稱", "error"); 
-                return; 
-            }
+            if (name === '') { console.warn("請輸入有效的帳戶名稱"); return; }
 
             try {
                 const now = new Date();
@@ -1441,122 +1171,110 @@
                     });
                 }
                 investmentForm.reset();
-                showToast("投資帳戶已建立");
-            } catch (error) { 
-                console.error("新增投資帳戶失敗:", error); 
-                showToast("建立失敗", "error");
+            } catch (error) { console.error("新增投資帳戶失敗:", error); }
+        }
+
+        async function handleInvestmentBudgetSubmit(e) {
+            e.preventDefault();
+            if (!budgetInvestmentSelect) return;
+            
+            const selectedOption = budgetInvestmentSelect.options[budgetInvestmentSelect.selectedIndex];
+
+            // 增加保護，防止在未選擇時出錯
+            if (!selectedOption || !selectedOption.value) {
+                console.warn("請選擇一個有效的投資帳戶");
+                return;
+            }
+
+            const investmentId = selectedOption.value;
+            const investmentName = selectedOption.dataset.name; 
+            const expectedDate = document.getElementById('budget-expected-date').value;
+            const expectedAmount = parseFloat(document.getElementById('budget-expected-amount').value);
+            const description = document.getElementById('budget-description').value.trim();
+
+            if (!investmentId || !investmentName || !expectedDate || isNaN(expectedAmount) || expectedAmount <= 0 || !description) {
+                console.warn("請填寫所有預算欄位 (ID或名稱為空)");
+                return;
+            }
+
+            try {
+                await addDoc(investmentBudgetsColRef, {
+                    investmentId,
+                    investmentName,
+                    expectedDate: Timestamp.fromDate(new Date(expectedDate)),
+                    expectedAmount,
+                    description,
+                    isRealized: false,
+                    createdAt: Timestamp.now()
+                });
+                if (investmentBudgetForm) investmentBudgetForm.reset();
+            } catch (error) {
+                console.error("新增投資預算失敗:", error);
             }
         }
-        
-        // [New] Handle Investment Budget Submit
-        async function handleInvestmentBudgetSubmit(e) {
-           e.preventDefault();
-           const selectedOption = budgetInvestmentSelect.options[budgetInvestmentSelect.selectedIndex];
-           
-           if (!selectedOption || !selectedOption.value) {
-               showToast("請選擇一個投資帳戶", "error");
-               return;
-           }
 
-           const investmentId = selectedOption.value;
-           const investmentName = selectedOption.dataset.name;
-           const expectedDate = document.getElementById('budget-expected-date').value;
-           const expectedAmount = parseFloat(document.getElementById('budget-expected-amount').value);
-           const description = document.getElementById('budget-description').value.trim();
-
-           if (!investmentId || !expectedDate || isNaN(expectedAmount) || expectedAmount <= 0 || !description) {
-               showToast("請填寫所有預算欄位", "error");
-               return;
-           }
-           
-           const submitButton = investmentBudgetForm.querySelector('button[type="submit"]');
-           submitButton.disabled = true;
-           submitButton.textContent = '新增中...';
-
-           try {
-               await addDoc(investmentBudgetsColRef, {
-                   investmentId,
-                   investmentName,
-                   expectedDate: Timestamp.fromDate(new Date(expectedDate)),
-                   expectedAmount,
-                   description,
-                   isRealized: false,
-                   createdAt: serverTimestamp()
-               });
-               
-               investmentBudgetForm.reset();
-               showToast("收入預算已新增");
-               
-           } catch (error) {
-               console.error("新增投資預算失敗:", error);
-               showToast("新增失敗", "error");
-           } finally {
-               submitButton.disabled = false;
-               submitButton.textContent = '新增預算';
-           }
-        }
-        
-        // [New] Handle Realizing a Budget Item
-        async function handleRealizeBudget(checkbox) {
+        async function handleRealizeBudget(e) {
+            const checkbox = e.target;
             const budgetId = checkbox.dataset.id;
-            const investmentId = checkbox.dataset.investmentId;
-            const investmentName = checkbox.dataset.investmentName;
-            const amount = parseFloat(checkbox.dataset.amount);
-            const description = checkbox.dataset.description;
-            const dateStr = checkbox.dataset.date;
-            
+            if (!budgetId || !checkbox.checked) return;
+
+            // 禁用 checkbox 防止重複點擊
             checkbox.disabled = true;
-            
+
+            const budget = allInvestmentBudgets.find(b => b.id === budgetId);
+            if (!budget) {
+                console.error("找不到該筆預算");
+                checkbox.disabled = false;
+                return;
+            }
+
             const budgetDocRef = doc(investmentBudgetsColRef, budgetId);
-            const investmentTxColRef = collection(db, `${investmentsColRef.path}/${investmentId}/transactions`);
-            const timestamp = Timestamp.fromDate(new Date(dateStr));
-            
             const batch = writeBatch(db);
 
             try {
-                // 1. 標記預算為已實現
+                // 1. 更新預算為 "已實現"
                 batch.update(budgetDocRef, { isRealized: true });
-                
-                // 2. 新增一筆主記帳紀錄
+
+                // 2. 新增一筆主 "記帳" 紀錄
                 const mainTxPayload = {
                     type: 'income',
-                    amount: amount,
+                    amount: budget.expectedAmount,
                     category: '投資收入',
-                    project: investmentName,
-                    remarks: `(預算實現) ${description}`,
-                    timestamp: timestamp
+                    project: budget.investmentName,
+                    remarks: `(預算實現) ${budget.description}`,
+                    timestamp: Timestamp.now() // 使用實現的當下時間
                 };
-                const mainTxRef = doc(collection(db, transactionsColRef.path)); // 產生一個新的 ref
+                const mainTxRef = doc(collection(transactionsColRef)); // 預先產生 ID
                 batch.set(mainTxRef, mainTxPayload);
 
-                // 3. 新增一筆投資帳戶內的交易紀錄
-                const investmentTxPayload = {
-                    date: timestamp,
+
+                // 3. 新增一筆 "投資帳戶" 內的交易紀錄
+                const investmentTxColRef = collection(db, `${investmentsColRef.path}/${budget.investmentId}/transactions`);
+                const investmentTxRef = doc(collection(investmentTxColRef)); // 預先產生 ID
+                batch.set(investmentTxRef, {
+                    date: Timestamp.now(), // 使用實現的當下時間
                     type: 'income',
-                    amount: amount,
-                    remark: `(預算實現) ${description}`,
-                    mainTransactionId: mainTxRef.id
-                };
-                const investmentTxRef = doc(collection(db, investmentTxColRef.path)); // 產生一個新的 ref
-                batch.set(investmentTxRef, investmentTxPayload);
-                
-                // 4. 執行批次寫入
+                    amount: budget.expectedAmount,
+                    remark: `(預算實現) ${budget.description}`,
+                    mainTransactionId: mainTxRef.id // 關聯主紀錄
+                });
+
+                // 4. 提交所有變更
                 await batch.commit();
                 
-                showToast(`已實現 "${description}"`);
-                listenForInvestments(); // 重新載入投資資料以更新總覽
+                // 成功後，監聽器會自動移除該項目，不需手動操作 DOM
                 
             } catch (error) {
-                console.error("實現預算失敗:", error);
-                showToast("實現失敗，請重試", "error");
-                checkbox.checked = false; // 回復勾選狀態
+                console.error("實現收入預算失敗:", error);
+                // 失敗時恢復 checkbox
                 checkbox.disabled = false;
+                checkbox.checked = false;
             }
         }
 
 
         function handleAddInvestmentTxClick(btn) {
-            if(btn) {
+            if(btn && investmentTransactionForm) {
                 investmentTransactionForm.reset();
                 document.getElementById('investment-transaction-title').textContent = `新增交易至 "${btn.dataset.name}"`;
                 document.getElementById('investment-transaction-account-id').value = btn.dataset.id;
@@ -1564,12 +1282,14 @@
                 document.getElementById('investment-transaction-id').value = '';
                 document.getElementById('investment-main-transaction-id').value = '';
                 document.getElementById('investment-transaction-date').valueAsDate = new Date();
-                investmentTransactionModal.classList.remove('hidden');
+                if (investmentTransactionModal) investmentTransactionModal.classList.remove('hidden');
             }
         }
 
         async function handleInvestmentTransactionSubmit(e) {
             e.preventDefault();
+            if (!investmentTransactionForm) return;
+
             const accountId = document.getElementById('investment-transaction-account-id').value;
             const accountName = document.getElementById('investment-transaction-account-name').value;
             const txId = document.getElementById('investment-transaction-id').value;
@@ -1580,7 +1300,7 @@
             const remark = document.getElementById('investment-transaction-remark').value.trim();
 
             if (!accountId || !date || isNaN(amount) || amount <= 0) {
-                showToast("請填寫完整交易資訊", "error");
+                console.warn("請填寫完整交易資訊");
                 return;
             }
 
@@ -1612,12 +1332,10 @@
                 }
 
                 investmentTransactionForm.reset();
-                investmentTransactionModal.classList.add('hidden');
-                listenForInvestments();
-                showToast("投資交易已儲存");
+                if (investmentTransactionModal) investmentTransactionModal.classList.add('hidden');
+                // listenForInvestments(); // 監聽器會自動更新
             } catch (error) {
                 console.error("處理投資交易失敗:", error);
-                showToast("儲存失敗", "error");
             }
         }
 
@@ -1640,16 +1358,14 @@
                         }
                         await batch.commit();
 
-                        listenForInvestments();
+                        // listenForInvestments(); // 監聽器會自動更新
 
-                        if (!investmentDetailModal.classList.contains('hidden')) {
+                        if (investmentDetailModal && !investmentDetailModal.classList.contains('hidden')) {
                            renderInvestmentHistory(investmentId);
                         }
-                        showToast("投資交易已刪除");
                     } catch (error) {
                         console.error("刪除投資交易失敗:", error);
                         deleteBtn.disabled = false;
-                        showToast("刪除失敗", "error");
                     }
                 }
             }
@@ -1660,7 +1376,7 @@
             const accountName = btn.dataset.name;
             document.getElementById('edit-investment-account-id').value = accountId;
             document.getElementById('edit-investment-account-name').value = accountName;
-            editInvestmentAccountModal.classList.remove('hidden');
+            if (editInvestmentAccountModal) editInvestmentAccountModal.classList.remove('hidden');
         }
 
         async function handleEditInvestmentAccountSubmit(e) {
@@ -1672,16 +1388,14 @@
             const accountRef = doc(investmentsColRef, accountId);
             try {
                 await updateDoc(accountRef, { name: newName });
-                editInvestmentAccountModal.classList.add('hidden');
-                listenForInvestments();
-                showToast("帳戶名稱已更新");
+                if (editInvestmentAccountModal) editInvestmentAccountModal.classList.add('hidden');
+                // listenForInvestments(); // 監聽器會自動更新
             } catch (error) {
                 console.error("更新投資帳戶名稱失敗:", error);
-                showToast("更新失敗", "error");
             }
         }
 
-        async function handleEditInvestmentTxClick(e) {
+        function handleEditInvestmentTxClick(e) {
             const editBtn = e.target.closest('.edit-investment-tx-btn');
             if (!editBtn) return;
 
@@ -1691,7 +1405,7 @@
             const investment = allInvestments.find(inv => inv.id === investmentId);
             const tx = investment?.transactions.find(t => t.id === txId);
 
-            if (investment && tx) {
+            if (investment && tx && investmentTransactionModal) {
                 document.getElementById('investment-transaction-title').textContent = `編輯交易 "${investment.name}"`;
                 document.getElementById('investment-transaction-account-id').value = investmentId;
                 document.getElementById('investment-transaction-account-name').value = investment.name;
@@ -1713,7 +1427,7 @@
             document.getElementById('update-market-value-title').textContent = `更新 "${name}" 的現值`;
             document.getElementById('update-market-value-id').value = id;
             document.getElementById('update-market-value-amount').value = value;
-            updateMarketValueModal.classList.remove('hidden');
+            if (updateMarketValueModal) updateMarketValueModal.classList.remove('hidden');
         }
 
         async function handleUpdateMarketValueSubmit(e) {
@@ -1721,24 +1435,22 @@
             const id = document.getElementById('update-market-value-id').value;
             const amount = parseFloat(document.getElementById('update-market-value-amount').value);
             if (!id || isNaN(amount) || amount < 0) {
-                showToast("請輸入有效的金額", "error");
+                console.warn("請輸入有效的金額");
                 return;
             }
             const investmentRef = doc(investmentsColRef, id);
             try {
                 await updateDoc(investmentRef, { marketValue: amount });
-                updateMarketValueModal.classList.add('hidden');
-                listenForInvestments();
-                showToast("資產現值已更新");
+                if (updateMarketValueModal) updateMarketValueModal.classList.add('hidden');
+                // listenForInvestments(); // 監聽器會自動更新
             } catch(error) {
                 console.error("更新資產現值失敗:", error);
-                showToast("更新失敗", "error");
             }
         }
 
         function handleRepayClick(e) {
             const repayBtn = e.target.closest('.repay-btn');
-            if (repayBtn) {
+            if (repayBtn && repaymentModal) {
                 repaymentDebtIdInput.value = repayBtn.dataset.id;
                 repaymentDebtNameInput.value = repayBtn.dataset.name;
                 repaymentAmountInput.max = repayBtn.dataset.remaining;
@@ -1750,74 +1462,65 @@
 
         function handleDebtCardClick(debtId) {
             const debt = allDebts.find(d => d.id === debtId);
-            if (!debt) return;
+            if (!debt || !debtDetailModal) return;
 
             const now = new Date(), startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1), endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
             const monthlyRepayments = allTransactions.filter(tx => tx.category === '負債還款' && tx.project === debt.name && tx.timestamp && tx.timestamp.toDate() >= startOfMonth && tx.timestamp.toDate() <= endOfMonth);
             const totalMonthlyPaymentForDebt = monthlyRepayments.reduce((sum, tx) => sum + tx.amount, 0);
 
-            debtDetailName.textContent = debt.name;
-            debtDetailTotal.textContent = `NT$ ${debt.totalAmount.toLocaleString()}`;
-            debtDetailMonthlyRepayment.textContent = `NT$ ${totalMonthlyPaymentForDebt.toLocaleString()}`;
-            editDebtIdInput.value = debt.id;
-            editDebtNameInput.value = debt.name;
-            editDebtTotalInput.value = debt.totalAmount;
+            if (debtDetailName) debtDetailName.textContent = debt.name;
+            if (debtDetailTotal) debtDetailTotal.textContent = `NT$ ${debt.totalAmount.toLocaleString()}`;
+            if (debtDetailMonthlyRepayment) debtDetailMonthlyRepayment.textContent = `NT$ ${totalMonthlyPaymentForDebt.toLocaleString()}`;
+            if (editDebtIdInput) editDebtIdInput.value = debt.id;
+            if (editDebtNameInput) editDebtNameInput.value = debt.name;
+            if (editDebtTotalInput) editDebtTotalInput.value = debt.totalAmount;
+            
             renderRepaymentHistory(debt.name);
-            debtDetailDisplayView.classList.remove('hidden');
-            debtEditForm.classList.add('hidden');
+            
+            if (debtDetailDisplayView) debtDetailDisplayView.classList.remove('hidden');
+            if (debtEditForm) debtEditForm.classList.add('hidden');
             debtDetailModal.classList.remove('hidden');
         }
 
         function handleInvestmentCardClick(investmentId) {
             const investment = allInvestments.find(inv => inv.id === investmentId);
-            if (!investment) return;
+            if (!investment || !investmentDetailModal) return;
 
-            document.getElementById('investment-detail-title').textContent = `"${investment.name}" 交易紀錄`;
+            const titleEl = document.getElementById('investment-detail-title');
+            if (titleEl) titleEl.textContent = `"${investment.name}" 交易紀錄`;
+            
             renderInvestmentHistory(investment.id);
             investmentDetailModal.classList.remove('hidden');
         }
-        
+
         function toggleDebtEditView() {
-            debtDetailDisplayView.classList.toggle('hidden');
-            debtEditForm.classList.toggle('hidden');
+            if (debtDetailDisplayView) debtDetailDisplayView.classList.toggle('hidden');
+            if (debtEditForm) debtEditForm.classList.toggle('hidden');
         }
 
         async function handleDebtEditSubmit(e) {
             e.preventDefault();
             const debtId = editDebtIdInput.value, newName = editDebtNameInput.value.trim(), newTotal = parseFloat(editDebtTotalInput.value);
-            if (!debtId || newName === '' || isNaN(newTotal) || newTotal < 0) { 
-                showToast("請輸入有效的項目名稱和總金額", "error"); 
-                return; 
-            }
+            if (!debtId || newName === '' || isNaN(newTotal) || newTotal < 0) { console.warn("請輸入有效的項目名稱和總金額"); return; }
 
             const debtRef = doc(db, debtsColRef.path, debtId);
             try {
                 const currentDebt = allDebts.find(d => d.id === debtId);
-                if (!currentDebt) { 
-                    showToast("找不到要編輯的負債", "error"); 
-                    return; 
-                }
+                if (!currentDebt) { console.error("找不到要編輯的負債"); return; }
 
                 const amountPaid = currentDebt.totalAmount - currentDebt.remainingAmount;
                 const newRemainingAmount = newTotal - amountPaid;
 
                 await updateDoc(debtRef, { name: newName, totalAmount: newTotal, remainingAmount: newRemainingAmount < 0 ? 0 : newRemainingAmount });
-                debtDetailModal.classList.add('hidden');
-                showToast("負債已更新");
-            } catch (error) { 
-                console.error("更新負債失敗:", error); 
-                showToast("更新失敗", "error");
-            }
+                if (debtDetailModal) debtDetailModal.classList.add('hidden');
+            } catch (error) { console.error("更新負債失敗:", error); }
         }
 
         async function handleRepaymentSubmit(e) {
             e.preventDefault();
             const debtId = repaymentDebtIdInput.value, debtName = repaymentDebtNameInput.value, amount = parseFloat(repaymentAmountInput.value), date = repaymentDateInput.value;
             const remark = document.getElementById('repayment-remark').value.trim();
-            if (isNaN(amount) || amount <= 0 || !date) { 
-                showToast("請輸入有效的還款金額和日期", "error"); 
-                return; 
-            }
+            if (isNaN(amount) || amount <= 0 || !date) { console.warn("請輸入有效的還款金額和日期"); return; }
 
             const timestamp = Timestamp.fromDate(new Date(date));
 
@@ -1825,13 +1528,9 @@
             try {
                 await updateDoc(debtRef, { remainingAmount: increment(-amount) });
                 await addDoc(transactionsColRef, { type: 'expense', amount: amount, category: '負債還款', project: debtName, remarks: remark || `償還負債: ${debtName}`, timestamp: timestamp });
-                repaymentForm.reset();
-                repaymentModal.classList.add('hidden');
-                showToast("還款已記錄");
-            } catch (error) { 
-                console.error("更新還款失敗:", error); 
-                showToast("記錄失敗", "error");
-            }
+                if (repaymentForm) repaymentForm.reset();
+                if (repaymentModal) repaymentModal.classList.add('hidden');
+            } catch (error) { console.error("更新還款失敗:", error); }
         }
 
         async function handleDeleteRepayment(e) {
@@ -1844,7 +1543,6 @@
 
             if (!txId || !debtId || isNaN(amountToRestore)) {
                 console.error("無法刪除還款紀錄：缺少必要資訊。");
-                showToast("刪除失敗", "error");
                 return;
             }
 
@@ -1857,12 +1555,10 @@
                 batch.delete(txRef);
                 batch.update(debtRef, { remainingAmount: increment(amountToRestore) });
                 await batch.commit();
-                handleDebtCardClick(debtId);
-                showToast("還款紀錄已刪除");
+                handleDebtCardClick(debtId); // 重新載入詳情
             } catch (error) {
                 console.error("刪除還款紀錄失敗:", error);
                 deleteBtn.disabled = false;
-                showToast("刪除失敗", "error");
             }
         }
 
@@ -1873,96 +1569,13 @@
                 try {
                     deleteBtn.disabled = true;
                     await deleteDoc(doc(db, collectionRef.path, id));
-                    showToast("項目已刪除");
-                } catch (error) { 
-                    console.error("刪除失敗:", error); 
-                    deleteBtn.disabled = false; 
-                    showToast("刪除失敗", "error");
-                }
-            }
-        }
-        
-        // [Re-added] Report Functions
-        function handleFilterThisMonth() {
-            const now = new Date();
-            const start = new Date(now.getFullYear(), now.getMonth(), 1);
-            const end = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
-            startDateInput.value = start.toISOString().split('T')[0];
-            endDateInput.value = end.toISOString().split('T')[0];
-            handleFilterCustomDate();
-        }
-
-        function handleFilterCustomDate() {
-            const startVal = startDateInput.value, endVal = endDateInput.value;
-            if (!startVal || !endVal) { 
-                showToast("請選擇開始與結束日期", "error"); 
-                return; 
-            }
-            const start = new Date(startVal), end = new Date(endVal);
-            end.setHours(23, 59, 59, 999);
-            const project = projectFilterSelect.value;
-            filterAndRenderDetails(start, end, null, null, project);
-        }
-
-        function filterAndRenderDetails(startDate, endDate, category = null, type = null, project = null) {
-            const transactionsInDateRange = allTransactions.filter(tx => {
-                if (!tx.timestamp) return false;
-                const txDate = tx.timestamp.toDate();
-                return txDate >= startDate && txDate <= endDate;
-            });
-
-            const transactionsForStatsAndList = (project && project !== 'all')
-                ? transactionsInDateRange.filter(tx => tx.project === project)
-                : transactionsInDateRange;
-
-            const expenseSummary = {};
-            const incomeSummary = {};
-            transactionsForStatsAndList.forEach(tx => {
-                if (tx.type === 'expense') {
-                    expenseSummary[tx.category] = (expenseSummary[tx.category] || 0) + tx.amount;
-                } else {
-                    incomeSummary[tx.category] = (incomeSummary[tx.category] || 0) + tx.amount;
-                }
-            });
-            renderCategoryStats(expenseStatsList, expenseSummary, 'expense');
-            renderCategoryStats(incomeStatsList, incomeSummary, 'income');
-
-            let finalFilteredList = [...transactionsForStatsAndList];
-
-            if (category && type) {
-                finalFilteredList = finalFilteredList.filter(tx => tx.category === category && tx.type === type);
-                activeCategoryFilter = { type, category };
-            } else {
-                activeCategoryFilter = { type: null, category: null };
-                document.querySelectorAll('.category-stat-item').forEach(item => item.classList.remove('active'));
-            }
-
-            renderFilteredTransactions(finalFilteredList);
-            updateFilteredSummary(finalFilteredList);
-        }
-
-        function handleCategoryClick(e) {
-            const statItem = e.target.closest('.category-stat-item');
-            if (!statItem) return;
-
-            const category = statItem.dataset.category;
-            const type = statItem.dataset.type;
-            const project = projectFilterSelect.value;
-
-            if (activeCategoryFilter.category === category && activeCategoryFilter.type === type) {
-                handleFilterCustomDate();
-            } else {
-                document.querySelectorAll('.category-stat-item').forEach(item => item.classList.remove('active'));
-                statItem.classList.add('active');
-                const start = new Date(startDateInput.value);
-                const end = new Date(endDateInput.value);
-                end.setHours(23, 59, 59, 999);
-                filterAndRenderDetails(start, end, category, type, project);
+                } catch (error) { console.error("刪除失敗:", error); deleteBtn.disabled = false; }
             }
         }
 
         // --- Helper Functions ---
         function updateTypeSelection() {
+            if (!expenseRadio || !typeLabels || typeLabels.length < 2) return;
             const isExpense = expenseRadio.checked;
             typeLabels[0].classList.toggle('bg-red-500', isExpense); typeLabels[0].classList.toggle('text-white', isExpense);
             typeLabels[1].classList.toggle('bg-green-500', !isExpense); typeLabels[1].classList.toggle('text-white', !isExpense);
@@ -1970,54 +1583,47 @@
         }
 
         function populateDatalist(datalistElement, items) {
+            if (!datalistElement) return;
             datalistElement.innerHTML = '';
             [...new Set(items)].forEach(item => { datalistElement.insertAdjacentHTML('beforeend', `<option value="${item}">${item}</option>`); });
         }
 
         function populateCategoryDatalist() {
+            if (!categoryDatalist || !expenseRadio) return;
             const type = expenseRadio.checked ? 'expense' : 'income';
             const categories = [...defaultCategories[type], ...customCategories.map(c => c.name)];
             populateDatalist(categoryDatalist, categories);
         }
-        
-        // [Re-added]
-        function populateProjectFilter() {
-            if (!projectFilterSelect) return; // 防禦性檢查
-            const projectsFromTransactions = allTransactions.map(tx => tx.project).filter(p => p);
-            const projectsFromCustomList = customProjects.map(p => p.name);
-            const allProjectNames = [...new Set([...projectsFromTransactions, ...projectsFromCustomList])].sort();
-            
-            const currentVal = projectFilterSelect.value;
-            projectFilterSelect.innerHTML = '<option value="all">全部專案</option>'; 
-            
-            allProjectNames.forEach(name => {
-                const selected = name === currentVal ? ' selected' : '';
-                projectFilterSelect.insertAdjacentHTML('beforeend', `<option value="${name}"${selected}>${name}</option>`);
-            });
-        }
-        
-        // [New] Populate Investment Budget Select Dropdown
+
         function populateInvestmentBudgetSelect() {
-            if (!budgetInvestmentSelect) return; // 防禦性檢查
-            budgetInvestmentSelect.innerHTML = '<option value="">-- 選擇投資帳戶 --</option>';
+            if (!budgetInvestmentSelect) return;
+            const currentVal = budgetInvestmentSelect.value;
+            budgetInvestmentSelect.innerHTML = '<option value="">-- 選擇帳戶 --</option>';
             allInvestments.forEach(inv => {
-                budgetInvestmentSelect.insertAdjacentHTML('beforeend', `<option value="${inv.id}" data-name="${inv.name}">${inv.name}</option>`);
+                const selected = inv.id === currentVal ? ' selected' : '';
+                // 將 investment name 存在 data-* 屬性中
+                budgetInvestmentSelect.insertAdjacentHTML('beforeend', `<option value="${inv.id}" data-name="${inv.name}"${selected}>${inv.name}</option>`);
             });
         }
 
         function populateModalList(ulElement, items, emptyMsg, type) {
+            if (!ulElement) return;
             ulElement.innerHTML = '';
             if (items.length === 0) { ulElement.innerHTML = `<li class="text-center text-gray-500">${emptyMsg}</li>`; return; }
             items.forEach(item => { ulElement.insertAdjacentHTML('beforeend', `<li class="flex justify-between items-center p-2 rounded-md hover:bg-gray-100"><span>${item.name}</span><button data-id="${item.id}" class="delete-${type}-btn text-red-400 hover:text-red-600 font-bold">刪除</button></li>`); });
         }
 
         function setupModal(openBtn, modal, closeBtns) {
+            if (!openBtn || !modal || !closeBtns) return;
             openBtn.addEventListener('click', () => modal.classList.remove('hidden'));
-            closeBtns.forEach(btn => btn.addEventListener('click', () => modal.classList.add('hidden')));
+            closeBtns.forEach(btn => {
+                if (btn) btn.addEventListener('click', () => modal.classList.add('hidden'));
+            });
             modal.addEventListener('click', (e) => { if (e.target === modal) modal.classList.add('hidden'); });
         }
 
         async function saveNewCustomItemIfNeeded(itemName, existingItems, collectionRef) {
+            if (!collectionRef) return;
             const trimmedName = itemName.trim();
             if (trimmedName === '') return;
             const isNew = !existingItems.some(item => item.name.toLowerCase() === trimmedName.toLowerCase());
@@ -2026,53 +1632,17 @@
                  catch (error) { console.error("儲存新項目失敗:", error); }
             }
         }
-        
-        function showToast(message, type = 'success') {
-            if (toastTimeout) clearTimeout(toastTimeout);
-            
-            toastMessage.textContent = message;
-            globalToast.classList.remove('hidden', 'opacity-0', 'translate-y-4', 'bg-red-600', 'bg-gray-900');
-            
-            if (type === 'error') {
-                globalToast.classList.add('bg-red-600');
-            } else {
-                globalToast.classList.add('bg-gray-900');
-            }
-            
-            // Force reflow
-            void globalToast.offsetWidth;
-            
-            globalToast.classList.remove('opacity-0', 'translate-y-4');
-            
-            toastTimeout = setTimeout(() => {
-                globalToast.classList.add('opacity-0');
-                setTimeout(() => globalToast.classList.add('hidden'), 300);
-            }, 3000);
-        }
 
-        function handlePrint(sectionSelector) {
-            const printSection = document.querySelector(sectionSelector);
-            if (!printSection) {
-                console.error("Print section not found:", sectionSelector);
-                return;
-            }
-            printSection.classList.add('print-section');
-            window.print();
-        }
-        
-        function handleAfterPrint() {
-            document.querySelectorAll('.print-section').forEach(el => {
-                el.classList.remove('print-section');
-            });
-        }
-        
         // --- App Initialization ---
         setupEventListeners();
         updateTypeSelection();
-        transactionDateInput.valueAsDate = new Date();
-        historyDateFilter.valueAsDate = new Date();
-        document.getElementById('event-date').valueAsDate = new Date();
-        document.getElementById('budget-expected-date').valueAsDate = new Date(); // New
+        if (transactionDateInput) transactionDateInput.valueAsDate = new Date();
+        if (historyDateFilter) historyDateFilter.valueAsDate = new Date();
+        const eventDateInput = document.getElementById('event-date');
+        if (eventDateInput) eventDateInput.valueAsDate = new Date();
+        const budgetExpectedDateInput = document.getElementById('budget-expected-date');
+        if (budgetExpectedDateInput) budgetExpectedDateInput.valueAsDate = new Date();
+
     </script>
 </body>
 </html>
