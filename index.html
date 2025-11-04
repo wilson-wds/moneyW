@@ -19,7 +19,6 @@
             color: #DC2626; /* red-600 */
             font-weight: 600;
         }
-        .category-stat-item.active { background-color: #dbeafe; }
     </style>
 </head>
 <body class="bg-gray-100 text-gray-800">
@@ -50,7 +49,6 @@
             <button id="tab-investment" class="tab-btn py-3 px-6 text-lg font-semibold border-b-4 border-transparent text-gray-500 hover:text-gray-800 transition-colors">投資</button>
             <button id="tab-debt" class="tab-btn py-3 px-6 text-lg font-semibold border-b-4 border-transparent text-gray-500 hover:text-gray-800 transition-colors">負債</button>
             <button id="tab-events" class="tab-btn py-3 px-6 text-lg font-semibold border-b-4 border-transparent text-gray-500 hover:text-gray-800 transition-colors">事件紀錄</button>
-            <button id="tab-reports" class="tab-btn py-3 px-6 text-lg font-semibold border-b-4 border-transparent text-gray-500 hover:text-gray-800 transition-colors">報表</button>
         </nav>
 
         <!-- 記帳分頁內容 -->
@@ -138,7 +136,7 @@
 
             <!-- 收入預算 -->
             <section class="bg-white p-6 md:p-8 rounded-2xl shadow-lg mb-8">
-                <h2 class="text-2xl font-bold mb-6">新增/編輯收入預算</h2>
+                <h2 class="text-2xl font-bold mb-6">新增收入預算</h2>
                 <form id="investment-budget-form" class="grid grid-cols-1 md:grid-cols-3 gap-6 items-start">
                     <div class="md:col-span-1">
                         <label for="budget-investment-select" class="block text-sm font-medium text-gray-700 mb-1">投資帳戶</label>
@@ -214,7 +212,7 @@
 
              <!-- 還款預算 -->
              <section class="bg-white p-6 md:p-8 rounded-2xl shadow-lg mb-8">
-                <h2 class="text-2xl font-bold mb-6">新增/編輯還款預算</h2>
+                <h2 class="text-2xl font-bold mb-6">新增還款預算</h2>
                 <form id="debt-budget-form" class="grid grid-cols-1 md:grid-cols-3 gap-6 items-start">
                     <div class="md:col-span-1">
                         <label for="budget-debt-select" class="block text-sm font-medium text-gray-700 mb-1">負債項目</label>
@@ -282,58 +280,6 @@
                 <p id="event-empty-state" class="hidden text-center text-gray-500 py-8">尚未有任何事件紀錄。</p>
             </section>
         </div>
-
-        <!-- 報表分頁內容 -->
-        <div id="reports-view" class="hidden">
-            <section class="bg-white p-6 md:p-8 rounded-2xl shadow-lg mb-8 no-print">
-                <h2 class="text-2xl font-bold mb-6">支出分類圖</h2>
-                <div id="no-expense-data" class="hidden text-center text-gray-500 py-8">尚無足夠的支出資料可產生報表。</div>
-                <div class="max-w-xl mx-auto"><canvas id="expense-chart"></canvas></div>
-            </section>
-            <section class="bg-white p-6 md:p-8 rounded-2xl shadow-lg mb-8 no-print">
-                <h2 class="text-2xl font-bold mb-6">期間分類統計 (可點擊)</h2>
-                <div class="grid md:grid-cols-2 gap-8">
-                    <div>
-                        <h3 class="text-xl font-bold mb-4 text-red-600">支出</h3>
-                        <ul id="expense-stats-list" class="space-y-1"></ul>
-                    </div>
-                    <div>
-                        <h3 class="text-xl font-bold mb-4 text-green-600">收入</h3>
-                        <ul id="income-stats-list" class="space-y-1"></ul>
-                    </div>
-                </div>
-            </section>
-            <section id="filtered-transaction-list-section" class="bg-white p-6 md:p-8 rounded-2xl shadow-lg">
-                <div class="flex justify-between items-center mb-6">
-                    <h2 class="text-2xl font-bold">交易明細</h2>
-                </div>
-                <div class="flex flex-wrap items-center gap-4 mb-6 p-4 bg-gray-50 rounded-lg border no-print">
-                    <button id="filter-this-month" class="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 transition">本月</button>
-                    <div class="flex items-center gap-2">
-                        <label for="start-date" class="text-sm font-medium">從:</label>
-                        <input type="date" id="start-date" class="p-2 border rounded-lg text-sm">
-                    </div>
-                    <div class="flex items-center gap-2">
-                        <label for="end-date" class="text-sm font-medium">到:</label>
-                        <input type="date" id="end-date" class="p-2 border rounded-lg text-sm">
-                    </div>
-                    <div class="flex items-center gap-2">
-                        <label for="project-filter" class="text-sm font-medium">專案:</label>
-                        <select id="project-filter" class="p-2 border rounded-lg text-sm bg-white">
-                            <option value="all">全部專案</option>
-                        </select>
-                    </div>
-                    <button id="filter-custom-date" class="bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700 transition">查詢</button>
-                </div>
-                <div id="filtered-summary" class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-                        <div class="bg-green-100 p-4 rounded-xl"><h3 class="font-semibold text-green-800">期間總收入</h3><p id="filtered-income" class="text-xl font-bold text-green-600">NT$ 0</p></div>
-                        <div class="bg-red-100 p-4 rounded-xl"><h3 class="font-semibold text-red-800">期間總支出</h3><p id="filtered-expense" class="text-xl font-bold text-red-600">NT$ 0</p></div>
-                        <div class="bg-blue-100 p-4 rounded-xl"><h3 class="font-semibold text-blue-800">期間結餘</h3><p id="filtered-balance" class="text-xl font-bold text-blue-600">NT$ 0</p></div>
-                </div>
-                <ul id="filtered-transaction-list" class="space-y-2"></ul>
-                <p id="filtered-empty-state" class="hidden text-center text-gray-500 py-8">在選定範圍內沒有交易紀錄。</p>
-            </section>
-        </div>
         
     </div>
     <!-- Modals -->
@@ -356,10 +302,8 @@
         const googleLoginBtn = document.getElementById('google-login-btn');
         const anonymousLoginBtn = document.getElementById('anonymous-login-btn');
         const appContainer = document.getElementById('app-container'), authInfo = document.getElementById('auth-info');
-        const accountingView = document.getElementById('accounting-view'), debtView = document.getElementById('debt-view'), eventsView = document.getElementById('events-view'), investmentView = document.getElementById('investment-view'),
-            reportsView = document.getElementById('reports-view'); // <-- 報表
-        const tabAccounting = document.getElementById('tab-accounting'), tabDebt = document.getElementById('tab-debt'), tabEvents = document.getElementById('tab-events'), tabInvestment = document.getElementById('tab-investment'),
-            tabReports = document.getElementById('tab-reports'); // <-- 報表
+        const accountingView = document.getElementById('accounting-view'), debtView = document.getElementById('debt-view'), eventsView = document.getElementById('events-view'), investmentView = document.getElementById('investment-view');
+        const tabAccounting = document.getElementById('tab-accounting'), tabDebt = document.getElementById('tab-debt'), tabEvents = document.getElementById('tab-events'), tabInvestment = document.getElementById('tab-investment');
         const form = document.getElementById('transaction-form'), amountInput = document.getElementById('amount'), transactionDateInput = document.getElementById('transaction-date'), remarksInput = document.getElementById('remarks'), transactionList = document.getElementById('transaction-list');
         const categoryInput = document.getElementById('category-input'), categoryDatalist = document.getElementById('category-list');
         const projectInput = document.getElementById('project-input'), projectDatalist = document.getElementById('project-list');
@@ -371,16 +315,6 @@
         const submitBtnText = document.getElementById('submit-btn-text'), submitSpinner = document.getElementById('submit-spinner');
         const manageCategoriesBtn = document.getElementById('manage-categories-btn'), categoryModal = document.getElementById('category-modal'), customCategoryList = document.getElementById('custom-category-list');
         const manageProjectsBtn = document.getElementById('manage-projects-btn'), projectModal = document.getElementById('project-modal'), customProjectList = document.getElementById('custom-project-list');
-        
-        // 報表 DOM
-        const expenseChartCanvas = document.getElementById('expense-chart'), noExpenseDataMsg = document.getElementById('no-expense-data');
-        const filterThisMonthBtn = document.getElementById('filter-this-month'), filterCustomDateBtn = document.getElementById('filter-custom-date'), startDateInput = document.getElementById('start-date'), endDateInput = document.getElementById('end-date');
-        const projectFilterSelect = document.getElementById('project-filter');
-        const filteredTransactionList = document.getElementById('filtered-transaction-list'), filteredEmptyState = document.getElementById('filtered-empty-state');
-        const filteredIncomeEl = document.getElementById('filtered-income'), filteredExpenseEl = document.getElementById('filtered-expense'), filteredBalanceEl = document.getElementById('filtered-balance');
-        const expenseStatsList = document.getElementById('expense-stats-list');
-        const incomeStatsList = document.getElementById('income-stats-list');
-        
         const debtForm = document.getElementById('debt-form'), debtList = document.getElementById('debt-list'), debtLoadingIndicator = document.getElementById('debt-loading-indicator'), debtEmptyState = document.getElementById('debt-empty-state');
         const totalInitialDebtEl = document.getElementById('total-initial-debt'), totalCurrentDebtEl = document.getElementById('total-current-debt'), totalRepaidDebtEl = document.getElementById('total-repaid-debt'), totalMonthlyRepaymentEl = document.getElementById('total-monthly-repayment');
         const repaymentModal = document.getElementById('repayment-modal'), repaymentForm = document.getElementById('repayment-form'), repaymentDebtIdInput = document.getElementById('repayment-debt-id'), repaymentDebtNameInput = document.getElementById('repayment-debt-name'), repaymentAmountInput = document.getElementById('repayment-amount'), repaymentDateInput = document.getElementById('repayment-date'), cancelRepaymentBtn = document.getElementById('cancel-repayment-btn');
@@ -420,11 +354,6 @@
         let transactionsColRef, categoriesColRef, projectsColRef, debtsColRef, eventsColRef, investmentsColRef, investmentBudgetsColRef, debtBudgetsColRef;
         let unsubscribeTransactions, unsubscribeCategories, unsubscribeProjects, unsubscribeDebts, unsubscribeEvents, unsubscribeInvestments, unsubscribeInvestmentBudgets, unsubscribeDebtBudgets;
         let allTransactions = [], customCategories = [], customProjects = [], allDebts = [], allEvents = [], allInvestments = [], allInvestmentBudgets = [], allDebtBudgets = [];
-        
-        // 報表狀態
-        let expenseChart = null;
-        let activeCategoryFilter = { type: null, category: null };
-        
         const defaultCategories = { expense: ['飲食', '交通', '居住', '娛樂', '購物', '醫療', '教育', '負債還款', '投資支出', '其他'], income: ['薪資', '獎金', '投資收入', '兼職', '債權回收', '其他'] };
 
         const firebaseConfig = {
@@ -458,7 +387,7 @@
 
                 listenForTransactions();
                 listenForCustomItems(categoriesColRef, (items) => { customCategories = items; populateCategoryDatalist(); populateModalList(customCategoryList, customCategories, '尚無自訂分類', 'category'); });
-                listenForCustomItems(projectsColRef, (items) => { customProjects = items; populateDatalist(projectDatalist, customProjects.map(p => p.name)); populateModalList(customProjectList, customProjects, '尚無自訂專案', 'project'); populateProjectFilter(); });
+                listenForCustomItems(projectsColRef, (items) => { customProjects = items; populateDatalist(projectDatalist, customProjects.map(p => p.name)); populateModalList(customProjectList, customProjects, '尚無自訂專案', 'project'); });
                 listenForDebts();
                 listenForEvents();
                 listenForInvestments();
@@ -514,13 +443,10 @@
                 allTransactions.sort((a, b) => (b.timestamp?.toMillis() || 0) - (a.timestamp?.toMillis() || 0));
 
                 renderMainTransactionList();
-                populateProjectFilter(); // <-- 報表需要
                 updateSummary(allTransactions);
                 updateTodaySummary(allTransactions);
                 updateMonthlySummary(allTransactions);
-                updateExpenseChart(); // <-- 報表需要
                 updateMonthlyRepaymentSummary();
-                if(reportsView && reportsView.classList.contains('hidden') === false) { handleFilterThisMonth(); } // <-- 報表需要
             }, (error) => console.error("監聽交易資料失敗:", error));
         }
 
@@ -576,9 +502,9 @@
             unsubscribeInvestmentBudgets = onSnapshot(q, (snapshot) => {
                 allInvestmentBudgets = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
                 
-                // 在客戶端過濾 (b.isRealized === false 改為 !b.isRealized)
+                // *** 修正點 ***：使用 !b.isRealized 來處理 false 和 undefined
                 const pendingBudgets = allInvestmentBudgets
-                    .filter(b => !b.isRealized) // <-- 修正於此
+                    .filter(b => !b.isRealized) 
                     .sort((a, b) => (a.expectedDate?.toMillis() || 0) - (b.expectedDate?.toMillis() || 0));
                 
                 renderInvestmentBudgets(pendingBudgets);
@@ -595,9 +521,9 @@
             unsubscribeDebtBudgets = onSnapshot(q, (snapshot) => {
                 allDebtBudgets = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
                 
-                // 在客戶端過濾 (b.isRealized === false 改為 !b.isRealized)
+                // *** 修正點 ***：使用 !b.isRealized 來處理 false 和 undefined
                 const pendingBudgets = allDebtBudgets
-                    .filter(b => !b.isRealized) // <-- 修正於此
+                    .filter(b => !b.isRealized)
                     .sort((a, b) => (a.expectedDate?.toMillis() || 0) - (b.expectedDate?.toMillis() || 0));
 
                 renderDebtBudgets(pendingBudgets);
@@ -645,55 +571,6 @@
                 transactionList.appendChild(li);
             });
         }
-
-        // --- 報表渲染函式 ---
-        function renderFilteredTransactions(transactions) {
-            filteredTransactionList.innerHTML = '';
-            filteredEmptyState.classList.toggle('hidden', transactions.length > 0);
-            transactions.forEach(tx => {
-                const isIncome = tx.type === 'income';
-                const li = document.createElement('li');
-                li.className = 'grid grid-cols-6 gap-2 items-center p-2 rounded-md hover:bg-gray-50 text-sm border-b';
-                li.innerHTML = `
-                    <span class="text-gray-600 col-span-1">${tx.timestamp ? tx.timestamp.toDate().toLocaleDateString('zh-TW') : '...'}</span>
-                    <span class="font-medium col-span-1">${tx.category}</span>
-                    <span class="text-gray-500 col-span-1">${tx.project || ''}</span>
-                    <span class="text-gray-500 truncate col-span-1">${tx.remarks || ''}</span>
-                    <span class="font-bold text-right col-span-1 ${isIncome ? 'text-green-600' : 'text-red-600'}">${isIncome ? '+' : '-'} ${tx.amount.toLocaleString()}</span>
-                    <div class="text-center col-span-1 no-print">
-                         <button data-id="${tx.id}" class="edit-btn text-gray-400 hover:text-blue-500 p-1 rounded-full">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.5L15.232 5.232z"></path></svg>
-                         </button>
-                         <button data-id="${tx.id}" class="delete-btn text-gray-400 hover:text-red-500 p-1 rounded-full">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
-                         </button>
-                    </div>
-                `;
-                filteredTransactionList.appendChild(li);
-            });
-        }
-
-        function renderCategoryStats(listElement, summaryData, type) {
-            listElement.innerHTML = '';
-            const sortedSummary = Object.entries(summaryData).sort(([, a], [, b]) => b - a);
-
-            if (sortedSummary.length === 0) {
-                listElement.innerHTML = `<li class="text-center text-gray-400 text-sm py-2">無資料</li>`;
-                return;
-            }
-            sortedSummary.forEach(([category, amount]) => {
-                const li = document.createElement('li');
-                li.className = 'flex justify-between p-2 hover:bg-gray-100 rounded cursor-pointer category-stat-item';
-                li.dataset.category = category;
-                li.dataset.type = type;
-                li.innerHTML = `
-                    <span>${category}</span>
-                    <span class="font-mono">${amount.toLocaleString()}</span>
-                `;
-                listElement.appendChild(li);
-            });
-        }
-        // --- 報表渲染函式結束 ---
 
         function renderDebts(debts) {
             debtList.innerHTML = '';
@@ -813,21 +690,16 @@
 
                 li.className = `flex items-center justify-between p-4 rounded-lg bg-green-50 border border-green-200 ${isExpired ? 'budget-item-expired' : ''}`;
                 li.innerHTML = `
-                    <div class="flex items-center gap-3 flex-grow">
+                    <div class="flex items-center gap-3">
                         <input type="checkbox" class="realize-budget-btn h-5 w-5 text-green-600 rounded" data-id="${budget.id}">
                         <div>
                             <p class="font-bold text-green-800">${budget.description}</p>
-                            <p class="text-sm text-gray-600">${budget.investmentName}・預期獲利: NT$ ${budget.amount.toLocaleString()}</p>
+                            <!-- *** 修正點 ***：增加 (budget.amount || 0) 確保 amount 不是 undefined -->
+                            <p class="text-sm text-gray-600">${budget.investmentName}・預期獲利: NT$ ${(budget.amount || 0).toLocaleString()}</p>
                         </div>
                     </div>
-                    <div class="text-right flex items-center gap-2">
+                    <div class="text-right">
                         <span class="budget-date text-sm text-gray-500">${expectedDate.toLocaleDateString('zh-TW')}</span>
-                        <button class="edit-budget-btn text-gray-400 hover:text-blue-500 p-1" data-id="${budget.id}" data-type="investment">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.5L15.232 5.232z"></path></svg>
-                        </button>
-                        <button class="delete-budget-btn text-gray-400 hover:text-red-500 p-1" data-id="${budget.id}" data-type="investment">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
-                        </button>
                     </div>
                 `;
                 investmentBudgetList.appendChild(li);
@@ -846,21 +718,16 @@
 
                 li.className = `flex items-center justify-between p-4 rounded-lg bg-red-50 border border-red-200 ${isExpired ? 'budget-item-expired' : ''}`;
                 li.innerHTML = `
-                    <div class="flex items-center gap-3 flex-grow">
+                    <div class="flex items-center gap-3">
                         <input type="checkbox" class="realize-debt-budget-btn h-5 w-5 text-red-600 rounded" data-id="${budget.id}">
                         <div>
                             <p class="font-bold text-red-800">${budget.description}</p>
-                            <p class="text-sm text-gray-600">${budget.debtName}・預計還款: NT$ ${budget.amount.toLocaleString()}</p>
+                            <!-- *** 修正點 ***：增加 (budget.amount || 0) 確保 amount 不是 undefined -->
+                            <p class="text-sm text-gray-600">${budget.debtName}・預計還款: NT$ ${(budget.amount || 0).toLocaleString()}</p>
                         </div>
                     </div>
-                    <div class="text-right flex items-center gap-2">
+                    <div class="text-right">
                         <span class="budget-date text-sm text-gray-500">${expectedDate.toLocaleDateString('zh-TW')}</span>
-                        <button class="edit-budget-btn text-gray-400 hover:text-blue-500 p-1" data-id="${budget.id}" data-type="debt">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.5L15.232 5.232z"></path></svg>
-                        </button>
-                        <button class="delete-budget-btn text-gray-400 hover:text-red-500 p-1" data-id="${budget.id}" data-type="debt">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
-                        </button>
                     </div>
                 `;
                 debtBudgetList.appendChild(li);
@@ -1020,107 +887,6 @@
             if (totalMonthlyRepaymentEl) totalMonthlyRepaymentEl.textContent = `NT$ ${totalMonthlyPayment.toLocaleString()}`;
         }
 
-        // --- 報表相關函式 ---
-        function updateFilteredSummary(transactions) {
-            const income = transactions.filter(t => t.type === 'income').reduce((sum, t) => sum + t.amount, 0);
-            const expense = transactions.filter(t => t.type === 'expense').reduce((sum, t) => sum + t.amount, 0);
-            filteredIncomeEl.textContent = `NT$ ${income.toLocaleString()}`;
-            filteredExpenseEl.textContent = `NT$ ${expense.toLocaleString()}`;
-            filteredBalanceEl.textContent = `NT$ ${(income - expense).toLocaleString()}`;
-        }
-
-        function updateExpenseChart() {
-            if (!expenseChartCanvas) return; // 如果報表視圖不存在，則跳過
-            const expenseData = allTransactions.filter(t => t.type === 'expense');
-            noExpenseDataMsg.classList.toggle('hidden', expenseData.length > 0);
-            expenseChartCanvas.classList.toggle('hidden', expenseData.length === 0);
-            if(expenseData.length === 0) { if(expenseChart) expenseChart.destroy(); return; }
-            const dataByCategory = expenseData.reduce((acc, curr) => { acc[curr.category] = (acc[curr.category] || 0) + curr.amount; return acc; }, {});
-            if (expenseChart) expenseChart.destroy();
-            expenseChart = new Chart(expenseChartCanvas, {
-                type: 'pie',
-                data: { labels: Object.keys(dataByCategory), datasets: [{ label: '支出金額', data: Object.values(dataByCategory), backgroundColor: ['#ff6384', '#36a2eb', '#ffce56', '#4bc0c0', '#9966ff', '#ff9f40', '#c9cbcf'], hoverOffset: 4 }] },
-                options: { responsive: true, maintainAspectRatio: true }
-            });
-        }
-
-        function handleFilterThisMonth() {
-            const now = new Date();
-            const start = new Date(now.getFullYear(), now.getMonth(), 1);
-            const end = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
-            startDateInput.value = start.toISOString().split('T')[0];
-            endDateInput.value = end.toISOString().split('T')[0];
-            handleFilterCustomDate();
-        }
-
-        function handleFilterCustomDate() {
-            const startVal = startDateInput.value, endVal = endDateInput.value;
-            if (!startVal || !endVal) { console.warn("請選擇開始與結束日期"); return; }
-            const start = new Date(startVal), end = new Date(endVal);
-            end.setHours(23, 59, 59, 999);
-            const project = projectFilterSelect.value;
-            filterAndRenderDetails(start, end, null, null, project);
-        }
-
-        function filterAndRenderDetails(startDate, endDate, category = null, type = null, project = null) {
-            const transactionsInDateRange = allTransactions.filter(tx => {
-                if (!tx.timestamp) return false;
-                const txDate = tx.timestamp.toDate();
-                return txDate >= startDate && txDate <= endDate;
-            });
-
-            const transactionsForStatsAndList = (project && project !== 'all')
-                ? transactionsInDateRange.filter(tx => tx.project === project)
-                : transactionsInDateRange;
-
-            const expenseSummary = {};
-            const incomeSummary = {};
-            transactionsForStatsAndList.forEach(tx => {
-                if (tx.type === 'expense') {
-                    expenseSummary[tx.category] = (expenseSummary[tx.category] || 0) + tx.amount;
-                } else {
-                    incomeSummary[tx.category] = (incomeSummary[tx.category] || 0) + tx.amount;
-                }
-            });
-            renderCategoryStats(expenseStatsList, expenseSummary, 'expense');
-            renderCategoryStats(incomeStatsList, incomeSummary, 'income');
-
-            let finalFilteredList = [...transactionsForStatsAndList];
-
-            if (category && type) {
-                finalFilteredList = finalFilteredList.filter(tx => tx.category === category && tx.type === type);
-                activeCategoryFilter = { type, category };
-            } else {
-                activeCategoryFilter = { type: null, category: null };
-                document.querySelectorAll('.category-stat-item').forEach(item => item.classList.remove('active'));
-            }
-
-            renderFilteredTransactions(finalFilteredList);
-            updateFilteredSummary(finalFilteredList);
-        }
-
-        function handleCategoryClick(e) {
-            const statItem = e.target.closest('.category-stat-item');
-            if (!statItem) return;
-
-            const category = statItem.dataset.category;
-            const type = statItem.dataset.type;
-            const project = projectFilterSelect.value;
-
-            if (activeCategoryFilter.category === category && activeCategoryFilter.type === type) {
-                handleFilterCustomDate();
-            } else {
-                document.querySelectorAll('.category-stat-item').forEach(item => item.classList.remove('active'));
-                statItem.classList.add('active');
-                const start = new Date(startDateInput.value);
-                const end = new Date(endDateInput.value);
-                end.setHours(23, 59, 59, 999);
-                filterAndRenderDetails(start, end, category, type, project);
-            }
-        }
-        // --- 報表函式結束 ---
-
-
         // --- UI & Event Listeners ---
         function setupEventListeners() {
             googleLoginBtn.addEventListener('click', () => {
@@ -1135,7 +901,6 @@
             tabInvestment.addEventListener('click', () => switchTab('investment'));
             tabDebt.addEventListener('click', () => switchTab('debt'));
             tabEvents.addEventListener('click', () => switchTab('events'));
-            tabReports.addEventListener('click', () => switchTab('reports')); // <-- 報表
 
             form.addEventListener('submit', handleFormSubmit);
             debtForm.addEventListener('submit', handleDebtFormSubmit);
@@ -1169,7 +934,6 @@
                 }
             };
             transactionList.addEventListener('click', handleTransactionListClick);
-            filteredTransactionList.addEventListener('click', handleTransactionListClick); // <-- 報表
 
             eventList.addEventListener('click', (e) => handleDelete(e, '.delete-event-btn', eventsColRef));
 
@@ -1200,13 +964,6 @@
             customCategoryList.addEventListener('click', (e) => handleDelete(e, '.delete-category-btn', categoriesColRef));
             customProjectList.addEventListener('click', (e) => handleDelete(e, '.delete-project-btn', projectsColRef));
             
-            // 報表事件
-            filterThisMonthBtn.addEventListener('click', handleFilterThisMonth);
-            filterCustomDateBtn.addEventListener('click', handleFilterCustomDate);
-            projectFilterSelect.addEventListener('change', handleFilterCustomDate);
-            expenseStatsList.addEventListener('click', handleCategoryClick);
-            incomeStatsList.addEventListener('click', handleCategoryClick);
-            
             closeDebtDetailModalBtn.addEventListener('click', () => debtDetailModal.classList.add('hidden'));
             editDebtBtn.addEventListener('click', toggleDebtEditView);
             cancelEditDebtBtn.addEventListener('click', toggleDebtEditView);
@@ -1222,41 +979,27 @@
                 renderMainTransactionList();
             });
 
-            // 預算實現 (改為 click)
-            investmentBudgetList.addEventListener('click', (e) => {
+            // 預算實現
+            investmentBudgetList.addEventListener('change', (e) => {
                 if(e.target.classList.contains('realize-budget-btn')) {
                     handleRealizeBudget(e.target);
-                } else if (e.target.closest('.edit-budget-btn')) {
-                    handleEditBudgetClick(e.target.closest('.edit-budget-btn'));
-                } else if (e.target.closest('.delete-budget-btn')) {
-                    handleDeleteBudgetClick(e.target.closest('.delete-budget-btn'));
                 }
             });
-            debtBudgetList.addEventListener('click', (e) => {
+            debtBudgetList.addEventListener('change', (e) => {
                 if(e.target.classList.contains('realize-debt-budget-btn')) {
                     handleRealizeDebtBudget(e.target);
-                } else if (e.target.closest('.edit-budget-btn')) {
-                    handleEditBudgetClick(e.target.closest('.edit-budget-btn'));
-                } else if (e.target.closest('.delete-budget-btn')) {
-                    handleDeleteBudgetClick(e.target.closest('.delete-budget-btn'));
                 }
             });
         }
 
         function switchTab(tabName) {
-            const views = { accounting: accountingView, investment: investmentView, debt: debtView, events: eventsView, reports: reportsView }; // <-- 報表
-            const tabs = { accounting: tabAccounting, investment: tabInvestment, debt: tabDebt, events: tabEvents, reports: tabReports }; // <-- 報表
+            const views = { accounting: accountingView, investment: investmentView, debt: debtView, events: eventsView };
+            const tabs = { accounting: tabAccounting, investment: tabInvestment, debt: tabDebt, events: tabEvents };
 
             for (const key in views) {
                 const isHidden = key !== tabName;
                 if(views[key]) views[key].classList.toggle('hidden', isHidden);
                 if(tabs[key]) tabs[key].classList.toggle('active', !isHidden);
-            }
-
-            // 報表 Tab 特殊處理
-            if(tabName === 'reports') {
-                updateExpenseChart();
-                handleFilterThisMonth();
             }
         }
         
@@ -1630,48 +1373,6 @@
                 checkbox.checked = false;
             }
         }
-        
-        // --- 預算編輯/刪除函式 ---
-        function handleEditBudgetClick(btn) {
-            const id = btn.dataset.id;
-            const type = btn.dataset.type;
-
-            if (type === 'investment') {
-                const budget = allInvestmentBudgets.find(b => b.id === id);
-                if (!budget) return;
-
-                // 填充表單
-                document.getElementById('budget-investment-select').value = budget.investmentId;
-                document.getElementById('budget-expected-date').value = budget.expectedDate.toDate().toISOString().split('T')[0];
-                document.getElementById('budget-expected-amount').value = budget.amount;
-                document.getElementById('budget-description').value = budget.description;
-                
-                // 刪除舊的
-                handleDelete(btn, '.edit-budget-btn', investmentBudgetsColRef);
-                investmentBudgetForm.scrollIntoView({ behavior: 'smooth' });
-
-            } else if (type === 'debt') {
-                const budget = allDebtBudgets.find(b => b.id === id);
-                if (!budget) return;
-
-                // 填充表單
-                document.getElementById('budget-debt-select').value = budget.debtId;
-                document.getElementById('debt-budget-expected-date').value = budget.expectedDate.toDate().toISOString().split('T')[0];
-                document.getElementById('debt-budget-expected-amount').value = budget.amount;
-                document.getElementById('debt-budget-description').value = budget.description;
-
-                // 刪除舊的
-                handleDelete(btn, '.edit-budget-btn', debtBudgetsColRef);
-                debtBudgetForm.scrollIntoView({ behavior: 'smooth' });
-            }
-        }
-
-        function handleDeleteBudgetClick(btn) {
-            const type = btn.dataset.type;
-            const colRef = (type === 'investment') ? investmentBudgetsColRef : debtBudgetsColRef;
-            handleDelete(btn, '.delete-budget-btn', colRef);
-        }
-        // --- 預算編輯/刪除結束 ---
 
         function handleAddInvestmentTxClick(btn) {
             if(btn) {
@@ -1984,21 +1685,6 @@
             const type = expenseRadio.checked ? 'expense' : 'income';
             const categories = [...defaultCategories[type], ...customCategories.map(c => c.name)];
             populateDatalist(categoryDatalist, categories);
-        }
-
-        function populateProjectFilter() {
-            if (!projectFilterSelect) return;
-            const projectsFromTransactions = allTransactions.map(tx => tx.project).filter(p => p);
-            const projectsFromCustomList = customProjects.map(p => p.name);
-            const allProjectNames = [...new Set([...projectsFromTransactions, ...projectsFromCustomList])].sort();
-            
-            const currentVal = projectFilterSelect.value;
-            projectFilterSelect.innerHTML = '<option value="all">全部專案</option>'; 
-            
-            allProjectNames.forEach(name => {
-                const selected = name === currentVal ? ' selected' : '';
-                projectFilterSelect.insertAdjacentHTML('beforeend', `<option value="${name}"${selected}>${name}</option>`);
-            });
         }
 
         function populateInvestmentBudgetSelect() {
