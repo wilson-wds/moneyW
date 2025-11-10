@@ -5,6 +5,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>雲端記帳軟體 (完整版)</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <!-- PDF 匯出工具 -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <!-- 報表 Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
     <style>
@@ -15,65 +19,53 @@
         ::-webkit-scrollbar { width: 8px; } ::-webkit-scrollbar-track { background: #f1f1f1; } ::-webkit-scrollbar-thumb { background: #888; border-radius: 4px; } ::-webkit-scrollbar-thumb:hover { background: #555; }
         .tab-btn.active { border-color: #3b82f6; background-color: #3b82f6; color: white; }
         .debt-card-clickable, .investment-card-clickable { cursor: pointer; }
-        .budget-item-expired .budget-date {
-            color: #DC2626; /* red-600 */
-            font-weight: 600;
-        }
         .category-stat-item.active { background-color: #dbeafe; }
-
-        /* --- Calendar Styles --- */
-        .calendar {
-            display: grid;
-            grid-template-columns: repeat(7, 1fr);
-            gap: 4px;
+        
+        /* 日曆樣式 */
+        .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); }
+        .calendar-day { border: 1px solid #e5e7eb; min-height: 100px; padding: 4px; font-size: 0.75rem; }
+        .calendar-day-header { font-weight: 600; text-align: center; padding: 8px 0; background-color: #f9fafb; border-bottom: 1px solid #e5e7eb; }
+        .calendar-day.other-month { background-color: #f9fafb; color: #9ca3af; }
+        .event-badge {
+            font-size: 0.7rem; padding: 2px 4px; border-radius: 4px; margin-top: 4px;
+            overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
         }
-        .calendar-day {
-            min-height: 120px;
-            padding: 8px;
-            background-color: #ffffff;
-            border: 1px solid #e5e7eb;
-            border-radius: 8px;
-            font-size: 0.875rem;
-            position: relative;
+        
+        /* PDF 匯出時的樣式 */
+        .exporting-pdf .no-export { display: none !important; }
+        .exporting-pdf .pdf-page {
+            display: block !important;
+            visibility: visible !important;
+            float: none !important;
+            position: static !important;
+            opacity: 1 !important;
+            margin-bottom: 20px;
+            border: 1px solid #ccc;
+            box-shadow: none;
         }
-        .calendar-day-header {
-            font-weight: 600;
-            text-align: center;
-            padding: 12px 0;
-            background-color: #f3f4f6;
-            border-radius: 8px;
+        .exporting-pdf #app-container {
+            max-width: none !important;
+            padding: 0 !important;
         }
-        .calendar-day-number {
-            font-weight: 500;
-            color: #1f2937;
+        .exporting-pdf body {
+            background-color: #fff;
         }
-        .calendar-day.other-month {
-            background-color: #f9fafb;
+        .pdf-page-break {
+            page-break-after: always;
         }
-        .calendar-day.other-month .calendar-day-number {
-            color: #9ca3af;
-        }
-        .calendar-event {
-            display: block;
-            font-size: 0.75rem;
-            padding: 2px 6px;
-            border-radius: 4px;
-            margin-top: 4px;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
+        .pdf-export-overlay {
+            position: fixed;
+            inset: 0;
+            background-color: rgba(0, 0, 0, 0.7);
             color: white;
-            cursor: default;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 9998;
         }
-        .calendar-event-investment {
-            background-color: #10b981; /* green-600 */
-        }
-        .calendar-event-debt {
-            background-color: #ef4444; /* red-600 */
-        }
-    </style>
-    <!-- Print-specific styles -->
-    <style>
+
+        /* Print-specific styles */
         @media print {
             body * { visibility: hidden; }
             .print-section, .print-section * { visibility: visible; }
@@ -106,25 +98,26 @@
             </button>
         </div>
     </div>
+    
     <!-- 主應用程式畫面 (預設隱藏) -->
     <div id="app-container" class="container mx-auto p-4 md:p-8 max-w-5xl opacity-0 transition-opacity duration-500 hidden">
-        <header class="mb-6 text-center no-print">
+        <header class="mb-6 text-center no-print no-export">
             <div id="auth-info" class="flex justify-center items-center gap-4 mb-4"></div>
             <h1 class="text-4xl font-bold text-gray-800">雲端記帳軟體</h1>
         </header>
 
         <!-- 分頁導覽 -->
-        <nav class="mb-8 flex justify-center border-b flex-wrap no-print">
+        <nav class="mb-8 flex justify-center border-b flex-wrap no-print no-export">
             <button id="tab-accounting" class="tab-btn active py-3 px-6 text-lg font-semibold border-b-4 transition-colors">記帳</button>
             <button id="tab-investment" class="tab-btn py-3 px-6 text-lg font-semibold border-b-4 border-transparent text-gray-500 hover:text-gray-800 transition-colors">投資</button>
             <button id="tab-debt" class="tab-btn py-3 px-6 text-lg font-semibold border-b-4 border-transparent text-gray-500 hover:text-gray-800 transition-colors">負債</button>
             <button id="tab-events" class="tab-btn py-3 px-6 text-lg font-semibold border-b-4 border-transparent text-gray-500 hover:text-gray-800 transition-colors">事件紀錄</button>
             <button id="tab-reports" class="tab-btn py-3 px-6 text-lg font-semibold border-b-4 border-transparent text-gray-500 hover:text-gray-800 transition-colors">報表</button>
-            <button id="tab-calendar" class="tab-btn py-3 px-6 text-lg font-semibold border-b-4 border-transparent text-gray-500 hover:text-gray-800 transition-colors">行事曆</button>
+            <button id="tab-export-pdf" class="py-3 px-6 text-lg font-semibold border-b-4 border-transparent text-blue-600 hover:text-blue-800 transition-colors">匯出 PDF</button>
         </nav>
 
         <!-- 記帳分頁內容 -->
-        <div id="accounting-view">
+        <div id="accounting-view" class="pdf-page" data-title="主要記帳">
             <section class="mb-8 bg-white p-6 md:p-8 rounded-2xl shadow-lg no-print">
                 <h2 class="text-2xl font-bold mb-6 text-center">即時統計</h2>
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -155,7 +148,7 @@
                 </div>
             </section>
             
-            <section class="bg-white p-6 md:p-8 rounded-2xl shadow-lg mb-8 no-print">
+            <section class="bg-white p-6 md:p-8 rounded-2xl shadow-lg mb-8 no-print no-export">
                 <h2 class="text-2xl font-bold mb-6">新增 / 編輯紀錄</h2>
                 <form id="transaction-form" class="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <input type="hidden" id="transaction-id">
@@ -170,6 +163,7 @@
                     <div class="md:col-span-2"><button type="submit" class="w-full bg-blue-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-4 focus:ring-blue-300 flex justify-center items-center"><span id="submit-btn-text">新增紀錄</span><div id="submit-spinner" class="hidden loader-small"></div></button></div>
                 </form>
             </section>
+            
             <section id="main-transaction-list-section" class="bg-white p-6 md:p-8 rounded-2xl shadow-lg">
                 <div class="flex flex-wrap justify-between items-center mb-4 gap-4">
                     <h2 class="text-2xl font-bold">歷史紀錄</h2>
@@ -188,7 +182,7 @@
         </div>
 
         <!-- 投資分頁內容 -->
-        <div id="investment-view" class="hidden">
+        <div id="investment-view" class="hidden pdf-page" data-title="投資">
             <section class="mb-8">
                 <h2 class="text-xl font-bold text-gray-700 mb-4">投資總覽</h2>
                 <div id="investment-summary" class="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -206,55 +200,57 @@
                     </div>
                 </div>
             </section>
-
-            <!-- 收入預算 -->
-            <section class="bg-white p-6 md:p-8 rounded-2xl shadow-lg mb-8">
-                <h2 class="text-2xl font-bold mb-6">新增收入預算</h2>
-                <form id="investment-budget-form" class="grid grid-cols-1 md:grid-cols-3 gap-6 items-start">
-                    <!-- 隱藏的 input 用於編輯 -->
-                    <input type="hidden" id="budget-edit-id">
-
-                    <div class="md:col-span-1">
-                        <label for="budget-investment-select" class="block text-sm font-medium text-gray-700 mb-1">投資帳戶</label>
-                        <select id="budget-investment-select" class="w-full p-3 border border-gray-300 rounded-lg bg-white" required>
-                            <option value="">-- 選擇帳戶 --</option>
-                        </select>
-                    </div>
-                    <div class="md:col-span-1">
-                        <label for="budget-expected-date" class="block text-sm font-medium text-gray-700 mb-1">預期日期</label>
-                        <input type="date" id="budget-expected-date" class="w-full p-3 border border-gray-300 rounded-lg" required>
-                    </div>
-                    <div class="md:col-span-1">
-                        <label for="budget-expected-amount" class="block text-sm font-medium text-gray-700 mb-1">預期金額</label>
-                        <input type="number" id="budget-expected-amount" placeholder="輸入預期獲利" class="w-full p-3 border border-gray-300 rounded-lg" required>
-                    </div>
-                    <div class="md:col-span-3">
-                        <label for="budget-description" class="block text-sm font-medium text-gray-700 mb-1">說明</label>
-                        <input type="text" id="budget-description" placeholder="例如: 賣出 TSMC 1 股" class="w-full p-3 border border-gray-300 rounded-lg" required>
-                    </div>
-                    <div class="md:col-span-3 flex items-end gap-4">
-                        <button type="submit" id="budget-submit-btn" class="w-full bg-green-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-green-700">新增預算</button>
-                        <button type="button" id="budget-cancel-edit-btn" class="w-full bg-gray-500 text-white font-bold py-3 px-4 rounded-lg hover:bg-gray-600 hidden">取消編輯</button>
-                    </div>
-                </form>
+            
+            <section id="ai-investment-summary-section" class="mb-8 bg-white p-6 md:p-8 rounded-2xl shadow-lg no-print">
+                <h2 class="text-2xl font-bold mb-4">✨ AI 投資分析</h2>
+                <p class="text-gray-600 mb-6">點擊按鈕，讓 AI 分析您目前的投資組合表現並提供建議。</p>
+                <button id="generate-investment-summary-btn" class="w-full bg-gradient-to-r from-purple-500 to-indigo-600 text-white font-bold py-3 px-4 rounded-lg hover:from-purple-600 hover:to-indigo-700 focus:outline-none focus:ring-4 focus:ring-purple-300 flex justify-center items-center">
+                    <span id="ai-investment-btn-text">開始分析</span>
+                    <div id="ai-investment-spinner" class="hidden loader-small"></div>
+                </button>
+                <div id="ai-investment-summary-output" class="mt-6 p-4 bg-gray-50 rounded-lg border hidden whitespace-pre-wrap font-mono"></div>
             </section>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
+                <section class="bg-white p-6 md:p-8 rounded-2xl shadow-lg no-print no-export">
+                    <h2 class="text-2xl font-bold mb-6">新增投資帳戶</h2>
+                    <form id="investment-form" class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div><label for="investment-name" class="block text-sm font-medium text-gray-700 mb-1">帳戶名稱</label><input type="text" id="investment-name" placeholder="例如: 富邦證券" class="w-full p-3 border border-gray-300 rounded-lg" required></div>
+                        <div><label for="investment-initial-value" class="block text-sm font-medium text-gray-700 mb-1">初始投入金額 (選填)</label><input type="number" id="investment-initial-value" placeholder="輸入初始金額 (可為0)" class="w-full p-3 border border-gray-300 rounded-lg"></div>
+                        <div class="md:col-span-2"><button type="submit" class="w-full bg-blue-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-blue-700">建立帳戶</button></div>
+                    </form>
+                </section>
+                
+                <section class="bg-white p-6 md:p-8 rounded-2xl shadow-lg no-print no-export">
+                    <h2 class="text-2xl font-bold mb-6">新增收入預算</h2>
+                    <form id="investment-budget-form" class="space-y-4">
+                        <input type="hidden" id="budget-edit-id">
+                        <div>
+                            <label for="budget-investment-select" class="block text-sm font-medium text-gray-700 mb-1">投資帳戶 / 負債項目</label>
+                            <select id="budget-investment-select" class="w-full p-3 border border-gray-300 rounded-lg bg-white" required>
+                                <option value="" data-name="">-- 請選擇 --</option>
+                            </select>
+                        </div>
+                        <div class="grid grid-cols-2 gap-4">
+                             <div><label for="budget-expected-date" class="block text-sm font-medium text-gray-700 mb-1">預期日期</label><input type="date" id="budget-expected-date" class="w-full p-3 border border-gray-300 rounded-lg" required></div>
+                             <div><label for="budget-expected-amount" class="block text-sm font-medium text-gray-700 mb-1">預期金額</label><input type="number" id="budget-expected-amount" placeholder="金額" class="w-full p-3 border border-gray-300 rounded-lg" required></div>
+                        </div>
+                        <div><label for="budget-description" class="block text-sm font-medium text-gray-700 mb-1">說明</label><input type="text" id="budget-description" placeholder="例如: 0050 配息" class="w-full p-3 border border-gray-300 rounded-lg" required></div>
+                        <div class="flex gap-4">
+                            <button type="submit" class="w-full bg-green-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-green-700">新增預算</button>
+                            <button type="button" id="cancel-budget-edit-btn" class="w-1/3 bg-gray-400 text-white font-bold py-3 px-4 rounded-lg hover:bg-gray-500 hidden">取消</button>
+                        </div>
+                    </form>
+                </section>
+            </div>
             
             <section class="bg-white p-6 md:p-8 rounded-2xl shadow-lg mb-8">
                 <h2 class="text-2xl font-bold mb-6">待實現收入預算</h2>
                 <div id="investment-budget-loading-indicator" class="flex justify-center items-center py-8"><div class="loader"></div></div>
-                <ul id="investment-budget-list" class="space-y-4"></ul>
+                <ul id="investment-budget-list" class="space-y-3"></ul>
                 <p id="investment-budget-empty-state" class="hidden text-center text-gray-500 py-8">尚未建立任何收入預算。</p>
             </section>
-            <!-- 收入預算 結束 -->
 
-            <section class="bg-white p-6 md:p-8 rounded-2xl shadow-lg mb-8">
-                <h2 class="text-2xl font-bold mb-6">新增投資帳戶</h2>
-                <form id="investment-form" class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div><label for="investment-name" class="block text-sm font-medium text-gray-700 mb-1">帳戶名稱</label><input type="text" id="investment-name" placeholder="例如: 富邦證券" class="w-full p-3 border border-gray-300 rounded-lg" required></div>
-                    <div><label for="investment-initial-value" class="block text-sm font-medium text-gray-700 mb-1">初始投入金額 (選填)</label><input type="number" id="investment-initial-value" placeholder="輸入初始金額 (可為0)" class="w-full p-3 border border-gray-300 rounded-lg"></div>
-                    <div class="md:col-span-2"><button type="submit" class="w-full bg-blue-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-blue-700">建立帳戶</button></div>
-                </form>
-            </section>
             <section class="bg-white p-6 md:p-8 rounded-2xl shadow-lg">
                 <h2 class="text-2xl font-bold mb-6">投資帳戶列表</h2>
                 <div id="investment-loading-indicator" class="flex justify-center items-center py-8"><div class="loader"></div></div>
@@ -262,9 +258,9 @@
                 <p id="investment-empty-state" class="hidden text-center text-gray-500 py-8">尚未建立任何投資帳戶。</p>
             </section>
         </div>
-
+        
         <!-- 負債分頁內容 -->
-        <div id="debt-view" class="hidden">
+        <div id="debt-view" class="hidden pdf-page" data-title="負債">
             <section class="mb-8">
                 <h2 class="text-xl font-bold text-gray-700 mb-4">負債總覽</h2>
                 <div id="debt-summary" class="grid grid-cols-1 md:grid-cols-4 gap-4">
@@ -281,94 +277,117 @@
                         <p id="total-repaid-debt" class="text-xl font-bold text-green-600 mt-1">NT$ 0</p>
                     </div>
                     <div class="bg-cyan-100 p-4 rounded-xl shadow-sm">
-                        <h2 class="text-base font-semibold text-cyan-800">当月總還款</h2>
+                        <h2 class="text-base font-semibold text-cyan-800">當月總還款</h2>
                         <p id="total-monthly-repayment" class="text-xl font-bold text-cyan-600 mt-1">NT$ 0</p>
                     </div>
                 </div>
             </section>
-
-             <!-- 還款預算 -->
-             <section class="bg-white p-6 md:p-8 rounded-2xl shadow-lg mb-8">
-                <h2 class="text-2xl font-bold mb-6">新增還款預算</h2>
-                <form id="debt-budget-form" class="grid grid-cols-1 md:grid-cols-3 gap-6 items-start">
-                     <!-- 隱藏的 input 用於編輯 -->
-                    <input type="hidden" id="debt-budget-edit-id">
-
-                    <div class="md:col-span-1">
-                        <label for="budget-debt-select" class="block text-sm font-medium text-gray-700 mb-1">負債項目</label>
-                        <select id="budget-debt-select" class="w-full p-3 border border-gray-300 rounded-lg bg-white" required>
-                            <option value="">-- 選擇負債 --</option>
-                        </select>
-                    </div>
-                    <div class="md:col-span-1">
-                        <label for="debt-budget-expected-date" class="block text-sm font-medium text-gray-700 mb-1">預計還款日</label>
-                        <input type="date" id="debt-budget-expected-date" class="w-full p-3 border border-gray-300 rounded-lg" required>
-                    </div>
-                    <div class="md:col-span-1">
-                        <label for="debt-budget-expected-amount" class="block text-sm font-medium text-gray-700 mb-1">預計還款金額</label>
-                        <input type="number" id="debt-budget-expected-amount" placeholder="輸入預計還款金額" class="w-full p-3 border border-gray-300 rounded-lg" required>
-                    </div>
-                    <div class="md:col-span-3">
-                        <label for="debt-budget-description" class="block text-sm font-medium text-gray-700 mb-1">說明</label>
-                        <input type="text" id="debt-budget-description" placeholder="例如: 償還信用卡費" class="w-full p-3 border border-gray-300 rounded-lg" required>
-                    </div>
-                    <div class="md:col-span-3 flex items-end gap-4">
-                        <button type="submit" id="debt-budget-submit-btn" class="w-full bg-red-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-red-700">新增還款預算</button>
-                        <button type="button" id="debt-budget-cancel-edit-btn" class="w-full bg-gray-500 text-white font-bold py-3 px-4 rounded-lg hover:bg-gray-600 hidden">取消編輯</button>
-                    </div>
-                </form>
-            </section>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
+                <section class="bg-white p-6 md:p-8 rounded-2xl shadow-lg no-print no-export">
+                    <h2 class="text-2xl font-bold mb-6">新增一筆負債</h2>
+                    <form id="debt-form" class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div><label for="debt-name" class="block text-sm font-medium text-gray-700 mb-1">負債項目</label><input type="text" id="debt-name" placeholder="例如: 信用卡、學貸" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500" required></div>
+                        <div><label for="debt-total-amount" class="block text-sm font-medium text-gray-700 mb-1">總金額</label><input type="number" id="debt-total-amount" placeholder="輸入總負債金額" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500" required></div>
+                        <div class="md:col-span-2"><button type="submit" class="w-full bg-purple-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-purple-700 focus:outline-none focus:ring-4 focus:ring-purple-300 flex justify-center items-center"><span id="add-debt-btn-text">新增負債</span><div id="add-debt-spinner" class="hidden loader-small"></div></button></div>
+                    </form>
+                </section>
+                
+                <section class="bg-white p-6 md:p-8 rounded-2xl shadow-lg no-print no-export">
+                    <h2 class="text-2xl font-bold mb-6">新增負債還款預算</h2>
+                     <form id="debt-budget-form" class="space-y-4">
+                        <input type="hidden" id="debt-budget-edit-id">
+                        <div>
+                            <label for="debt-budget-select" class="block text-sm font-medium text-gray-700 mb-1">負債項目</label>
+                            <select id="debt-budget-select" class="w-full p-3 border border-gray-300 rounded-lg bg-white" required>
+                                <option value="" data-name="">-- 請選擇負債 --</option>
+                            </select>
+                        </div>
+                        <div class="grid grid-cols-2 gap-4">
+                             <div><label for="debt-budget-expected-date" class="block text-sm font-medium text-gray-700 mb-1">預計還款日</label><input type="date" id="debt-budget-expected-date" class="w-full p-3 border border-gray-300 rounded-lg" required></div>
+                             <div><label for="debt-budget-expected-amount" class="block text-sm font-medium text-gray-700 mb-1">預計還款金額</label><input type="number" id="debt-budget-expected-amount" placeholder="金額" class="w-full p-3 border border-gray-300 rounded-lg" required></div>
+                        </div>
+                        <div><label for="debt-budget-description" class="block text-sm font-medium text-gray-700 mb-1">說明</label><input type="text" id="debt-budget-description" placeholder="例如: 本月信用卡費" class="w-full p-3 border border-gray-300 rounded-lg" required></div>
+                        <div class="flex gap-4">
+                            <button type="submit" class="w-full bg-red-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-red-700">新增還款預算</button>
+                             <button type="button" id="cancel-debt-budget-edit-btn" class="w-1/3 bg-gray-400 text-white font-bold py-3 px-4 rounded-lg hover:bg-gray-500 hidden">取消</button>
+                        </div>
+                    </form>
+                </section>
+            </div>
             
             <section class="bg-white p-6 md:p-8 rounded-2xl shadow-lg mb-8">
-                <h2 class="text-2xl font-bold mb-6">待執行還款預算</h2>
+                <h2 class="text-2xl font-bold mb-6">待實現還款預算</h2>
                 <div id="debt-budget-loading-indicator" class="flex justify-center items-center py-8"><div class="loader"></div></div>
-                <ul id="debt-budget-list" class="space-y-4"></ul>
+                <ul id="debt-budget-list" class="space-y-3"></ul>
                 <p id="debt-budget-empty-state" class="hidden text-center text-gray-500 py-8">尚未建立任何還款預算。</p>
             </section>
-            <!-- 還款預算 結束 -->
 
-            <section class="bg-white p-6 md:p-8 rounded-2xl shadow-lg mb-8">
-                <h2 class="text-2xl font-bold mb-6">新增一筆負債</h2>
-                <form id="debt-form" class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div><label for="debt-name" class="block text-sm font-medium text-gray-700 mb-1">負債項目</label><input type="text" id="debt-name" placeholder="例如: 信用卡、學貸" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500" required></div>
-                    <div><label for="debt-total-amount" class="block text-sm font-medium text-gray-700 mb-1">總金額</label><input type="number" id="debt-total-amount" placeholder="輸入總負債金額" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500" required></div>
-                    <div class="md:col-span-2"><button type="submit" class="w-full bg-purple-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-purple-700 focus:outline-none focus:ring-4 focus:ring-purple-300 flex justify-center items-center"><span id="add-debt-btn-text">新增負債</span><div id="add-debt-spinner" class="hidden loader-small"></div></button></div>
-                </form>
-            </section>
             <section class="bg-white p-6 md:p-8 rounded-2xl shadow-lg">
                 <h2 class="text-2xl font-bold mb-6">負債列表</h2>
                 <div id="debt-loading-indicator" class="flex justify-center items-center py-8"><div class="loader"></div></div>
                 <div id="debt-list" class="grid grid-cols-1 md:grid-cols-2 gap-4"></div>
                 <p id="debt-empty-state" class="hidden text-center text-gray-500 py-8">太棒了！目前沒有任何負債紀錄。</p>
-            </section>
+Indentation failure, line 316
+</section>
         </div>
 
         <!-- 事件紀錄分頁 -->
-        <div id="events-view" class="hidden">
-            <section class="bg-white p-6 md:p-8 rounded-2xl shadow-lg mb-8">
+        <div id="events-view" class="hidden pdf-page" data-title="事件日曆">
+            <section class="bg-white p-6 md:p-8 rounded-2xl shadow-lg mb-8 no-print no-export">
                 <h2 class="text-2xl font-bold mb-6">新增事件紀錄</h2>
                 <form id="event-form" class="space-y-4">
                     <div><label for="event-date" class="block text-sm font-medium text-gray-700 mb-1">日期</label><input type="date" id="event-date" class="w-full p-3 border border-gray-300 rounded-lg" required></div>
                     <div><label for="event-title" class="block text-sm font-medium text-gray-700 mb-1">標題</label><input type="text" id="event-title" placeholder="事件標題" class="w-full p-3 border border-gray-300 rounded-lg" required></div>
-                    <div><label for="event-description" class="block text-sm font-medium text-gray-700 mb-1">內容</label><textarea id="event-description" placeholder="詳細內容..." rows="4" class="w-full p-3 border border-gray-300 rounded-lg"></textarea></div>
+                    <div>
+                        <label for="event-color" class="block text-sm font-medium text-gray-700 mb-1">標記顏色</label>
+                        <select id="event-color" class="w-full p-3 border border-gray-300 rounded-lg bg-white">
+                            <option value="green" class="bg-green-100 text-green-800">綠色 (一般)</option>
+                            <option value="blue" class="bg-blue-100 text-blue-800">藍色 (資訊)</option>
+                            <option value="red" class="bg-red-100 text-red-800">紅色 (重要)</option>
+                            <option value="yellow" class="bg-yellow-100 text-yellow-800">黃色 (提醒)</option>
+                        </select>
+                    </div>
+                    <div><label for="event-description" class="block text-sm font-medium text-gray-700 mb-1">內容 (選填)</label><textarea id="event-description" placeholder="詳細內容..." rows="3" class="w-full p-3 border border-gray-300 rounded-lg"></textarea></div>
                     <div><button type="submit" class="w-full bg-indigo-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-indigo-700">新增事件</button></div>
                 </form>
             </section>
+            
             <section class="bg-white p-6 md:p-8 rounded-2xl shadow-lg">
-                <h2 class="text-2xl font-bold mb-6">事件時間軸</h2>
+                <div class="flex justify-between items-center mb-6">
+                    <button id="prev-month-btn" class="p-2 rounded-full hover:bg-gray-200 no-print no-export">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" /></svg>
+                    </button>
+                    <h2 id="calendar-month-year" class="text-2xl font-bold"></h2>
+                    <button id="next-month-btn" class="p-2 rounded-full hover:bg-gray-200 no-print no-export">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" /></svg>
+                    </button>
+                </div>
                 <div id="event-loading-indicator" class="flex justify-center items-center py-8"><div class="loader"></div></div>
-                <div id="event-list" class="space-y-6 border-l-2 border-indigo-200 ml-3"></div>
+                <div class="calendar-grid border-t border-l border-gray-200">
+                    <div class="calendar-day-header">星期日</div>
+                    <div class="calendar-day-header">星期一</div>
+                    <div class="calendar-day-header">星期二</div>
+                    <div class="calendar-day-header">星期三</div>
+                    <div class="calendar-day-header">星期四</div>
+                    <div class="calendar-day-header">星期五</div>
+                    <div class="calendar-day-header">星期六</div>
+                </div>
+                <div id="calendar-body" class="calendar-grid">
+                    <!-- 日曆格子會由 JS 動態產生 -->
+                </div>
                 <p id="event-empty-state" class="hidden text-center text-gray-500 py-8">尚未有任何事件紀錄。</p>
             </section>
         </div>
-
+        
         <!-- 報表分頁內容 -->
-        <div id="reports-view" class="hidden">
+        <div id="reports-view" class="hidden pdf-page" data-title="財務報表">
             <section class="bg-white p-6 md:p-8 rounded-2xl shadow-lg mb-8 no-print">
                 <h2 class="text-2xl font-bold mb-6">支出分類圖</h2>
                 <div id="no-expense-data" class="hidden text-center text-gray-500 py-8">尚無足夠的支出資料可產生報表。</div>
                 <div class="max-w-xl mx-auto"><canvas id="expense-chart"></canvas></div>
             </section>
+            
             <section class="bg-white p-6 md:p-8 rounded-2xl shadow-lg mb-8 no-print">
                 <h2 class="text-2xl font-bold mb-6">期間分類統計 (可點擊)</h2>
                 <div class="grid md:grid-cols-2 gap-8">
@@ -382,6 +401,7 @@
                     </div>
                 </div>
             </section>
+            
             <section id="filtered-transaction-list-section" class="bg-white p-6 md:p-8 rounded-2xl shadow-lg">
                 <div class="flex justify-between items-center mb-6">
                     <h2 class="text-2xl font-bold">交易明細</h2>
@@ -405,54 +425,117 @@
                     </div>
                     <button id="filter-custom-date" class="bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700 transition">查詢</button>
                 </div>
+                
                 <div id="filtered-summary" class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
                         <div class="bg-green-100 p-4 rounded-xl"><h3 class="font-semibold text-green-800">期間總收入</h3><p id="filtered-income" class="text-xl font-bold text-green-600">NT$ 0</p></div>
                         <div class="bg-red-100 p-4 rounded-xl"><h3 class="font-semibold text-red-800">期間總支出</h3><p id="filtered-expense" class="text-xl font-bold text-red-600">NT$ 0</p></div>
                         <div class="bg-blue-100 p-4 rounded-xl"><h3 class="font-semibold text-blue-800">期間結餘</h3><p id="filtered-balance" class="text-xl font-bold text-blue-600">NT$ 0</p></div>
                 </div>
+                
                 <ul id="filtered-transaction-list" class="space-y-2"></ul>
                 <p id="filtered-empty-state" class="hidden text-center text-gray-500 py-8">在選定範圍內沒有交易紀錄。</p>
             </section>
         </div>
 
-        <!-- 行事曆分頁 -->
-        <div id="calendar-view" class="hidden">
-            <section class="bg-white p-6 md:p-8 rounded-2xl shadow-lg">
-                <div class="flex justify-between items-center mb-6">
-                    <button id="prev-month-btn" class="p-2 rounded-full hover:bg-gray-100 no-print">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" /></svg>
-                    </button>
-                    <h2 id="calendar-month-year" class="text-2xl font-bold"></h2>
-                    <button id="next-month-btn" class="p-2 rounded-full hover:bg-gray-100 no-print">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" /></svg>
-                    </button>
-                </div>
-                <div class="calendar mb-4">
-                    <div class="calendar-day-header">日</div>
-                    <div class="calendar-day-header">一</div>
-                    <div class="calendar-day-header">二</div>
-                    <div class="calendar-day-header">三</div>
-                    <div class="calendar-day-header">四</div>
-                    <div class="calendar-day-header">五</div>
-                    <div class="calendar-day-header">六</div>
-                </div>
-                <div id="calendar-grid" class="calendar">
-                    <!-- Days will be generated by JS -->
-                </div>
-            </section>
-        </div>
-        
     </div>
+    
     <!-- Modals -->
-    <div id="category-modal" class="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center hidden z-50 p-4"><div class="bg-white p-6 md:p-8 rounded-2xl shadow-xl w-full max-w-md"><div class="flex justify-between items-center mb-6"><h3 class="text-2xl font-bold">管理分類</h3><button id="close-category-modal-btn" class="text-gray-400 hover:text-gray-600 text-3xl leading-none">&times;</button></div><ul id="custom-category-list" class="space-y-2 max-h-60 overflow-y-auto mb-6 border-t border-b py-4"></ul><div class="flex justify-end"><button type="button" id="close-category-modal-btn-bottom" class="bg-gray-500 text-white font-bold py-2 px-4 rounded-lg hover:bg-gray-600">關閉</button></div></div></div>
-    <div id="project-modal" class="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center hidden z-50 p-4"><div class="bg-white p-6 md:p-8 rounded-2xl shadow-xl w-full max-w-md"><div class="flex justify-between items-center mb-6"><h3 class="text-2xl font-bold">管理專案</h3><button id="close-project-modal-btn" class="text-gray-400 hover:text-gray-600 text-3xl leading-none">&times;</button></div><ul id="custom-project-list" class="space-y-2 max-h-60 overflow-y-auto mb-6 border-t border-b py-4"></ul><div class="flex justify-end"><button type="button" id="close-project-modal-btn-bottom" class="bg-gray-500 text-white font-bold py-2 px-4 rounded-lg hover:bg-gray-600">關閉</button></div></div></div>
-    <div id="repayment-modal" class="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center hidden z-50 p-4"><div class="bg-white p-6 md:p-8 rounded-2xl shadow-xl w-full max-w-md"><h3 class="text-2xl font-bold mb-6">記錄一筆還款</h3><form id="repayment-form"><input type="hidden" id="repayment-debt-id"><input type="hidden" id="repayment-debt-name"><div class="mb-4"><label for="repayment-amount" class="block text-sm font-medium text-gray-700 mb-1">還款金額</label><input type="number" id="repayment-amount" placeholder="輸入此次還款金額" class="w-full p-3 border border-gray-300 rounded-lg" required></div><div class="mb-4"><label for="repayment-date" class="block text-sm font-medium text-gray-700 mb-1">還款日期</label><input type="date" id="repayment-date" class="w-full p-3 border border-gray-300 rounded-lg" required></div><div class="mb-4"><label for="repayment-remark" class="block text-sm font-medium text-gray-700 mb-1">備註 (選填)</label><input type="text" id="repayment-remark" placeholder="還款備註" class="w-full p-3 border border-gray-300 rounded-lg"></div><div class="flex justify-end gap-4"><button type="button" id="cancel-repayment-btn" class="bg-gray-300 text-gray-800 font-bold py-2 px-4 rounded-lg hover:bg-gray-400">取消</button><button type="submit" class="bg-green-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-green-700">確認還款</button></div></form></div></div>
-    <div id="debt-detail-modal" class="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center hidden z-50 p-4"><div class="bg-white p-6 md:p-8 rounded-2xl shadow-xl w-full max-w-lg"><div class="flex justify-between items-center mb-4"><h3 id="debt-detail-title" class="text-2xl font-bold">負債詳情</h3><button id="close-debt-detail-modal-btn" class="text-gray-400 hover:text-gray-600 text-3xl leading-none no-print">&times;</button></div><div id="debt-detail-display-view"><div class="mb-4 p-4 bg-gray-50 rounded-lg"><p class="text-sm text-gray-500">項目名稱</p><p id="debt-detail-name" class="text-lg font-semibold"></p><p class="text-sm text-gray-500 mt-2">初始總金額</p><p id="debt-detail-total" class="text-lg font-semibold"></p><p class="text-sm text-gray-500 mt-2">本月已還</p><p id="debt-detail-monthly-repayment" class="text-lg font-semibold text-cyan-600"></p></div><div class="flex justify-end mb-4 gap-2 no-print"><button id="print-debt-detail-btn" class="bg-gray-500 text-white font-bold py-2 px-4 rounded-lg hover:bg-gray-600">列印</button><button id="edit-debt-btn" class="bg-blue-500 text-white font-bold py-2 px-4 rounded-lg hover:bg-blue-600">編輯</button></div></div><form id="debt-edit-form" class="hidden mb-4 no-print"><input type="hidden" id="edit-debt-id"><div class="mb-4"><label for="edit-debt-name" class="block text-sm font-medium text-gray-700 mb-1">項目名稱</label><input type="text" id="edit-debt-name" class="w-full p-3 border border-gray-300 rounded-lg" required></div><div class="mb-4"><label for="edit-debt-total" class="block text-sm font-medium text-gray-700 mb-1">初始總金額</label><input type="number" id="edit-debt-total" class="w-full p-3 border border-gray-300 rounded-lg" required></div><div class="flex justify-end gap-4"><button type="button" id="cancel-edit-debt-btn" class="bg-gray-300 text-gray-800 font-bold py-2 px-4 rounded-lg hover:bg-gray-400">取消</button><button type="submit" class="bg-green-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-green-700">儲存變更</button></div></form><h4 class="text-lg font-bold mb-2 border-t pt-4">還款紀錄</h4><ul id="repayment-history-list" class="space-y-2 max-h-48 overflow-y-auto"></ul><p id="repayment-history-empty" class="hidden text-center text-gray-500 py-4">尚無還款紀錄</p></div></div>
-    <div id="investment-transaction-modal" class="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center hidden z-50 p-4"><div class="bg-white p-6 md:p-8 rounded-2xl shadow-xl w-full max-w-md"><h3 id="investment-transaction-title" class="text-2xl font-bold mb-6"></h3><form id="investment-transaction-form"><input type="hidden" id="investment-transaction-account-id"><input type="hidden" id="investment-transaction-account-name"><input type="hidden" id="investment-transaction-id"><input type="hidden" id="investment-main-transaction-id"><div class="mb-4"><label for="investment-transaction-date" class="block text-sm font-medium text-gray-700 mb-1">日期</label><input type="date" id="investment-transaction-date" class="w-full p-3 border border-gray-300 rounded-lg" required></div><div class="mb-4"><label class="block text-sm font-medium text-gray-700 mb-1">類型</label><select id="investment-transaction-type" class="w-full p-3 border border-gray-300 rounded-lg bg-white"><option value="expense">支出 (買入/投入)</option><option value="income">收入 (賣出/配息)</option></select></div><div class="mb-4"><label for="investment-transaction-amount" class="block text-sm font-medium text-gray-700 mb-1">金額</label><input type="number" id="investment-transaction-amount" placeholder="輸入金額" class="w-full p-3 border border-gray-300 rounded-lg" required></div><div class="mb-4"><label for="investment-transaction-remark" class="block text-sm font-medium text-gray-700 mb-1">備註</label><input type="text" id="investment-transaction-remark" placeholder="例如: 買入TSMC 1股" class="w-full p-3 border border-gray-300 rounded-lg"></div><div class="flex justify-end gap-4"><button type="button" id="cancel-investment-transaction-btn" class="bg-gray-300 text-gray-800 font-bold py-2 px-4 rounded-lg hover:bg-gray-400">取消</button><button type="submit" class="bg-blue-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-blue-700">確認</button></div></form></div></div>
-    <div id="investment-detail-modal" class="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center hidden z-50 p-4"><div class="bg-white p-6 md:p-8 rounded-2xl shadow-xl w-full max-w-lg"><div class="flex justify-between items-center mb-4"><h3 id="investment-detail-title" class="text-2xl font-bold"></h3><div class="flex items-center gap-2 no-print"><button id="print-investment-detail-btn" class="bg-gray-500 text-white font-bold py-2 px-4 rounded-lg hover:bg-gray-600 text-sm">列印</button><button id="close-investment-detail-modal-btn" class="text-gray-400 hover:text-gray-600 text-3xl leading-none">&times;</button></div></div><h4 class="text-lg font-bold mb-2 border-t pt-4">交易紀錄</h4><ul id="investment-history-list" class="space-y-2 max-h-96 overflow-y-auto"></ul><p id="investment-history-empty" class="hidden text-center text-gray-500 py-4">尚無交易紀錄</p></div></div>
-    <div id="edit-investment-account-modal" class="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center hidden z-50 p-4"><div class="bg-white p-6 md:p-8 rounded-2xl shadow-xl w-full max-w-md"><h3 class="text-2xl font-bold mb-6">編輯投資帳戶</h3><form id="edit-investment-account-form"><input type="hidden" id="edit-investment-account-id"><div class="mb-4"><label for="edit-investment-account-name" class="block text-sm font-medium text-gray-700 mb-1">帳戶名稱</label><input type="text" id="edit-investment-account-name" class="w-full p-3 border border-gray-300 rounded-lg" required></div><div class="flex justify-end gap-4"><button type="button" id="cancel-edit-investment-account-btn" class="bg-gray-300 text-gray-800 font-bold py-2 px-4 rounded-lg hover:bg-gray-400">取消</button><button type="submit" class="bg-blue-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-blue-700">儲存</button></div></form></div></div>
-    <div id="update-market-value-modal" class="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center hidden z-50 p-4"><div class="bg-white p-6 md:p-8 rounded-2xl shadow-xl w-full max-w-md"><h3 id="update-market-value-title" class="text-2xl font-bold mb-6">更新資產現值</h3><form id="update-market-value-form"><input type="hidden" id="update-market-value-id"><div class="mb-4"><label for="update-market-value-amount" class="block text-sm font-medium text-gray-700 mb-1">目前資產總價值</label><input type="number" id="update-market-value-amount" placeholder="輸入目前總市價" class="w-full p-3 border border-gray-300 rounded-lg" required></div><div class="flex justify-end gap-4"><button type="button" id="cancel-update-market-value-btn" class="bg-gray-300 text-gray-800 font-bold py-2 px-4 rounded-lg hover:bg-gray-400">取消</button><button type="submit" class="bg-yellow-500 text-white font-bold py-2 px-4 rounded-lg hover:bg-yellow-600">確認更新</button></div></form></div></div>
+    <div id="pdf-export-modal" class="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center hidden z-50 p-4 no-print no-export">
+        <div class="bg-white p-6 md:p-8 rounded-2xl shadow-xl w-full max-w-md">
+            <h3 class="text-2xl font-bold mb-6">匯出 PDF 報告</h3>
+            <p class="text-gray-600 mb-4">請勾選您要包含在 PDF 中的頁面：</p>
+            <form id="pdf-options-form" class="space-y-3">
+                <div>
+                    <input type="checkbox" id="export-check-accounting" value="accounting-view" class="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500" checked>
+                    <label for="export-check-accounting" class="ml-2 text-gray-700">主要記帳 (總覽與列表)</label>
+                </div>
+                <div>
+                    <input type="checkbox" id="export-check-investment" value="investment-view" class="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500" checked>
+                    <label for="export-check-investment" class="ml-2 text-gray-700">投資 (總覽、預算與列表)</label>
+                </div>
+                <div>
+                    <input type="checkbox" id="export-check-debt" value="debt-view" class="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500" checked>
+                    <label for="export-check-debt" class="ml-2 text-gray-700">負債 (總覽、預算與列表)</label>
+                </div>
+                <div>
+                    <input type="checkbox" id="export-check-events" value="events-view" class="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500" checked>
+                    <label for="export-check-events" class="ml-2 text-gray-700">事件日曆</label>
+                </div>
+                <div>
+                    <input type="checkbox" id="export-check-reports" value="reports-view" class="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500" checked>
+                    <label for="export-check-reports" class="ml-2 text-gray-700">財務報表 (圖表與明細)</label>
+                </div>
+            </form>
+            <div class="flex justify-end gap-4 mt-8">
+                <button type="button" id="cancel-pdf-export-btn" class="bg-gray-300 text-gray-800 font-bold py-2 px-4 rounded-lg hover:bg-gray-400">取消</button>
+                <button type="button" id="start-pdf-export-btn" class="bg-blue-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-blue-700">開始匯出</button>
+            </div>
+        </div>
+    </div>
 
+    <!-- PDF 產生中的遮罩 -->
+    <div id="pdf-export-overlay" class="pdf-export-overlay hidden no-print no-export">
+        <div class="loader" style="width: 60px; height: 60px; border-top-color: #fff;"></div>
+        <h2 class="text-2xl font-bold mt-6">正在產生 PDF...</h2>
+        <p class="text-lg mt-2">請稍候，這可能需要幾秒鐘的時間。</p>
+    </div>
+
+    <div id="category-modal" class="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center hidden z-50 p-4 no-print no-export"><div class="bg-white p-6 md:p-8 rounded-2xl shadow-xl w-full max-w-md"><div class="flex justify-between items-center mb-6"><h3 class="text-2xl font-bold">管理分類</h3><button id="close-category-modal-btn" class="text-gray-400 hover:text-gray-600 text-3xl leading-none">&times;</button></div><ul id="custom-category-list" class="space-y-2 max-h-60 overflow-y-auto mb-6 border-t border-b py-4"></ul><div class="flex justify-end"><button type="button" id="close-category-modal-btn-bottom" class="bg-gray-500 text-white font-bold py-2 px-4 rounded-lg hover:bg-gray-600">關閉</button></div></div></div>
+    <div id="project-modal" class="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center hidden z-50 p-4 no-print no-export"><div class="bg-white p-6 md:p-8 rounded-2xl shadow-xl w-full max-w-md"><div class="flex justify-between items-center mb-6"><h3 class="text-2xl font-bold">管理專案</h3><button id="close-project-modal-btn" class="text-gray-400 hover:text-gray-600 text-3xl leading-none">&times;</button></div><ul id="custom-project-list" class="space-y-2 max-h-60 overflow-y-auto mb-6 border-t border-b py-4"></ul><div class="flex justify-end"><button type="button" id="close-project-modal-btn-bottom" class="bg-gray-500 text-white font-bold py-2 px-4 rounded-lg hover:bg-gray-600">關閉</button></div></div></div>
+    <div id="repayment-modal" class="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center hidden z-50 p-4 no-print no-export"><div class="bg-white p-6 md:p-8 rounded-2xl shadow-xl w-full max-w-md"><h3 class="text-2xl font-bold mb-6">記錄一筆還款</h3><form id="repayment-form"><input type="hidden" id="repayment-debt-id"><input type="hidden" id="repayment-debt-name"><div class="mb-4"><label for="repayment-amount" class="block text-sm font-medium text-gray-700 mb-1">還款金額</label><input type="number" id="repayment-amount" placeholder="輸入此次還款金額" class="w-full p-3 border border-gray-300 rounded-lg" required></div><div class="mb-4"><label for="repayment-date" class="block text-sm font-medium text-gray-700 mb-1">還款日期</label><input type="date" id="repayment-date" class="w-full p-3 border border-gray-300 rounded-lg" required></div><div class="mb-4"><label for="repayment-remark" class="block text-sm font-medium text-gray-700 mb-1">備註 (選填)</label><input type="text" id="repayment-remark" placeholder="還款備註" class="w-full p-3 border border-gray-300 rounded-lg"></div><div class="flex justify-end gap-4"><button type="button" id="cancel-repayment-btn" class="bg-gray-300 text-gray-800 font-bold py-2 px-4 rounded-lg hover:bg-gray-400">取消</button><button type="submit" class="bg-green-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-green-700">確認還款</button></div></form></div></div>
+    <div id="debt-detail-modal" class="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center hidden z-50 p-4 no-print no-export"><div class="bg-white p-6 md:p-8 rounded-2xl shadow-xl w-full max-w-lg"><div class="flex justify-between items-center mb-4"><h3 id="debt-detail-title" class="text-2xl font-bold">負債詳情</h3><button id="close-debt-detail-modal-btn" class="text-gray-400 hover:text-gray-600 text-3xl leading-none no-print">&times;</button></div><div id="debt-detail-display-view"><div class="mb-4 p-4 bg-gray-50 rounded-lg"><p class="text-sm text-gray-500">項目名稱</p><p id="debt-detail-name" class="text-lg font-semibold"></p><p class="text-sm text-gray-500 mt-2">初始總金額</p><p id="debt-detail-total" class="text-lg font-semibold"></p><p class="text-sm text-gray-500 mt-2">本月已還</p><p id="debt-detail-monthly-repayment" class="text-lg font-semibold text-cyan-600"></p></div><div class="flex justify-end mb-4 gap-2 no-print"><button id="print-debt-detail-btn" class="bg-gray-500 text-white font-bold py-2 px-4 rounded-lg hover:bg-gray-600">列印</button><button id="edit-debt-btn" class="bg-blue-500 text-white font-bold py-2 px-4 rounded-lg hover:bg-blue-600">編輯</button></div></div><form id="debt-edit-form" class="hidden mb-4 no-print"><input type="hidden" id="edit-debt-id"><div class="mb-4"><label for="edit-debt-name" class="block text-sm font-medium text-gray-700 mb-1">項目名稱</label><input type="text" id="edit-debt-name" class="w-full p-3 border border-gray-300 rounded-lg" required></div><div class="mb-4"><label for="edit-debt-total" class="block text-sm font-medium text-gray-700 mb-1">初始總金額</label><input type="number" id="edit-debt-total" class="w-full p-3 border border-gray-300 rounded-lg" required></div><div class="flex justify-end gap-4"><button type="button" id="cancel-edit-debt-btn" class="bg-gray-300 text-gray-800 font-bold py-2 px-4 rounded-lg hover:bg-gray-400">取消</button><button type="submit" class="bg-green-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-green-700">儲存變更</button></div></form><h4 class="text-lg font-bold mb-2 border-t pt-4">還款紀錄</h4><ul id="repayment-history-list" class="space-y-2 max-h-48 overflow-y-auto"></ul><p id="repayment-history-empty" class="hidden text-center text-gray-500 py-4">尚無還款紀錄</p></div></div>
+    <div id="investment-transaction-modal" class="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center hidden z-50 p-4 no-print no-export"><div class="bg-white p-6 md:p-8 rounded-2xl shadow-xl w-full max-w-md"><h3 id="investment-transaction-title" class="text-2xl font-bold mb-6"></h3><form id="investment-transaction-form"><input type="hidden" id="investment-transaction-account-id"><input type="hidden" id="investment-transaction-account-name"><input type="hidden" id="investment-transaction-id"><input type="hidden" id="investment-main-transaction-id"><div class="mb-4"><label for="investment-transaction-date" class="block text-sm font-medium text-gray-700 mb-1">日期</label><input type="date" id="investment-transaction-date" class="w-full p-3 border border-gray-300 rounded-lg" required></div><div class="mb-4"><label class="block text-sm font-medium text-gray-700 mb-1">類型</label><select id="investment-transaction-type" class="w-full p-3 border border-gray-300 rounded-lg bg-white"><option value="expense">支出 (買入/投入)</option><option value="income">收入 (賣出/配息)</option></select></div><div class="mb-4"><label for="investment-transaction-amount" class="block text-sm font-medium text-gray-700 mb-1">金額</label><input type="number" id="investment-transaction-amount" placeholder="輸入金額" class="w-full p-3 border border-gray-300 rounded-lg" required></div><div class="mb-4"><label for="investment-transaction-remark" class="block text-sm font-medium text-gray-700 mb-1">備註</label><input type="text" id="investment-transaction-remark" placeholder="例如: 買入TSMC 1股" class="w-full p-3 border border-gray-300 rounded-lg"></div><div class="flex justify-end gap-4"><button type="button" id="cancel-investment-transaction-btn" class="bg-gray-300 text-gray-800 font-bold py-2 px-4 rounded-lg hover:bg-gray-400">取消</button><button type="submit" class="bg-blue-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-blue-700">確認</button></div></form></div></div>
+    <div id="investment-detail-modal" class="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center hidden z-50 p-4 no-print no-export"><div class="bg-white p-6 md:p-8 rounded-2xl shadow-xl w-full max-w-lg"><div class="flex justify-between items-center mb-4"><h3 id="investment-detail-title" class="text-2xl font-bold"></h3><div class="flex items-center gap-2 no-print"><button id="print-investment-detail-btn" class="bg-gray-500 text-white font-bold py-2 px-4 rounded-lg hover:bg-gray-600 text-sm">列印</button><button id="close-investment-detail-modal-btn" class="text-gray-400 hover:text-gray-600 text-3xl leading-none">&times;</button></div></div><h4 class="text-lg font-bold mb-2 border-t pt-4">交易紀錄</h4><ul id="investment-history-list" class="space-y-2 max-h-96 overflow-y-auto"></ul><p id="investment-history-empty" class="hidden text-center text-gray-500 py-4">尚無交易紀錄</p></div></div>
+    <div id="edit-investment-account-modal" class="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center hidden z-50 p-4 no-print no-export"><div class="bg-white p-6 md:p-8 rounded-2xl shadow-xl w-full max-w-md"><h3 class="text-2xl font-bold mb-6">編輯投資帳戶</h3><form id="edit-investment-account-form"><input type="hidden" id="edit-investment-account-id"><div class="mb-4"><label for="edit-investment-account-name" class="block text-sm font-medium text-gray-700 mb-1">帳戶名稱</label><input type="text" id="edit-investment-account-name" class="w-full p-3 border border-gray-300 rounded-lg" required></div><div class="flex justify-end gap-4"><button type="button" id="cancel-edit-investment-account-btn" class="bg-gray-300 text-gray-800 font-bold py-2 px-4 rounded-lg hover:bg-gray-400">取消</button><button type="submit" class="bg-blue-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-blue-700">儲存</button></div></form></div></div>
+    <div id="update-market-value-modal" class="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center hidden z-50 p-4 no-print no-export"><div class="bg-white p-6 md:p-8 rounded-2xl shadow-xl w-full max-w-md"><h3 id="update-market-value-title" class="text-2xl font-bold mb-6">更新資產現值</h3><form id="update-market-value-form"><input type="hidden" id="update-market-value-id"><div class="mb-4"><label for="update-market-value-amount" class="block text-sm font-medium text-gray-700 mb-1">目前資產總價值</label><input type="number" id="update-market-value-amount" placeholder="輸入目前總市價" class="w-full p-3 border border-gray-300 rounded-lg" required></div><div class="flex justify-end gap-4"><button type="button" id="cancel-update-market-value-btn" class="bg-gray-300 text-gray-800 font-bold py-2 px-4 rounded-lg hover:bg-gray-400">取消</button><button type="submit" class="bg-yellow-500 text-white font-bold py-2 px-4 rounded-lg hover:bg-yellow-600">確認更新</button></div></form></div></div>
+
+    <!-- Gemini API (For AI Summary) -->
+    <script>
+        async function callGeminiApi(systemPrompt, userPrompt, retryCount = 0) {
+            const maxRetries = 3;
+            const apiKey = ""; // API Key is handled by the environment
+            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`;
+
+            const payload = {
+                contents: [{ parts: [{ text: userPrompt }] }],
+                systemInstruction: {
+                    parts: [{ text: systemPrompt }]
+                },
+            };
+
+            try {
+                const response = await fetch(apiUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                if (!response.ok) {
+                    throw new Error(`API Error: ${response.status}`);
+                }
+
+                const result = await response.json();
+                const candidate = result.candidates?.[0];
+
+                if (candidate && candidate.content?.parts?.[0]?.text) {
+                    return candidate.content.parts[0].text;
+                } else {
+                    throw new Error("Invalid API response structure.");
+                }
+            } catch (error) {
+                console.error("Gemini API call failed:", error.message);
+                if (retryCount < maxRetries) {
+                    const delay = Math.pow(2, retryCount) * 1000;
+                    console.log(`Retrying in ${delay}ms... (${retryCount + 1}/${maxRetries})`);
+                    await new Promise(resolve => setTimeout(resolve, delay));
+                    return callGeminiApi(systemPrompt, userPrompt, retryCount + 1);
+                } else {
+                    return "呼叫 AI 失敗，請稍後再試。";
+                }
+            }
+        }
+    </script>
+    
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, signInAnonymously, onAuthStateChanged, GoogleAuthProvider, signInWithPopup, signOut } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
@@ -463,8 +546,23 @@
         const googleLoginBtn = document.getElementById('google-login-btn');
         const anonymousLoginBtn = document.getElementById('anonymous-login-btn');
         const appContainer = document.getElementById('app-container'), authInfo = document.getElementById('auth-info');
-        const accountingView = document.getElementById('accounting-view'), debtView = document.getElementById('debt-view'), eventsView = document.getElementById('events-view'), investmentView = document.getElementById('investment-view'), reportsView = document.getElementById('reports-view'), calendarView = document.getElementById('calendar-view');
-        const tabAccounting = document.getElementById('tab-accounting'), tabDebt = document.getElementById('tab-debt'), tabEvents = document.getElementById('tab-events'), tabInvestment = document.getElementById('tab-investment'), tabReports = document.getElementById('tab-reports'), tabCalendar = document.getElementById('tab-calendar');
+        
+        // 分頁
+        const accountingView = document.getElementById('accounting-view');
+        const reportsView = document.getElementById('reports-view');
+        const debtView = document.getElementById('debt-view');
+        const eventsView = document.getElementById('events-view');
+        const investmentView = document.getElementById('investment-view');
+        
+        // 導覽按鈕
+        const tabAccounting = document.getElementById('tab-accounting');
+        const tabReports = document.getElementById('tab-reports');
+        const tabDebt = document.getElementById('tab-debt');
+        const tabEvents = document.getElementById('tab-events');
+        const tabInvestment = document.getElementById('tab-investment');
+        const tabExportPdf = document.getElementById('tab-export-pdf');
+
+        // 記帳
         const form = document.getElementById('transaction-form'), amountInput = document.getElementById('amount'), transactionDateInput = document.getElementById('transaction-date'), remarksInput = document.getElementById('remarks'), transactionList = document.getElementById('transaction-list');
         const categoryInput = document.getElementById('category-input'), categoryDatalist = document.getElementById('category-list');
         const projectInput = document.getElementById('project-input'), projectDatalist = document.getElementById('project-list');
@@ -476,6 +574,22 @@
         const submitBtnText = document.getElementById('submit-btn-text'), submitSpinner = document.getElementById('submit-spinner');
         const manageCategoriesBtn = document.getElementById('manage-categories-btn'), categoryModal = document.getElementById('category-modal'), customCategoryList = document.getElementById('custom-category-list');
         const manageProjectsBtn = document.getElementById('manage-projects-btn'), projectModal = document.getElementById('project-modal'), customProjectList = document.getElementById('custom-project-list');
+        const historyDateFilter = document.getElementById('history-date-filter');
+        const showTodayBtn = document.getElementById('show-today-btn');
+        const historyDisplayDateEl = document.getElementById('history-display-date');
+        const printTransactionsBtn = document.getElementById('print-transactions-btn');
+
+        // 報表
+        const expenseChartCanvas = document.getElementById('expense-chart'), noExpenseDataMsg = document.getElementById('no-expense-data');
+        const filterThisMonthBtn = document.getElementById('filter-this-month'), filterCustomDateBtn = document.getElementById('filter-custom-date'), startDateInput = document.getElementById('start-date'), endDateInput = document.getElementById('end-date');
+        const projectFilterSelect = document.getElementById('project-filter');
+        const filteredTransactionList = document.getElementById('filtered-transaction-list'), filteredEmptyState = document.getElementById('filtered-empty-state');
+        const filteredIncomeEl = document.getElementById('filtered-income'), filteredExpenseEl = document.getElementById('filtered-expense'), filteredBalanceEl = document.getElementById('filtered-balance');
+        const expenseStatsList = document.getElementById('expense-stats-list');
+        const incomeStatsList = document.getElementById('income-stats-list');
+        const printReportBtn = document.getElementById('print-report-btn');
+
+        // 負債
         const debtForm = document.getElementById('debt-form'), debtList = document.getElementById('debt-list'), debtLoadingIndicator = document.getElementById('debt-loading-indicator'), debtEmptyState = document.getElementById('debt-empty-state');
         const totalInitialDebtEl = document.getElementById('total-initial-debt'), totalCurrentDebtEl = document.getElementById('total-current-debt'), totalRepaidDebtEl = document.getElementById('total-repaid-debt'), totalMonthlyRepaymentEl = document.getElementById('total-monthly-repayment');
         const repaymentModal = document.getElementById('repayment-modal'), repaymentForm = document.getElementById('repayment-form'), repaymentDebtIdInput = document.getElementById('repayment-debt-id'), repaymentDebtNameInput = document.getElementById('repayment-debt-name'), repaymentAmountInput = document.getElementById('repayment-amount'), repaymentDateInput = document.getElementById('repayment-date'), cancelRepaymentBtn = document.getElementById('cancel-repayment-btn');
@@ -485,61 +599,51 @@
         const editDebtBtn = document.getElementById('edit-debt-btn'), cancelEditDebtBtn = document.getElementById('cancel-edit-debt-btn');
         const editDebtIdInput = document.getElementById('edit-debt-id'), editDebtNameInput = document.getElementById('edit-debt-name'), editDebtTotalInput = document.getElementById('edit-debt-total');
         const repaymentHistoryList = document.getElementById('repayment-history-list'), repaymentHistoryEmpty = document.getElementById('repayment-history-empty');
-        const eventForm = document.getElementById('event-form'), eventList = document.getElementById('event-list'), eventLoadingIndicator = document.getElementById('event-loading-indicator'), eventEmptyState = document.getElementById('event-empty-state');
+        const printDebtDetailBtn = document.getElementById('print-debt-detail-btn');
+        const debtBudgetForm = document.getElementById('debt-budget-form'), debtBudgetSelect = document.getElementById('debt-budget-select'), debtBudgetList = document.getElementById('debt-budget-list'), debtBudgetLoadingIndicator = document.getElementById('debt-budget-loading-indicator'), debtBudgetEmptyState = document.getElementById('debt-budget-empty-state'), cancelDebtBudgetEditBtn = document.getElementById('cancel-debt-budget-edit-btn');
+
+        // 事件
+        const eventForm = document.getElementById('event-form'), eventLoadingIndicator = document.getElementById('event-loading-indicator'), eventEmptyState = document.getElementById('event-empty-state');
+        const calendarBody = document.getElementById('calendar-body'), calendarMonthYear = document.getElementById('calendar-month-year'), prevMonthBtn = document.getElementById('prev-month-btn'), nextMonthBtn = document.getElementById('next-month-btn');
+
+        // 投資
         const investmentForm = document.getElementById('investment-form'), investmentList = document.getElementById('investment-list'), investmentLoadingIndicator = document.getElementById('investment-loading-indicator'), investmentEmptyState = document.getElementById('investment-empty-state');
         const totalInvestmentValueEl = document.getElementById('total-investment-value'), totalInvestmentReturnEl = document.getElementById('total-investment-return'), totalInvestmentRoiEl = document.getElementById('total-investment-roi');
         const investmentTransactionModal = document.getElementById('investment-transaction-modal'), investmentTransactionForm = document.getElementById('investment-transaction-form'), cancelInvestmentTransactionBtn = document.getElementById('cancel-investment-transaction-btn');
         const investmentDetailModal = document.getElementById('investment-detail-modal'), closeInvestmentDetailModalBtn = document.getElementById('close-investment-detail-modal-btn'), investmentHistoryList = document.getElementById('investment-history-list'), investmentHistoryEmpty = document.getElementById('investment-history-empty');
         const editInvestmentAccountModal = document.getElementById('edit-investment-account-modal'), editInvestmentAccountForm = document.getElementById('edit-investment-account-form'), cancelEditInvestmentAccountBtn = document.getElementById('cancel-edit-investment-account-btn');
         const updateMarketValueModal = document.getElementById('update-market-value-modal'), updateMarketValueForm = document.getElementById('update-market-value-form'), cancelUpdateMarketValueBtn = document.getElementById('cancel-update-market-value-btn');
-        const historyDateFilter = document.getElementById('history-date-filter');
-        const showTodayBtn = document.getElementById('show-today-btn');
-        const historyDisplayDateEl = document.getElementById('history-display-date');
-
-        // Budget Elements
-        const investmentBudgetForm = document.getElementById('investment-budget-form');
-        const budgetInvestmentSelect = document.getElementById('budget-investment-select');
-        const investmentBudgetList = document.getElementById('investment-budget-list');
-        const investmentBudgetLoadingIndicator = document.getElementById('investment-budget-loading-indicator');
-        const investmentBudgetEmptyState = document.getElementById('investment-budget-empty-state');
-        const budgetEditIdInput = document.getElementById('budget-edit-id');
-        const budgetSubmitBtn = document.getElementById('budget-submit-btn');
-        const budgetCancelEditBtn = document.getElementById('budget-cancel-edit-btn');
-
-        const debtBudgetForm = document.getElementById('debt-budget-form');
-        const budgetDebtSelect = document.getElementById('budget-debt-select');
-        const debtBudgetList = document.getElementById('debt-budget-list');
-        const debtBudgetLoadingIndicator = document.getElementById('debt-budget-loading-indicator');
-        const debtBudgetEmptyState = document.getElementById('debt-budget-empty-state');
-        const debtBudgetEditIdInput = document.getElementById('debt-budget-edit-id');
-        const debtBudgetSubmitBtn = document.getElementById('debt-budget-submit-btn');
-        const debtBudgetCancelEditBtn = document.getElementById('debt-budget-cancel-edit-btn');
-
-        // Report Elements
-        const expenseChartCanvas = document.getElementById('expense-chart'), noExpenseDataMsg = document.getElementById('no-expense-data');
-        const filterThisMonthBtn = document.getElementById('filter-this-month'), filterCustomDateBtn = document.getElementById('filter-custom-date'), startDateInput = document.getElementById('start-date'), endDateInput = document.getElementById('end-date');
-        const projectFilterSelect = document.getElementById('project-filter');
-        const filteredTransactionList = document.getElementById('filtered-transaction-list'), filteredEmptyState = document.getElementById('filtered-empty-state');
-        const filteredIncomeEl = document.getElementById('filtered-income'), filteredExpenseEl = document.getElementById('filtered-expense'), filteredBalanceEl = document.getElementById('filtered-balance');
-        const expenseStatsList = document.getElementById('expense-stats-list');
-        const incomeStatsList = document.getElementById('income-stats-list');
-        const printTransactionsBtn = document.getElementById('print-transactions-btn');
-        const printReportBtn = document.getElementById('print-report-btn');
-        const printDebtDetailBtn = document.getElementById('print-debt-detail-btn');
         const printInvestmentDetailBtn = document.getElementById('print-investment-detail-btn');
+        const investmentBudgetForm = document.getElementById('investment-budget-form'), budgetInvestmentSelect = document.getElementById('budget-investment-select'), investmentBudgetList = document.getElementById('investment-budget-list'), investmentBudgetLoadingIndicator = document.getElementById('investment-budget-loading-indicator'), investmentBudgetEmptyState = document.getElementById('investment-budget-empty-state'), cancelBudgetEditBtn = document.getElementById('cancel-budget-edit-btn');
+        
+        // AI 投資分析
+        const generateInvestmentSummaryBtn = document.getElementById('generate-investment-summary-btn');
+        const aiInvestmentBtnText = document.getElementById('ai-investment-btn-text');
+        const aiInvestmentSpinner = document.getElementById('ai-investment-spinner');
+        const aiInvestmentSummaryOutput = document.getElementById('ai-investment-summary-output');
 
-        // Calendar Elements
-        const calendarMonthYear = document.getElementById('calendar-month-year'), prevMonthBtn = document.getElementById('prev-month-btn'), nextMonthBtn = document.getElementById('next-month-btn'), calendarGrid = document.getElementById('calendar-grid');
+        // PDF 匯出
+        const pdfExportModal = document.getElementById('pdf-export-modal');
+        const pdfOptionsForm = document.getElementById('pdf-options-form');
+        const cancelPdfExportBtn = document.getElementById('cancel-pdf-export-btn');
+        const startPdfExportBtn = document.getElementById('start-pdf-export-btn');
+        const pdfExportOverlay = document.getElementById('pdf-export-overlay');
+
 
         // --- Firebase & App 狀態 ---
-        let db, auth, userId;
-        let transactionsColRef, categoriesColRef, projectsColRef, debtsColRef, eventsColRef, investmentsColRef, investmentBudgetsColRef, debtBudgetsColRef;
+        let db, auth, userId, transactionsColRef, categoriesColRef, projectsColRef, debtsColRef, eventsColRef, investmentsColRef, investmentBudgetsColRef, debtBudgetsColRef;
         let unsubscribeTransactions, unsubscribeCategories, unsubscribeProjects, unsubscribeDebts, unsubscribeEvents, unsubscribeInvestments, unsubscribeInvestmentBudgets, unsubscribeDebtBudgets;
         let allTransactions = [], customCategories = [], customProjects = [], allDebts = [], allEvents = [], allInvestments = [], allInvestmentBudgets = [], allDebtBudgets = [];
         let expenseChart = null;
         let activeCategoryFilter = { type: null, category: null };
         let currentCalendarDate = new Date();
         const defaultCategories = { expense: ['飲食', '交通', '居住', '娛樂', '購物', '醫療', '教育', '負債還款', '投資支出', '其他'], income: ['薪資', '獎金', '投資收入', '兼職', '債權回收', '其他'] };
+        const eventColors = {
+            green: 'bg-green-100 text-green-800 border-green-200',
+            blue: 'bg-blue-100 text-blue-800 border-blue-200',
+            red: 'bg-red-100 text-red-800 border-red-200',
+            yellow: 'bg-yellow-100 text-yellow-800 border-yellow-200',
+        };
 
         const firebaseConfig = {
           apiKey: "AIzaSyAqFHm6Bn35m8xauc50ZvNNy_rxIZzCMTE",
@@ -557,7 +661,7 @@
         onAuthStateChanged(auth, (user) => {
             if (user) {
                 userId = user.uid;
-                // 使用原始路徑
+                // 使用者原先的路徑
                 const basePath = `/users/${userId}`;
                 transactionsColRef = collection(db, `${basePath}/transactions`);
                 categoriesColRef = collection(db, `${basePath}/categories`);
@@ -570,6 +674,7 @@
 
                 setupUIForLoggedInUser(user);
 
+                // 啟動所有監聽器
                 listenForTransactions();
                 listenForCustomItems(categoriesColRef, (items) => { customCategories = items; populateCategoryDatalist(); populateModalList(customCategoryList, customCategories, '尚無自訂分類', 'category'); });
                 listenForCustomItems(projectsColRef, (items) => { customProjects = items; populateDatalist(projectDatalist, customProjects.map(p => p.name)); populateModalList(customProjectList, customProjects, '尚無自訂專案', 'project'); populateProjectFilter(); });
@@ -581,6 +686,7 @@
 
             } else {
                 setupUIForLoggedOutUser();
+                // 停止所有監聽器
                 if (unsubscribeTransactions) unsubscribeTransactions();
                 if (unsubscribeCategories) unsubscribeCategories();
                 if (unsubscribeProjects) unsubscribeProjects();
@@ -614,58 +720,74 @@
             authInfo.innerHTML = '';
             transactionList.innerHTML = '';
             debtList.innerHTML = '';
-            eventList.innerHTML = '';
             investmentList.innerHTML = '';
+            calendarBody.innerHTML = '';
             investmentBudgetList.innerHTML = '';
             debtBudgetList.innerHTML = '';
         }
 
+        // --- 資料庫監聽函式 ---
+
         function listenForTransactions() {
             if (unsubscribeTransactions) unsubscribeTransactions();
-            unsubscribeTransactions = onSnapshot(query(transactionsColRef), (snapshot) => {
-                loadingIndicator.classList.add('hidden');
+            const q = query(transactionsColRef);
+            unsubscribeTransactions = onSnapshot(q, (snapshot) => {
+                if (loadingIndicator) loadingIndicator.classList.add('hidden');
                 allTransactions = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
                 allTransactions.sort((a, b) => (b.timestamp?.toMillis() || 0) - (a.timestamp?.toMillis() || 0));
+
+                const now = new Date();
+                const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+                const endOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
+                const todayTransactions = allTransactions.filter(tx => {
+                    if (!tx.timestamp) return false;
+                    const txDate = tx.timestamp.toDate();
+                    return txDate >= startOfToday && txDate < endOfToday;
+                });
 
                 renderMainTransactionList();
                 populateProjectFilter();
                 updateSummary(allTransactions);
-                updateTodaySummary(allTransactions);
+                updateTodaySummary(todayTransactions);
                 updateMonthlySummary(allTransactions);
-                updateExpenseChart();
                 updateMonthlyRepaymentSummary();
-                if(reportsView.classList.contains('hidden') === false) { handleFilterThisMonth(); }
+                if(reportsView && !reportsView.classList.contains('hidden')) { 
+                    updateExpenseChart();
+                    handleFilterThisMonth(); 
+                }
             }, (error) => console.error("監聽交易資料失敗:", error));
         }
 
         function listenForDebts() {
             if (unsubscribeDebts) unsubscribeDebts();
-            unsubscribeDebts = onSnapshot(query(debtsColRef), (snapshot) => {
-                debtLoadingIndicator.classList.add('hidden');
+            const q = query(debtsColRef);
+            unsubscribeDebts = onSnapshot(q, (snapshot) => {
+                if (debtLoadingIndicator) debtLoadingIndicator.classList.add('hidden');
                 allDebts = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
                 allDebts.sort((a, b) => (a.createdAt?.toMillis() || 0) - (b.createdAt?.toMillis() || 0));
                 updateDebtSummary(allDebts);
                 renderDebts(allDebts);
-                populateDebtBudgetSelect();
-                debtEmptyState.classList.toggle('hidden', allDebts.length > 0);
+                populateBudgetSelects();
+                if (debtEmptyState) debtEmptyState.classList.toggle('hidden', allDebts.length > 0);
             }, (error) => console.error("監聽負債資料失敗:", error));
         }
 
         function listenForEvents() {
             if (unsubscribeEvents) unsubscribeEvents();
-            unsubscribeEvents = onSnapshot(query(eventsColRef), (snapshot) => {
-                eventLoadingIndicator.classList.add('hidden');
+            const q = query(eventsColRef);
+            unsubscribeEvents = onSnapshot(q, (snapshot) => {
+                if (eventLoadingIndicator) eventLoadingIndicator.classList.add('hidden');
                 allEvents = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                allEvents.sort((a, b) => (b.date?.toMillis() || 0) - (a.date?.toMillis() || 0));
-                renderEvents(allEvents);
-                eventEmptyState.classList.toggle('hidden', allEvents.length > 0);
+                renderCalendar(currentCalendarDate);
+                if (eventEmptyState) eventEmptyState.classList.toggle('hidden', allEvents.length > 0);
             }, (error) => console.error("監聽事件資料失敗:", error));
         }
 
         function listenForInvestments() {
             if(unsubscribeInvestments) unsubscribeInvestments();
-            unsubscribeInvestments = onSnapshot(query(investmentsColRef), async (snapshot) => {
-                investmentLoadingIndicator.classList.add('hidden');
+            const q = query(investmentsColRef);
+            unsubscribeInvestments = onSnapshot(q, async (snapshot) => {
+                if (investmentLoadingIndicator) investmentLoadingIndicator.classList.add('hidden');
                 const investmentPromises = snapshot.docs.map(async (investmentDoc) => {
                     const investmentData = { id: investmentDoc.id, ...investmentDoc.data() };
                     const investmentTxColRef = collection(db, `${investmentsColRef.path}/${investmentDoc.id}/transactions`);
@@ -676,77 +798,57 @@
                 allInvestments = await Promise.all(investmentPromises);
                 renderInvestments(allInvestments);
                 updateInvestmentSummary(allInvestments);
-                populateInvestmentBudgetSelect();
-                investmentEmptyState.classList.toggle('hidden', allInvestments.length > 0);
+                populateBudgetSelects();
+                if (investmentEmptyState) investmentEmptyState.classList.toggle('hidden', allInvestments.length > 0);
             }, (error) => console.error("監聽投資資料失敗:", error));
         }
 
         function listenForInvestmentBudgets() {
             if (unsubscribeInvestmentBudgets) unsubscribeInvestmentBudgets();
-            investmentBudgetLoadingIndicator.classList.add('hidden');
-            
             // 嘗試使用索引查詢
-            const q = query(investmentBudgetsColRef, where("isRealized", "==", false));
-
+            let q = query(investmentBudgetsColRef, where("isRealized", "==", false));
             unsubscribeInvestmentBudgets = onSnapshot(q, (snapshot) => {
+                if (investmentBudgetLoadingIndicator) investmentBudgetLoadingIndicator.classList.add('hidden');
                 allInvestmentBudgets = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                const pendingBudgets = allInvestmentBudgets
-                    .sort((a, b) => (a.expectedDate?.toMillis() || 0) - (b.expectedDate?.toMillis() || 0));
-                
+                const pendingBudgets = allInvestmentBudgets.filter(b => !b.isRealized);
                 renderInvestmentBudgets(pendingBudgets);
-                investmentBudgetEmptyState.classList.toggle('hidden', pendingBudgets.length > 0);
-                if (!calendarView.classList.contains('hidden')) { renderCalendar(); }
-            }, 
-            (error) => {
-                // 如果索引查詢失敗 (例如缺少索引)，則改用 client-side 過濾
-                console.warn("Firestore 索引查詢失敗 (investmentBudgets)，改用 client-side 過濾。錯誤:", error.message);
-                if (unsubscribeInvestmentBudgets) unsubscribeInvestmentBudgets(); // 取消舊的監聽
-                
-                const fallbackQuery = query(investmentBudgetsColRef);
+                if (investmentBudgetEmptyState) investmentBudgetEmptyState.classList.toggle('hidden', pendingBudgets.length > 0);
+            }, (error) => {
+                console.warn("Firestore 索引查詢失敗 (investmentBudgets)，將改用本機過濾:", error.message);
+                // 索引查詢失敗，改為抓取全部資料後在客戶端過濾
+                if (unsubscribeInvestmentBudgets) unsubscribeInvestmentBudgets();
+                let fallbackQuery = query(investmentBudgetsColRef);
                 unsubscribeInvestmentBudgets = onSnapshot(fallbackQuery, (snapshot) => {
+                    if (investmentBudgetLoadingIndicator) investmentBudgetLoadingIndicator.classList.add('hidden');
                     allInvestmentBudgets = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                    const pendingBudgets = allInvestmentBudgets
-                        .filter(b => !b.isRealized) // 在 client-side 過濾
-                        .sort((a, b) => (a.expectedDate?.toMillis() || 0) - (b.expectedDate?.toMillis() || 0));
-                    
+                    const pendingBudgets = allInvestmentBudgets.filter(b => !b.isRealized);
                     renderInvestmentBudgets(pendingBudgets);
-                    investmentBudgetEmptyState.classList.toggle('hidden', pendingBudgets.length > 0);
-                    if (!calendarView.classList.contains('hidden')) { renderCalendar(); }
+                    if (investmentBudgetEmptyState) investmentBudgetEmptyState.classList.toggle('hidden', pendingBudgets.length > 0);
                 });
             });
         }
-        
+
         function listenForDebtBudgets() {
             if (unsubscribeDebtBudgets) unsubscribeDebtBudgets();
-            debtBudgetLoadingIndicator.classList.add('hidden');
-            
             // 嘗試使用索引查詢
-            const q = query(debtBudgetsColRef, where("isRealized", "==", false));
-
+            let q = query(debtBudgetsColRef, where("isRealized", "==", false));
             unsubscribeDebtBudgets = onSnapshot(q, (snapshot) => {
+                if (debtBudgetLoadingIndicator) debtBudgetLoadingIndicator.classList.add('hidden');
                 allDebtBudgets = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                const pendingBudgets = allDebtBudgets
-                    .sort((a, b) => (a.expectedDate?.toMillis() || 0) - (b.expectedDate?.toMillis() || 0));
-
+                const pendingBudgets = allDebtBudgets.filter(b => !b.isRealized);
                 renderDebtBudgets(pendingBudgets);
-                debtBudgetEmptyState.classList.toggle('hidden', pendingBudgets.length > 0);
-                if (!calendarView.classList.contains('hidden')) { renderCalendar(); }
-            },
-            (error) => {
-                 // 如果索引查詢失敗 (例如缺少索引)，則改用 client-side 過濾
-                console.warn("Firestore 索引查詢失敗 (debtBudgets)，改用 client-side 過濾。錯誤:", error.message);
-                if (unsubscribeDebtBudgets) unsubscribeDebtBudgets(); // 取消舊的監聽
-
-                const fallbackQuery = query(debtBudgetsColRef);
+                if (debtBudgetEmptyState) debtBudgetEmptyState.classList.toggle('hidden', pendingBudgets.length > 0);
+            }, (error) => {
+                console.warn("Firestore 索引查詢失敗 (debtBudgets)，將改用本機過濾:", error.message);
+                // 索引查詢失敗，改為抓取全部資料後在客戶端過濾
+                if (unsubscribeDebtBudgets) unsubscribeDebtBudgets();
+                let fallbackQuery = query(debtBudgetsColRef);
                 unsubscribeDebtBudgets = onSnapshot(fallbackQuery, (snapshot) => {
+                    if (debtBudgetLoadingIndicator) debtBudgetLoadingIndicator.classList.add('hidden');
                     allDebtBudgets = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                    const pendingBudgets = allDebtBudgets
-                        .filter(b => !b.isRealized) // 在 client-side 過濾
-                        .sort((a, b) => (a.expectedDate?.toMillis() || 0) - (b.expectedDate?.toMillis() || 0));
-
+                    const pendingBudgets = allDebtBudgets.filter(b => !b.isRealized);
                     renderDebtBudgets(pendingBudgets);
-                    debtBudgetEmptyState.classList.toggle('hidden', pendingBudgets.length > 0);
-                    if (!calendarView.classList.contains('hidden')) { renderCalendar(); }
+                    if (debtBudgetEmptyState) debtBudgetEmptyState.classList.toggle('hidden', pendingBudgets.length > 0);
                 });
             });
         }
@@ -759,8 +861,9 @@
             }, (error) => console.error("監聽自訂項目失敗:", error));
         }
 
-        // --- 渲染函式 ---
+        // --- 渲染函式 (Render) ---
         function renderTransactions(transactions) {
+            if (!transactionList) return;
             transactionList.innerHTML = '';
             transactions.forEach(tx => {
                 const isIncome = tx.type === 'income';
@@ -793,6 +896,7 @@
         }
 
         function renderFilteredTransactions(transactions) {
+            if (!filteredTransactionList) return;
             filteredTransactionList.innerHTML = '';
             filteredEmptyState.classList.toggle('hidden', transactions.length > 0);
             transactions.forEach(tx => {
@@ -819,6 +923,7 @@
         }
 
         function renderDebts(debts) {
+            if (!debtList) return;
             debtList.innerHTML = '';
             debts.forEach(debt => {
                 const percentage = debt.totalAmount > 0 ? ((debt.totalAmount - debt.remainingAmount) / debt.totalAmount) * 100 : 100;
@@ -847,29 +952,91 @@
             });
         }
 
-        function renderEvents(events) {
-            eventList.innerHTML = '';
-            events.forEach(event => {
-                const eventEl = document.createElement('div');
-                eventEl.className = 'relative pl-8';
-                eventEl.innerHTML = `
-                    <div class="absolute left-0 top-1 w-4 h-4 bg-indigo-500 rounded-full -ml-2 border-2 border-white"></div>
-                    <div class="p-4 bg-gray-50 rounded-lg border">
-                        <div class="flex justify-between items-center mb-1">
-                            <p class="font-bold text-indigo-800">${event.title}</p>
-                            <span class="text-sm text-gray-500">${event.date.toDate().toLocaleDateString('zh-TW')}</span>
-                        </div>
-                        <p class="text-gray-700 whitespace-pre-wrap">${event.description}</p>
-                        <div class="text-right mt-2 no-print">
-                             <button class="delete-event-btn text-gray-400 hover:text-red-500 text-xs" data-id="${event.id}">刪除</button>
-                        </div>
-                    </div>
-                `;
-                eventList.appendChild(eventEl);
+        function renderCalendar(date) {
+            if (!calendarBody) return;
+            calendarBody.innerHTML = '';
+            if (calendarMonthYear) calendarMonthYear.textContent = `${date.getFullYear()} 年 ${date.getMonth() + 1} 月`;
+
+            const month = date.getMonth();
+            const year = date.getFullYear();
+            const firstDayOfMonth = new Date(year, month, 1);
+            const daysInMonth = new Date(year, month + 1, 0).getDate();
+            const startDay = firstDayOfMonth.getDay(); // 0 = Sunday, 1 = Monday...
+
+            // 過濾當月事件
+            const monthEvents = allEvents.filter(event => {
+                const eventDate = event.date.toDate();
+                return eventDate.getFullYear() === year && eventDate.getMonth() === month;
             });
+
+            // 填充上個月的日期
+            const daysInPrevMonth = new Date(year, month, 0).getDate();
+            for (let i = 0; i < startDay; i++) {
+                const dayNum = daysInPrevMonth - startDay + 1 + i;
+                calendarBody.innerHTML += `<div class="calendar-day other-month"><span>${dayNum}</span></div>`;
+            }
+
+            // 填充當月的日期
+            for (let i = 1; i <= daysInMonth; i++) {
+                const dayEl = document.createElement('div');
+                dayEl.className = 'calendar-day';
+                dayEl.innerHTML = `<span class="font-medium">${i}</span>`;
+
+                const eventsOnThisDay = monthEvents.filter(e => e.date.toDate().getDate() === i);
+                eventsOnThisDay.sort((a, b) => a.createdAt.toMillis() - b.createdAt.toMillis()); // 確保順序
+
+                eventsOnThisDay.forEach(event => {
+                    const colorClass = eventColors[event.color] || eventColors['green'];
+                    const eventBadge = document.createElement('div');
+                    eventBadge.className = `event-badge ${colorClass} border cursor-pointer`;
+                    eventBadge.textContent = event.title;
+                    eventBadge.title = event.description || event.title;
+                    eventBadge.dataset.id = event.id;
+                    eventBadge.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        handleEditEvent(event);
+                    });
+                    
+                    const deleteBtn = document.createElement('button');
+                    deleteBtn.className = "text-red-400 hover:text-red-600 float-right ml-1 no-print";
+                    deleteBtn.innerHTML = "&times;";
+                    deleteBtn.onclick = (e) => {
+                        e.stopPropagation();
+                        if (confirm(`確定要刪除事件 "${event.title}" 嗎？`)) {
+                            handleDelete(e, 'button', eventsColRef);
+                        }
+                    };
+                    deleteBtn.dataset.id = event.id;
+                    
+                    eventBadge.prepend(deleteBtn);
+                    dayEl.appendChild(eventBadge);
+                });
+
+                calendarBody.appendChild(dayEl);
+            }
+
+            // 填充下個月的日期
+            const totalCells = startDay + daysInMonth;
+            const nextMonthDays = (totalCells % 7 === 0) ? 0 : 7 - (totalCells % 7);
+            for (let i = 1; i <= nextMonthDays; i++) {
+                calendarBody.innerHTML += `<div class="calendar-day other-month"><span>${i}</span></div>`;
+            }
+        }
+        
+        function handleEditEvent(event) {
+            document.getElementById('event-date').value = event.date.toDate().toISOString().split('T')[0];
+            document.getElementById('event-title').value = event.title;
+            document.getElementById('event-description').value = event.description || '';
+            document.getElementById('event-color').value = event.color || 'green';
+            // 暫存 ID 用於更新
+            eventForm.dataset.editId = event.id; 
+            eventForm.querySelector('button[type="submit"]').textContent = '儲存變更';
+            eventForm.scrollIntoView({ behavior: 'smooth' });
         }
 
+
         function renderInvestments(investments) {
+            if (!investmentList) return;
             investmentList.innerHTML = '';
             investments.forEach(inv => {
                 const income = inv.transactions.filter(t => t.type === 'income').reduce((sum, t) => sum + t.amount, 0);
@@ -924,102 +1091,8 @@
             });
         }
 
-        function renderInvestmentBudgets(budgets) {
-            investmentBudgetList.innerHTML = '';
-            const today = new Date();
-            today.setHours(0, 0, 0, 0); 
-
-            budgets.forEach(budget => {
-                const li = document.createElement('li');
-                const expectedDate = budget.expectedDate.toDate();
-                const isExpired = expectedDate < today;
-
-                li.className = `p-4 rounded-lg bg-green-50 border border-green-200 ${isExpired ? 'budget-item-expired' : ''}`;
-                li.innerHTML = `
-                    <div class="flex items-start justify-between">
-                        <div class="flex items-center gap-3">
-                            <input type="checkbox" class="realize-budget-btn h-5 w-5 text-green-600 rounded" data-id="${budget.id}">
-                            <div>
-                                <p class="font-bold text-green-800">${budget.description}</p>
-                                <p class="text-sm text-gray-600">${budget.investmentName}・預期獲利: NT$ ${(budget.amount || 0).toLocaleString()}</p>
-                                <span class="budget-date text-sm text-gray-500">${expectedDate.toLocaleDateString('zh-TW')}</span>
-                            </div>
-                        </div>
-                        <div class="flex gap-2 no-print">
-                            <button class="edit-budget-btn text-gray-400 hover:text-blue-500 p-1" data-id="${budget.id}">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.5L15.232 5.232z"></path></svg>
-                            </button>
-                            <button class="delete-budget-btn text-gray-400 hover:text-red-500 p-1" data-id="${budget.id}">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
-                            </button>
-                        </div>
-                    </div>
-                `;
-                investmentBudgetList.appendChild(li);
-            });
-        }
-
-        function renderDebtBudgets(budgets) {
-            debtBudgetList.innerHTML = '';
-            const today = new Date();
-            today.setHours(0, 0, 0, 0); 
-
-            budgets.forEach(budget => {
-                const li = document.createElement('li');
-                const expectedDate = budget.expectedDate.toDate();
-                const isExpired = expectedDate < today;
-
-                li.className = `p-4 rounded-lg bg-red-50 border border-red-200 ${isExpired ? 'budget-item-expired' : ''}`;
-                li.innerHTML = `
-                    <div class="flex items-start justify-between">
-                        <div class="flex items-center gap-3">
-                            <input type="checkbox" class="realize-debt-budget-btn h-5 w-5 text-red-600 rounded" data-id="${budget.id}">
-                            <div>
-                                <p class="font-bold text-red-800">${budget.description}</p>
-                                <p class="text-sm text-gray-600">${budget.debtName}・預計還款: NT$ ${(budget.amount || 0).toLocaleString()}</p>
-                                <span class="budget-date text-sm text-gray-500">${expectedDate.toLocaleDateString('zh-TW')}</span>
-                            </div>
-                        </div>
-                         <div class="flex gap-2 no-print">
-                            <button class="edit-debt-budget-btn text-gray-400 hover:text-blue-500 p-1" data-id="${budget.id}">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.5L15.232 5.232z"></path></svg>
-                            </button>
-                            <button class="delete-debt-budget-btn text-gray-400 hover:text-red-500 p-1" data-id="${budget.id}">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
-                            </button>
-                        </div>
-                    </div>
-                `;
-                debtBudgetList.appendChild(li);
-            });
-        }
-        
-        function renderRepaymentHistory(debtName) {
-            const history = allTransactions.filter(tx => tx.category === '負債還款' && tx.project === debtName);
-            repaymentHistoryList.innerHTML = '';
-            repaymentHistoryEmpty.classList.toggle('hidden', history.length > 0);
-            history.forEach(tx => {
-                const li = document.createElement('li');
-                li.className = 'p-2 bg-gray-50 rounded';
-                li.innerHTML = `
-                    <div class="flex justify-between items-center">
-                        <div>
-                            <span class="text-sm text-gray-600">${tx.timestamp.toDate().toLocaleDateString('zh-TW')}</span>
-                            ${tx.remarks ? `<p class="text-xs text-gray-500 mt-1">${tx.remarks}</p>` : ''}
-                        </div>
-                        <div class="flex items-center gap-2">
-                             <span class="text-sm font-semibold text-red-600">- NT$ ${tx.amount.toLocaleString()}</span>
-                             <button data-id="${tx.id}" data-amount="${tx.amount}" class="delete-repayment-btn text-gray-400 hover:text-red-500 p-1 rounded-full no-print">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
-                             </button>
-                        </div>
-                    </div>
-                `;
-                repaymentHistoryList.appendChild(li);
-            });
-        }
-
         function renderInvestmentHistory(investmentId) {
+            if (!investmentHistoryList) return;
             const investment = allInvestments.find(inv => inv.id === investmentId);
             if (!investment) return;
             investmentHistoryList.innerHTML = '';
@@ -1049,8 +1122,117 @@
                 investmentHistoryList.appendChild(li);
             });
         }
+        
+        function renderRepaymentHistory(debtName) {
+            if (!repaymentHistoryList) return;
+            const history = allTransactions.filter(tx => tx.category === '負債還款' && tx.project === debtName);
+            repaymentHistoryList.innerHTML = '';
+            repaymentHistoryEmpty.classList.toggle('hidden', history.length > 0);
+            history.forEach(tx => {
+                const li = document.createElement('li');
+                li.className = 'p-2 bg-gray-50 rounded';
+                li.innerHTML = `
+                    <div class="flex justify-between items-center">
+                        <div>
+                            <span class="text-sm text-gray-600">${tx.timestamp.toDate().toLocaleDateString('zh-TW')}</span>
+                            ${tx.remarks ? `<p class="text-xs text-gray-500 mt-1">${tx.remarks}</p>` : ''}
+                        </div>
+                        <div class="flex items-center gap-2">
+                             <span class="text-sm font-semibold text-red-600">- NT$ ${tx.amount.toLocaleString()}</span>
+                             <button data-id="${tx.id}" data-amount="${tx.amount}" class="delete-repayment-btn text-gray-400 hover:text-red-500 p-1 rounded-full no-print">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                             </button>
+                        </div>
+                    </div>
+                `;
+                repaymentHistoryList.appendChild(li);
+            });
+        }
 
+        function renderInvestmentBudgets(budgets) {
+            if (!investmentBudgetList) return;
+            investmentBudgetList.innerHTML = '';
+            const now = new Date();
+            now.setHours(0, 0, 0, 0); // 設定為今天 0 點
+
+            budgets.sort((a, b) => (a.expectedDate?.toMillis() || 0) - (b.expectedDate?.toMillis() || 0));
+            
+            budgets.forEach(budget => {
+                const li = document.createElement('li');
+                li.className = 'flex items-center justify-between p-3 bg-gray-50 rounded-lg border';
+                
+                const expectedDate = budget.expectedDate.toDate();
+                const isOverdue = expectedDate < now;
+                const dateClass = isOverdue ? 'text-red-600 font-bold' : 'text-gray-600';
+
+                li.innerHTML = `
+                    <div class="flex items-center gap-3 flex-grow">
+                        <input type="checkbox" class="realize-budget-checkbox w-5 h-5 text-green-600 border-gray-300 rounded focus:ring-green-500" data-id="${budget.id}">
+                        <div class="flex-grow">
+                            <p class="font-medium text-gray-800">${budget.description}</p>
+                            <p class="text-sm ${dateClass}">
+                                ${expectedDate.toLocaleDateString('zh-TW')} 預期
+                                <span class="font-semibold text-green-700">+NT$ ${(budget.amount || 0).toLocaleString()}</span>
+                                (${budget.investmentName})
+                            </p>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-2 no-print">
+                        <button class="edit-budget-btn text-gray-400 hover:text-blue-500 p-1" data-id="${budget.id}">
+                             <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.5L15.232 5.232z"></path></svg>
+                        </button>
+                        <button class="delete-budget-btn text-gray-400 hover:text-red-500 p-1" data-id="${budget.id}">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
+                        </button>
+                    </div>
+                `;
+                investmentBudgetList.appendChild(li);
+            });
+        }
+        
+        function renderDebtBudgets(budgets) {
+            if (!debtBudgetList) return;
+            debtBudgetList.innerHTML = '';
+            const now = new Date();
+            now.setHours(0, 0, 0, 0);
+
+            budgets.sort((a, b) => (a.expectedDate?.toMillis() || 0) - (b.expectedDate?.toMillis() || 0));
+
+            budgets.forEach(budget => {
+                const li = document.createElement('li');
+                li.className = 'flex items-center justify-between p-3 bg-gray-50 rounded-lg border';
+                
+                const expectedDate = budget.expectedDate.toDate();
+                const isOverdue = expectedDate < now;
+                const dateClass = isOverdue ? 'text-red-600 font-bold' : 'text-gray-600';
+
+                li.innerHTML = `
+                    <div class="flex items-center gap-3 flex-grow">
+                        <input type="checkbox" class="realize-debt-budget-checkbox w-5 h-5 text-red-600 border-gray-300 rounded focus:ring-red-500" data-id="${budget.id}">
+                        <div class="flex-grow">
+                            <p class="font-medium text-gray-800">${budget.description}</p>
+                            <p class="text-sm ${dateClass}">
+                                ${expectedDate.toLocaleDateString('zh-TW')} 預計
+                                <span class="font-semibold text-red-700">-NT$ ${(budget.amount || 0).toLocaleString()}</span>
+                                (${budget.debtName})
+                            </p>
+                        </div>
+                    </div>
+                     <div class="flex items-center gap-2 no-print">
+                        <button class="edit-debt-budget-btn text-gray-400 hover:text-blue-500 p-1" data-id="${budget.id}">
+                             <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.5L15.232 5.232z"></path></svg>
+                        </button>
+                        <button class="delete-debt-budget-btn text-gray-400 hover:text-red-500 p-1" data-id="${budget.id}">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
+                        </button>
+                    </div>
+                `;
+                debtBudgetList.appendChild(li);
+            });
+        }
+        
         function renderCategoryStats(listElement, summaryData, type) {
+            if (!listElement) return;
             listElement.innerHTML = '';
             const sortedSummary = Object.entries(summaryData).sort(([, a], [, b]) => b - a);
 
@@ -1071,103 +1253,28 @@
             });
         }
 
-        function renderCalendar() {
-            calendarGrid.innerHTML = '';
-            const year = currentCalendarDate.getFullYear();
-            const month = currentCalendarDate.getMonth(); // 0-11
 
-            calendarMonthYear.textContent = `${year} 年 ${month + 1} 月`;
-
-            const firstDayOfMonth = new Date(year, month, 1);
-            const lastDayOfMonth = new Date(year, month + 1, 0);
-            const daysInMonth = lastDayOfMonth.getDate();
-            const startDayOfWeek = firstDayOfMonth.getDay(); // 0=Sunday, 1=Monday...
-
-            const lastDayOfPrevMonth = new Date(year, month, 0).getDate();
-
-            // 1. Add days from previous month
-            for (let i = startDayOfWeek - 1; i >= 0; i--) {
-                const day = lastDayOfPrevMonth - i;
-                calendarGrid.innerHTML += `<div class="calendar-day other-month"><span class="calendar-day-number">${day}</span></div>`;
-            }
-
-            // 2. Add days for current month
-            const today = new Date();
-            today.setHours(0, 0, 0, 0);
-
-            for (let day = 1; day <= daysInMonth; day++) {
-                const dayCell = document.createElement('div');
-                dayCell.className = 'calendar-day';
-                
-                const currentDate = new Date(year, month, day);
-                if (currentDate.getTime() === today.getTime()) {
-                    dayCell.classList.add('bg-blue-50');
-                }
-
-                dayCell.innerHTML = `<span class="calendar-day-number">${day}</span>`;
-                
-                // Find budgets for this day
-                const dayStart = new Date(year, month, day);
-                const dayEnd = new Date(year, month, day, 23, 59, 59);
-
-                allInvestmentBudgets.forEach(budget => {
-                    if (!budget.isRealized && budget.expectedDate) {
-                        const budgetDate = budget.expectedDate.toDate();
-                        if (budgetDate >= dayStart && budgetDate <= dayEnd) {
-                            dayCell.innerHTML += `<span class="calendar-event calendar-event-investment" title="${budget.description}">💰 ${budget.description}</span>`;
-                        }
-                    }
-                });
-
-                allDebtBudgets.forEach(budget => {
-                    if (!budget.isRealized && budget.expectedDate) {
-                        const budgetDate = budget.expectedDate.toDate();
-                        if (budgetDate >= dayStart && budgetDate <= dayEnd) {
-                            dayCell.innerHTML += `<span class="calendar-event calendar-event-debt" title="${budget.description}">💸 ${budget.description}</span>`;
-                        }
-                    }
-                });
-
-                calendarGrid.appendChild(dayCell);
-            }
-
-            // 3. Add days from next month
-            const lastDayOfWeek = lastDayOfMonth.getDay();
-            const daysToAdd = 6 - lastDayOfWeek;
-            if (daysToAdd < 6) { // Only add if not a full week
-                for (let i = 1; i <= daysToAdd; i++) {
-                    calendarGrid.innerHTML += `<div class="calendar-day other-month"><span class="calendar-day-number">${i}</span></div>`;
-                }
-            }
-        }
-        
+        // --- 更新總覽 (Update Summary) ---
         function updateSummary(transactions) {
+            if (!totalIncomeEl) return;
             const income = transactions.filter(t => t.type === 'income').reduce((sum, t) => sum + t.amount, 0);
             const expense = transactions.filter(t => t.type === 'expense').reduce((sum, t) => sum + t.amount, 0);
-            if (totalIncomeEl) totalIncomeEl.textContent = `NT$ ${income.toLocaleString()}`;
-            if (totalExpenseEl) totalExpenseEl.textContent = `NT$ ${expense.toLocaleString()}`;
-            if (balanceEl) balanceEl.textContent = `NT$ ${(income - expense).toLocaleString()}`;
+            totalIncomeEl.textContent = `NT$ ${income.toLocaleString()}`;
+            totalExpenseEl.textContent = `NT$ ${expense.toLocaleString()}`;
+            balanceEl.textContent = `NT$ ${(income - expense).toLocaleString()}`;
         }
 
         function updateTodaySummary(transactions) {
-            const now = new Date();
-            const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-            const endOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
-
-            const todayTransactions = transactions.filter(tx => {
-                if (!tx.timestamp) return false;
-                const txDate = tx.timestamp.toDate();
-                return txDate >= startOfToday && txDate < endOfToday;
-            });
-
-            const income = todayTransactions.filter(t => t.type === 'income').reduce((sum, t) => sum + t.amount, 0);
-            const expense = todayTransactions.filter(t => t.type === 'expense').reduce((sum, t) => sum + t.amount, 0);
-            if (todayIncomeEl) todayIncomeEl.textContent = `NT$ ${income.toLocaleString()}`;
-            if (todayExpenseEl) todayExpenseEl.textContent = `NT$ ${expense.toLocaleString()}`;
-            if (todayBalanceEl) todayBalanceEl.textContent = `NT$ ${(income - expense).toLocaleString()}`;
+            if (!todayIncomeEl) return;
+            const income = transactions.filter(t => t.type === 'income').reduce((sum, t) => sum + t.amount, 0);
+            const expense = transactions.filter(t => t.type === 'expense').reduce((sum, t) => sum + t.amount, 0);
+            todayIncomeEl.textContent = `NT$ ${income.toLocaleString()}`;
+            todayExpenseEl.textContent = `NT$ ${expense.toLocaleString()}`;
+            todayBalanceEl.textContent = `NT$ ${(income - expense).toLocaleString()}`;
         }
 
         function updateMonthlySummary(transactions) {
+            if (!monthlyIncomeEl) return;
             const now = new Date();
             const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
             const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
@@ -1180,21 +1287,40 @@
 
             const income = monthlyTransactions.filter(t => t.type === 'income').reduce((sum, t) => sum + t.amount, 0);
             const expense = monthlyTransactions.filter(t => t.type === 'expense').reduce((sum, t) => sum + t.amount, 0);
-            if (monthlyIncomeEl) monthlyIncomeEl.textContent = `NT$ ${income.toLocaleString()}`;
-            if (monthlyExpenseEl) monthlyExpenseEl.textContent = `NT$ ${expense.toLocaleString()}`;
-            if (monthlyBalanceEl) monthlyBalanceEl.textContent = `NT$ ${(income - expense).toLocaleString()}`;
+            monthlyIncomeEl.textContent = `NT$ ${income.toLocaleString()}`;
+            monthlyExpenseEl.textContent = `NT$ ${expense.toLocaleString()}`;
+            monthlyBalanceEl.textContent = `NT$ ${(income - expense).toLocaleString()}`;
         }
 
         function updateDebtSummary(debts) {
+            if (!totalInitialDebtEl) return;
             const initialDebt = debts.reduce((sum, d) => sum + d.totalAmount, 0);
             const currentDebt = debts.reduce((sum, d) => sum + d.remainingAmount, 0);
             const repaidDebt = initialDebt - currentDebt;
-            if (totalInitialDebtEl) totalInitialDebtEl.textContent = `NT$ ${initialDebt.toLocaleString()}`;
-            if (totalCurrentDebtEl) totalCurrentDebtEl.textContent = `NT$ ${currentDebt.toLocaleString()}`;
+            
+            totalInitialDebtEl.textContent = `NT$ ${initialDebt.toLocaleString()}`;
+            totalCurrentDebtEl.textContent = `NT$ ${currentDebt.toLocaleString()}`;
             if (totalRepaidDebtEl) totalRepaidDebtEl.textContent = `NT$ ${repaidDebt.toLocaleString()}`;
         }
 
+        function updateMonthlyRepaymentSummary() {
+            if (!totalMonthlyRepaymentEl) return;
+            const now = new Date();
+            const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+            const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
+
+            const monthlyRepayments = allTransactions.filter(tx => {
+                if (tx.category !== '負債還款' || !tx.timestamp) return false;
+                const txDate = tx.timestamp.toDate();
+                return txDate >= startOfMonth && txDate <= endOfMonth;
+            });
+
+            const totalMonthlyPayment = monthlyRepayments.reduce((sum, tx) => sum + tx.amount, 0);
+            totalMonthlyRepaymentEl.textContent = `NT$ ${totalMonthlyPayment.toLocaleString()}`;
+        }
+
         function updateInvestmentSummary(investments) {
+            if (!totalInvestmentValueEl) return;
             let totalMarketValue = 0;
             let totalReturn = 0;
             let totalCostAggregated = 0;
@@ -1212,33 +1338,16 @@
 
             const totalRoi = totalCostAggregated > 0 ? (totalReturn / totalCostAggregated) * 100 : 0;
 
-            if (totalInvestmentValueEl) totalInvestmentValueEl.textContent = `NT$ ${totalMarketValue.toLocaleString()}`;
-            if (totalInvestmentReturnEl) {
-                totalInvestmentReturnEl.textContent = `NT$ ${totalReturn.toLocaleString()}`;
-                totalInvestmentReturnEl.className = `text-2xl font-bold mt-2 ${totalReturn >= 0 ? 'text-purple-600' : 'text-red-600'}`;
-            }
-            if (totalInvestmentRoiEl) {
-                totalInvestmentRoiEl.textContent = `${totalRoi.toFixed(2)}%`;
-                totalInvestmentRoiEl.className = `text-2xl font-bold mt-2 ${totalRoi >= 0 ? 'text-teal-600' : 'text-orange-600'}`;
-            }
-        }
+            totalInvestmentValueEl.textContent = `NT$ ${totalMarketValue.toLocaleString()}`;
+            totalInvestmentReturnEl.textContent = `NT$ ${totalReturn.toLocaleString()}`;
+            totalInvestmentRoiEl.textContent = `${totalRoi.toFixed(2)}%`;
 
-        function updateMonthlyRepaymentSummary() {
-            const now = new Date();
-            const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-            const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
-
-            const monthlyRepayments = allTransactions.filter(tx => {
-                if (tx.category !== '負債還款' || !tx.timestamp) return false;
-                const txDate = tx.timestamp.toDate();
-                return txDate >= startOfMonth && txDate <= endOfMonth;
-            });
-
-            const totalMonthlyPayment = monthlyRepayments.reduce((sum, tx) => sum + tx.amount, 0);
-            if (totalMonthlyRepaymentEl) totalMonthlyRepaymentEl.textContent = `NT$ ${totalMonthlyPayment.toLocaleString()}`;
+            totalInvestmentReturnEl.className = `text-2xl font-bold mt-2 ${totalReturn >= 0 ? 'text-purple-600' : 'text-red-600'}`;
+            totalInvestmentRoiEl.className = `text-2xl font-bold mt-2 ${totalRoi >= 0 ? 'text-teal-600' : 'text-orange-600'}`;
         }
 
         function updateFilteredSummary(transactions) {
+            if (!filteredIncomeEl) return;
             const income = transactions.filter(t => t.type === 'income').reduce((sum, t) => sum + t.amount, 0);
             const expense = transactions.filter(t => t.type === 'expense').reduce((sum, t) => sum + t.amount, 0);
             filteredIncomeEl.textContent = `NT$ ${income.toLocaleString()}`;
@@ -1247,6 +1356,7 @@
         }
 
         function updateExpenseChart() {
+            if (!expenseChartCanvas) return;
             const expenseData = allTransactions.filter(t => t.type === 'expense');
             noExpenseDataMsg.classList.toggle('hidden', expenseData.length > 0);
             expenseChartCanvas.classList.toggle('hidden', expenseData.length === 0);
@@ -1260,7 +1370,8 @@
             });
         }
 
-        // --- UI & Event Listeners ---
+
+        // --- 事件監聽 (Event Listeners) ---
         function setupEventListeners() {
             googleLoginBtn.addEventListener('click', () => {
                 const provider = new GoogleAuthProvider();
@@ -1272,29 +1383,20 @@
 
             tabAccounting.addEventListener('click', () => switchTab('accounting'));
             tabInvestment.addEventListener('click', () => switchTab('investment'));
+            tabReports.addEventListener('click', () => switchTab('reports'));
             tabDebt.addEventListener('click', () => switchTab('debt'));
             tabEvents.addEventListener('click', () => switchTab('events'));
-            tabReports.addEventListener('click', () => switchTab('reports'));
-            tabCalendar.addEventListener('click', () => switchTab('calendar'));
-
-            prevMonthBtn.addEventListener('click', () => {
-                currentCalendarDate.setMonth(currentCalendarDate.getMonth() - 1);
-                renderCalendar();
-            });
-            nextMonthBtn.addEventListener('click', () => {
-                currentCalendarDate.setMonth(currentCalendarDate.getMonth() + 1);
-                renderCalendar();
-            });
+            tabExportPdf.addEventListener('click', () => pdfExportModal.classList.remove('hidden'));
 
             form.addEventListener('submit', handleFormSubmit);
             debtForm.addEventListener('submit', handleDebtFormSubmit);
             eventForm.addEventListener('submit', handleEventFormSubmit);
             investmentForm.addEventListener('submit', handleInvestmentFormSubmit);
-            investmentBudgetForm.addEventListener('submit', handleBudgetEditSubmit); // Updated to handle both
-            debtBudgetForm.addEventListener('submit', handleDebtBudgetEditSubmit); // Updated to handle both
             investmentTransactionForm.addEventListener('submit', handleInvestmentTransactionSubmit);
             editInvestmentAccountForm.addEventListener('submit', handleEditInvestmentAccountSubmit);
             updateMarketValueForm.addEventListener('submit', handleUpdateMarketValueSubmit);
+            investmentBudgetForm.addEventListener('submit', handleInvestmentBudgetSubmit);
+            debtBudgetForm.addEventListener('submit', handleDebtBudgetSubmit);
 
             repaymentForm.addEventListener('submit', handleRepaymentSubmit);
             debtEditForm.addEventListener('submit', handleDebtEditSubmit);
@@ -1303,8 +1405,11 @@
             cancelInvestmentTransactionBtn.addEventListener('click', () => investmentTransactionModal.classList.add('hidden'));
             cancelEditInvestmentAccountBtn.addEventListener('click', () => editInvestmentAccountModal.classList.add('hidden'));
             cancelUpdateMarketValueBtn.addEventListener('click', () => updateMarketValueModal.classList.add('hidden'));
-            budgetCancelEditBtn.addEventListener('click', resetInvestmentBudgetForm);
-            debtBudgetCancelEditBtn.addEventListener('click', resetDebtBudgetForm);
+            cancelBudgetEditBtn.addEventListener('click', resetInvestmentBudgetForm);
+            cancelDebtBudgetEditBtn.addEventListener('click', resetDebtBudgetForm);
+            
+            cancelPdfExportBtn.addEventListener('click', () => pdfExportModal.classList.add('hidden'));
+            startPdfExportBtn.addEventListener('click', handleExportPDF);
 
             expenseRadio.addEventListener('change', updateTypeSelection);
             document.querySelector('input[name="type"][value="income"]').addEventListener('change', updateTypeSelection);
@@ -1322,8 +1427,6 @@
             transactionList.addEventListener('click', handleTransactionListClick);
             filteredTransactionList.addEventListener('click', handleTransactionListClick);
 
-            eventList.addEventListener('click', (e) => handleDelete(e, '.delete-event-btn', eventsColRef));
-
             debtList.addEventListener('click', (e) => {
                 const debtCard = e.target.closest('.debt-card-clickable');
                 if (e.target.closest('.repay-btn') || e.target.closest('.delete-debt-btn')) {
@@ -1334,6 +1437,7 @@
                 }
                 if (debtCard) handleDebtCardClick(debtCard.dataset.id);
             });
+            
             investmentList.addEventListener('click', (e) => {
                 const cardClick = e.target.closest('.investment-card-clickable');
                 const addTxBtn = e.target.closest('.add-investment-tx-btn');
@@ -1347,77 +1451,89 @@
                 else if (updateValueBtn) handleUpdateMarketValueClick(updateValueBtn);
                 else if (cardClick) handleInvestmentCardClick(cardClick.dataset.id);
             });
+            
+            investmentBudgetList.addEventListener('click', (e) => {
+                if (e.target.closest('.realize-budget-checkbox')) handleRealizeBudget(e.target);
+                if (e.target.closest('.edit-budget-btn')) handleEditBudgetClick(e.target);
+                if (e.target.closest('.delete-budget-btn')) handleDelete(e, '.delete-budget-btn', investmentBudgetsColRef);
+            });
+            
+            debtBudgetList.addEventListener('click', (e) => {
+                if (e.target.closest('.realize-debt-budget-checkbox')) handleRealizeDebtBudget(e.target);
+                if (e.target.closest('.edit-debt-budget-btn')) handleEditDebtBudgetClick(e.target);
+                if (e.target.closest('.delete-debt-budget-btn')) handleDelete(e, '.delete-debt-budget-btn', debtBudgetsColRef);
+            });
 
             customCategoryList.addEventListener('click', (e) => handleDelete(e, '.delete-category-btn', categoriesColRef));
             customProjectList.addEventListener('click', (e) => handleDelete(e, '.delete-project-btn', projectsColRef));
+            
+            filterThisMonthBtn.addEventListener('click', handleFilterThisMonth);
+            filterCustomDateBtn.addEventListener('click', handleFilterCustomDate);
+            projectFilterSelect.addEventListener('change', handleFilterCustomDate);
             
             closeDebtDetailModalBtn.addEventListener('click', () => debtDetailModal.classList.add('hidden'));
             editDebtBtn.addEventListener('click', toggleDebtEditView);
             cancelEditDebtBtn.addEventListener('click', toggleDebtEditView);
             repaymentHistoryList.addEventListener('click', handleDeleteRepayment);
+            
             closeInvestmentDetailModalBtn.addEventListener('click', () => investmentDetailModal.classList.add('hidden'));
             investmentHistoryList.addEventListener('click', (e) => {
                 if (e.target.closest('.delete-investment-tx-btn')) handleDeleteInvestmentTx(e);
                 if (e.target.closest('.edit-investment-tx-btn')) handleEditInvestmentTxClick(e);
             });
+            
+            expenseStatsList.addEventListener('click', handleCategoryClick);
+            incomeStatsList.addEventListener('click', handleCategoryClick);
+            
+            printTransactionsBtn.addEventListener('click', () => handlePrint('#main-transaction-list-section'));
+            printReportBtn.addEventListener('click', () => handlePrint('#filtered-transaction-list-section'));
+            printDebtDetailBtn.addEventListener('click', () => handlePrint('#debt-detail-modal'));
+            printInvestmentDetailBtn.addEventListener('click', () => handlePrint('#investment-detail-modal'));
+            
             historyDateFilter.addEventListener('change', renderMainTransactionList);
             showTodayBtn.addEventListener('click', () => {
                 historyDateFilter.value = new Date().toISOString().split('T')[0];
                 renderMainTransactionList();
             });
-
-            // 預算實現 & 編輯/刪除
-            investmentBudgetList.addEventListener('click', (e) => {
-                if(e.target.classList.contains('realize-budget-btn')) {
-                    handleRealizeBudget(e.target);
-                } else if (e.target.closest('.edit-budget-btn')) {
-                    handleEditBudgetClick(e.target.closest('.edit-budget-btn').dataset.id);
-                } else if (e.target.closest('.delete-budget-btn')) {
-                    handleDelete(e, '.delete-budget-btn', investmentBudgetsColRef);
-                }
+            
+            prevMonthBtn.addEventListener('click', () => {
+                currentCalendarDate.setMonth(currentCalendarDate.getMonth() - 1);
+                renderCalendar(currentCalendarDate);
             });
-            debtBudgetList.addEventListener('click', (e) => {
-                if(e.target.classList.contains('realize-debt-budget-btn')) {
-                    handleRealizeDebtBudget(e.target);
-                } else if (e.target.closest('.edit-debt-budget-btn')) {
-                    handleEditDebtBudgetClick(e.target.closest('.edit-debt-budget-btn').dataset.id);
-                } else if (e.target.closest('.delete-debt-budget-btn')) {
-                    handleDelete(e, '.delete-debt-budget-btn', debtBudgetsColRef);
-                }
+            nextMonthBtn.addEventListener('click', () => {
+                currentCalendarDate.setMonth(currentCalendarDate.getMonth() + 1);
+                renderCalendar(currentCalendarDate);
             });
 
-            // 報表監聽
-            filterThisMonthBtn.addEventListener('click', handleFilterThisMonth);
-            filterCustomDateBtn.addEventListener('click', handleFilterCustomDate);
-            projectFilterSelect.addEventListener('change', handleFilterCustomDate);
-            expenseStatsList.addEventListener('click', handleCategoryClick);
-            incomeStatsList.addEventListener('click', handleCategoryClick);
-            printTransactionsBtn.addEventListener('click', () => handlePrint('#main-transaction-list-section'));
-            printReportBtn.addEventListener('click', () => handlePrint('#filtered-transaction-list-section'));
-            printDebtDetailBtn.addEventListener('click', () => handlePrint('#debt-detail-modal'));
-            printInvestmentDetailBtn.addEventListener('click', () => handlePrint('#investment-detail-modal'));
+            generateInvestmentSummaryBtn.addEventListener('click', handleGenerateInvestmentSummary);
+            
             window.addEventListener('afterprint', handleAfterPrint);
         }
 
         function switchTab(tabName) {
-            const views = { accounting: accountingView, investment: investmentView, debt: debtView, events: eventsView, reports: reportsView, calendar: calendarView };
-            const tabs = { accounting: tabAccounting, investment: tabInvestment, debt: tabDebt, events: tabEvents, reports: tabReports, calendar: tabCalendar };
+            const views = { accounting: accountingView, investment: investmentView, reports: reportsView, debt: debtView, events: eventsView };
+            const tabs = { accounting: tabAccounting, investment: tabInvestment, reports: tabReports, debt: tabDebt, events: tabEvents };
 
             for (const key in views) {
-                const isHidden = key !== tabName;
-                if(views[key]) views[key].classList.toggle('hidden', isHidden);
-                if(tabs[key]) tabs[key].classList.toggle('active', !isHidden);
+                if (views[key]) {
+                    const isHidden = key !== tabName;
+                    views[key].classList.toggle('hidden', isHidden);
+                    tabs[key].classList.toggle('active', !isHidden);
+                }
             }
-
+            
             if(tabName === 'reports') {
                 updateExpenseChart();
                 handleFilterThisMonth();
-            } else if (tabName === 'calendar') {
-                renderCalendar();
+            }
+            
+            if(tabName === 'events') {
+                renderCalendar(currentCalendarDate);
             }
         }
         
         function renderMainTransactionList() {
+            if (!historyDateFilter) return;
             const filterDateStr = historyDateFilter.value;
             let dateToFilter;
 
@@ -1429,7 +1545,6 @@
             }
 
             // Adjust for timezone offset to compare dates correctly
-            const userTimezoneOffset = dateToFilter.getTimezoneOffset() * 60000;
             const startOfDay = new Date(dateToFilter.getFullYear(), dateToFilter.getMonth(), dateToFilter.getDate());
             const endOfDay = new Date(startOfDay.getTime() + 24 * 60 * 60 * 1000);
 
@@ -1468,6 +1583,8 @@
             submitButton.classList.add('bg-blue-600', 'hover:bg-blue-700');
             updateTypeSelection();
         }
+
+        // --- 表單處理 (Form Handlers) ---
 
         function handleEditTransactionClick(e) {
             const editBtn = e.target.closest('.edit-btn');
@@ -1567,22 +1684,37 @@
 
         async function handleEventFormSubmit(e) {
             e.preventDefault();
+            const editId = eventForm.dataset.editId;
             const date = document.getElementById('event-date').value;
             const title = document.getElementById('event-title').value.trim();
             const description = document.getElementById('event-description').value.trim();
+            const color = document.getElementById('event-color').value;
+            
             if (!date || title === '') { console.warn("請輸入日期和標題"); return; }
 
+            const payload = {
+                date: Timestamp.fromDate(new Date(date)),
+                title,
+                description,
+                color,
+                createdAt: serverTimestamp() // 用於排序
+            };
+
             try {
-                await addDoc(eventsColRef, {
-                    date: Timestamp.fromDate(new Date(date)),
-                    title,
-                    description,
-                    createdAt: Timestamp.now()
-                });
+                if (editId) {
+                    const docRef = doc(eventsColRef, editId);
+                    // 更新時不覆蓋 createdAt
+                    delete payload.createdAt; 
+                    await updateDoc(docRef, payload);
+                } else {
+                    await addDoc(eventsColRef, payload);
+                }
                 eventForm.reset();
+                eventForm.dataset.editId = '';
+                eventForm.querySelector('button[type="submit"]').textContent = '新增事件';
                 document.getElementById('event-date').valueAsDate = new Date();
             } catch (error) {
-                console.error("新增事件失敗:", error);
+                console.error("新增/更新事件失敗:", error);
             }
         }
 
@@ -1627,253 +1759,248 @@
             } catch (error) { console.error("新增投資帳戶失敗:", error); }
         }
 
-        async function handleBudgetEditSubmit(e) {
+        async function handleInvestmentBudgetSubmit(e) {
             e.preventDefault();
+            const editId = document.getElementById('budget-edit-id').value;
             const selectedOption = budgetInvestmentSelect.options[budgetInvestmentSelect.selectedIndex];
-
+            
             if (!selectedOption || !selectedOption.value) {
                 console.warn("請選擇一個有效的投資帳戶");
                 return;
             }
-
+            
             const investmentId = selectedOption.value;
-            const investmentName = selectedOption.dataset.name; 
+            const investmentName = selectedOption.dataset.name;
             const expectedDate = document.getElementById('budget-expected-date').value;
             const expectedAmount = parseFloat(document.getElementById('budget-expected-amount').value);
             const description = document.getElementById('budget-description').value.trim();
-            const editId = budgetEditIdInput.value;
 
-            if (!investmentId || !expectedDate || isNaN(expectedAmount) || expectedAmount <= 0 || !description) {
+            if (!investmentId || !investmentName || !expectedDate || isNaN(expectedAmount) || expectedAmount <= 0 || !description) {
                 console.warn("請填寫所有預算欄位");
                 return;
             }
 
-            const payload = {
-                investmentId,
-                investmentName,
-                expectedDate: Timestamp.fromDate(new Date(expectedDate)),
-                amount: expectedAmount,
-                description,
-                isRealized: false, // 編輯時重設為未實現
-            };
-
             try {
+                const payload = {
+                    investmentId,
+                    investmentName,
+                    expectedDate: Timestamp.fromDate(new Date(expectedDate)),
+                    amount: expectedAmount,
+                    description,
+                    isRealized: false
+                };
+
                 if (editId) {
-                    // 更新
                     const docRef = doc(investmentBudgetsColRef, editId);
                     await updateDoc(docRef, payload);
                 } else {
-                    // 新增
                     payload.createdAt = serverTimestamp();
                     await addDoc(investmentBudgetsColRef, payload);
                 }
+                
                 resetInvestmentBudgetForm();
             } catch (error) {
-                console.error("處理投資預算失敗:", error);
+                console.error("儲存投資預算失敗:", error);
             }
         }
         
-        async function handleDebtBudgetEditSubmit(e) {
+        async function handleDebtBudgetSubmit(e) {
             e.preventDefault();
-            const selectedOption = budgetDebtSelect.options[budgetDebtSelect.selectedIndex];
-            
+            const editId = document.getElementById('debt-budget-edit-id').value;
+            const selectedOption = debtBudgetSelect.options[debtBudgetSelect.selectedIndex];
+
             if (!selectedOption || !selectedOption.value) {
                 console.warn("請選擇一個有效的負債項目");
                 return;
             }
 
             const debtId = selectedOption.value;
-            const debtName = selectedOption.dataset.name; 
+            const debtName = selectedOption.dataset.name;
             const expectedDate = document.getElementById('debt-budget-expected-date').value;
             const expectedAmount = parseFloat(document.getElementById('debt-budget-expected-amount').value);
             const description = document.getElementById('debt-budget-description').value.trim();
-            const editId = debtBudgetEditIdInput.value;
 
-            if (!debtId || !expectedDate || isNaN(expectedAmount) || expectedAmount <= 0 || !description) {
+            if (!debtId || !debtName || !expectedDate || isNaN(expectedAmount) || expectedAmount <= 0 || !description) {
                 console.warn("請填寫所有預算欄位");
                 return;
             }
 
-            const payload = {
-                debtId,
-                debtName,
-                expectedDate: Timestamp.fromDate(new Date(expectedDate)),
-                amount: expectedAmount,
-                description,
-                isRealized: false,
-            };
-
             try {
+                const payload = {
+                    debtId,
+                    debtName,
+                    expectedDate: Timestamp.fromDate(new Date(expectedDate)),
+                    amount: expectedAmount,
+                    description,
+                    isRealized: false
+                };
+                
                 if (editId) {
-                    // 更新
                     const docRef = doc(debtBudgetsColRef, editId);
                     await updateDoc(docRef, payload);
                 } else {
-                    // 新增
                     payload.createdAt = serverTimestamp();
                     await addDoc(debtBudgetsColRef, payload);
                 }
+
                 resetDebtBudgetForm();
             } catch (error) {
-                console.error("處理還款預算失敗:", error);
+                console.error("儲存負債預算失敗:", error);
             }
         }
 
-        function handleEditBudgetClick(budgetId) {
-            const budget = allInvestmentBudgets.find(b => b.id === budgetId);
-            if (!budget) return;
-
-            budgetEditIdInput.value = budget.id;
-            budgetInvestmentSelect.value = budget.investmentId;
-            document.getElementById('budget-expected-date').value = budget.expectedDate.toDate().toISOString().split('T')[0];
-            document.getElementById('budget-expected-amount').value = budget.amount;
-            document.getElementById('budget-description').value = budget.description;
-
-            budgetSubmitBtn.textContent = '儲存變更';
-            budgetSubmitBtn.classList.remove('bg-green-600', 'hover:bg-green-700');
-            budgetSubmitBtn.classList.add('bg-blue-600', 'hover:bg-blue-700');
-            budgetCancelEditBtn.classList.remove('hidden');
-            investmentBudgetForm.scrollIntoView({ behavior: 'smooth' });
-        }
 
         function resetInvestmentBudgetForm() {
             investmentBudgetForm.reset();
-            budgetEditIdInput.value = '';
-            budgetSubmitBtn.textContent = '新增預算';
-            budgetSubmitBtn.classList.remove('bg-blue-600', 'hover:bg-blue-700');
-            budgetSubmitBtn.classList.add('bg-green-600', 'hover:bg-green-700');
-            budgetCancelEditBtn.classList.add('hidden');
-            document.getElementById('budget-expected-date').valueAsDate = new Date();
+            document.getElementById('budget-edit-id').value = '';
+            investmentBudgetForm.querySelector('button[type="submit"]').textContent = '新增預算';
+            cancelBudgetEditBtn.classList.add('hidden');
         }
-
-        function handleEditDebtBudgetClick(budgetId) {
-            const budget = allDebtBudgets.find(b => b.id === budgetId);
-            if (!budget) return;
-
-            debtBudgetEditIdInput.value = budget.id;
-            budgetDebtSelect.value = budget.debtId;
-            document.getElementById('debt-budget-expected-date').value = budget.expectedDate.toDate().toISOString().split('T')[0];
-            document.getElementById('debt-budget-expected-amount').value = budget.amount;
-            document.getElementById('debt-budget-description').value = budget.description;
-
-            debtBudgetSubmitBtn.textContent = '儲存變更';
-            debtBudgetSubmitBtn.classList.remove('bg-red-600', 'hover:bg-red-700');
-            debtBudgetSubmitBtn.classList.add('bg-blue-600', 'hover:bg-blue-700');
-            debtBudgetCancelEditBtn.classList.remove('hidden');
-            debtBudgetForm.scrollIntoView({ behavior: 'smooth' });
-        }
-
+        
         function resetDebtBudgetForm() {
             debtBudgetForm.reset();
-            debtBudgetEditIdInput.value = '';
-            debtBudgetSubmitBtn.textContent = '新增還款預算';
-            debtBudgetSubmitBtn.classList.remove('bg-blue-600', 'hover:bg-blue-700');
-            debtBudgetSubmitBtn.classList.add('bg-red-600', 'hover:bg-red-700');
-            debtBudgetCancelEditBtn.classList.add('hidden');
-            document.getElementById('debt-budget-expected-date').valueAsDate = new Date();
+            document.getElementById('debt-budget-edit-id').value = '';
+            debtBudgetForm.querySelector('button[type="submit"]').textContent = '新增還款預算';
+            cancelDebtBudgetEditBtn.classList.add('hidden');
         }
 
+        function handleEditBudgetClick(target) {
+            const btn = target.closest('.edit-budget-btn');
+            if (!btn) return;
+            const budgetId = btn.dataset.id;
+            const budget = allInvestmentBudgets.find(b => b.id === budgetId);
+            
+            if (budget) {
+                document.getElementById('budget-edit-id').value = budget.id;
+                budgetInvestmentSelect.value = budget.investmentId;
+                document.getElementById('budget-expected-date').value = budget.expectedDate.toDate().toISOString().split('T')[0];
+                document.getElementById('budget-expected-amount').value = budget.amount;
+                document.getElementById('budget-description').value = budget.description;
+                
+                investmentBudgetForm.querySelector('button[type="submit"]').textContent = '儲存變更';
+                cancelBudgetEditBtn.classList.remove('hidden');
+                investmentBudgetForm.scrollIntoView({ behavior: 'smooth' });
+            }
+        }
+        
+        function handleEditDebtBudgetClick(target) {
+            const btn = target.closest('.edit-debt-budget-btn');
+            if (!btn) return;
+            const budgetId = btn.dataset.id;
+            const budget = allDebtBudgets.find(b => b.id === budgetId);
+            
+            if (budget) {
+                document.getElementById('debt-budget-edit-id').value = budget.id;
+                debtBudgetSelect.value = budget.debtId;
+                document.getElementById('debt-budget-expected-date').value = budget.expectedDate.toDate().toISOString().split('T')[0];
+                document.getElementById('debt-budget-expected-amount').value = budget.amount;
+                document.getElementById('debt-budget-description').value = budget.description;
+                
+                debtBudgetForm.querySelector('button[type="submit"]').textContent = '儲存變更';
+                cancelDebtBudgetEditBtn.classList.remove('hidden');
+                debtBudgetForm.scrollIntoView({ behavior: 'smooth' });
+            }
+        }
 
         async function handleRealizeBudget(checkbox) {
             const budgetId = checkbox.dataset.id;
-            // 從 'allInvestmentBudgets' 快取中尋找
-            const budget = allInvestmentBudgets.find(b => b.id === budgetId);
-            if (!budget) {
-                console.error("找不到要實現的預算 (ID:", budgetId, ")");
-                return;
-            }
+            if (!budgetId || !checkbox.checked) return;
 
             checkbox.disabled = true;
-            
-            const budgetRef = doc(investmentBudgetsColRef, budgetId);
-            const mainTxRef = doc(transactionsColRef); 
+            const budget = allInvestmentBudgets.find(b => b.id === budgetId);
+            if (!budget) return;
+
+            const docRef = doc(investmentBudgetsColRef, budgetId);
+            const mainTxRef = doc(transactionsColRef); // 準備好 v9 的文件參照
             const investmentTxColRef = collection(db, `${investmentsColRef.path}/${budget.investmentId}/transactions`);
-            const investmentTxRef = doc(investmentTxColRef); 
-
-            const timestamp = Timestamp.now();
             
-            // *** 修正點 ***: 使用 (budget.amount || 0) 確保 amount 不是 undefined
-            const amountToRealize = budget.amount || 0;
-
-            const mainTxPayload = {
-                type: 'income',
-                amount: amountToRealize,
-                category: '投資收入',
-                project: budget.investmentName,
-                remarks: budget.description,
-                timestamp: timestamp
-            };
-
-            const investmentTxPayload = {
-                date: timestamp,
-                type: 'income',
-                amount: amountToRealize,
-                remark: budget.description,
-                mainTransactionId: mainTxRef.id
-            };
+            const timestamp = Timestamp.now();
+            const amount = budget.amount || 0; // 防呆
 
             try {
                 const batch = writeBatch(db);
                 
-                batch.update(budgetRef, { isRealized: true });
-                batch.set(mainTxRef, mainTxPayload);
-                batch.set(investmentTxRef, investmentTxPayload);
-                
-                await batch.commit();
+                // 1. 更新預算為已實現
+                batch.update(docRef, { isRealized: true, realizedAt: timestamp });
 
+                // 2. 新增到主要交易紀錄
+                const mainTxPayload = {
+                    type: 'income',
+                    amount: amount,
+                    category: '投資收入',
+                    project: budget.investmentName,
+                    remarks: `(預算實現) ${budget.description}`,
+                    timestamp: timestamp
+                };
+                batch.set(mainTxRef, mainTxPayload);
+
+                // 3. 新增到投資帳戶的子集合交易紀錄
+                const investmentTxRef = doc(investmentTxColRef); // 子集合的文件參照
+                batch.set(investmentTxRef, {
+                    date: timestamp,
+                    type: 'income',
+                    amount: amount,
+                    remark: `(預算實現) ${budget.description}`,
+                    mainTransactionId: mainTxRef.id
+                });
+
+                await batch.commit();
                 listenForInvestments(); // 強制刷新投資總覽
 
             } catch (error) {
                 console.error("實現投資預算失敗:", error);
-                checkbox.disabled = false;
                 checkbox.checked = false;
+                checkbox.disabled = false;
             }
         }
-
+        
         async function handleRealizeDebtBudget(checkbox) {
             const budgetId = checkbox.dataset.id;
-            // 從 'allDebtBudgets' 快取中尋找
-            const budget = allDebtBudgets.find(b => b.id === budgetId);
-            if (!budget) {
-                console.error("找不到要實現的還款預算 (ID:", budgetId, ")");
-                return;
-            }
+            if (!budgetId || !checkbox.checked) return;
 
             checkbox.disabled = true;
+            const budget = allDebtBudgets.find(b => b.id === budgetId);
+            if (!budget) return;
 
-            const budgetRef = doc(debtBudgetsColRef, budgetId);
-            const mainTxRef = doc(transactionsColRef); 
-            const debtRef = doc(debtsColRef, budget.debtId);
+            const budgetDocRef = doc(debtBudgetsColRef, budgetId);
+            const debtDocRef = doc(debtsColRef, budget.debtId);
+            const mainTxRef = doc(transactionsColRef); // v9
             
-            // *** 修正點 ***: 使用 (budget.amount || 0) 確保 amount 不是 undefined
-            const amountToRealize = budget.amount || 0;
-
-            const mainTxPayload = {
-                type: 'expense',
-                amount: amountToRealize,
-                category: '負債還款',
-                project: budget.debtName,
-                remarks: budget.description,
-                timestamp: Timestamp.now()
-            };
+            const timestamp = Timestamp.now();
+            const amount = budget.amount || 0; // 防呆
 
             try {
                 const batch = writeBatch(db);
 
-                batch.update(budgetRef, { isRealized: true });
+                // 1. 更新預算為已實現
+                batch.update(budgetDocRef, { isRealized: true, realizedAt: timestamp });
+                
+                // 2. 更新負債餘額
+                batch.update(debtDocRef, { remainingAmount: increment(-amount) });
+
+                // 3. 新增到主要交易紀錄
+                const mainTxPayload = {
+                    type: 'expense',
+                    amount: amount,
+                    category: '負債還款',
+                    project: budget.debtName,
+                    remarks: `(預算實現) ${budget.description}`,
+                    timestamp: timestamp
+                };
                 batch.set(mainTxRef, mainTxPayload);
-                batch.update(debtRef, { remainingAmount: increment(-amountToRealize) });
 
                 await batch.commit();
-
                 listenForDebts(); // 強制刷新負債總覽
 
             } catch (error) {
-                console.error("實現還款預算失敗:", error);
-                checkbox.disabled = false;
+                console.error("實現負債預算失敗:", error);
                 checkbox.checked = false;
+                checkbox.disabled = false;
             }
         }
+
+
+        // --- 彈出視窗 (Modal) 處理 ---
 
         function handleAddInvestmentTxClick(btn) {
             if(btn) {
@@ -1918,6 +2045,7 @@
 
             try {
                 if (txId && mainTxId) {
+                    // 編輯
                     const investmentTxRef = doc(investmentTxColRef, txId);
                     const mainTxRef = doc(transactionsColRef, mainTxId);
 
@@ -1927,13 +2055,21 @@
                     await batch.commit();
 
                 } else {
+                    // 新增
                     const mainTxRef = await addDoc(transactionsColRef, mainTxPayload);
-                    await addDoc(investmentTxColRef, { ...mainTxPayload, date: transactionTimestamp, remark: remark, mainTransactionId: mainTxRef.id });
+                    // 將主交易的 ID 存回子集合
+                    await addDoc(investmentTxColRef, { 
+                        date: transactionTimestamp, 
+                        type, 
+                        amount, 
+                        remark, 
+                        mainTransactionId: mainTxRef.id 
+                    });
                 }
 
                 investmentTransactionForm.reset();
                 investmentTransactionModal.classList.add('hidden');
-                listenForInvestments();
+                listenForInvestments(); // 刷新總覽
             } catch (error) {
                 console.error("處理投資交易失敗:", error);
             }
@@ -1951,14 +2087,16 @@
                     try {
                         deleteBtn.disabled = true;
                         const batch = writeBatch(db);
-                        batch.delete(txDocRef);
+                        batch.delete(txDocRef); // 刪除子集合中的紀錄
+                        
+                        // 如果有主交易 ID，也一併刪除
                         if (mainTxId) {
                             const mainTxRef = doc(transactionsColRef, mainTxId);
                             batch.delete(mainTxRef);
                         }
                         await batch.commit();
 
-                        listenForInvestments();
+                        listenForInvestments(); // 刷新
 
                         if (!investmentDetailModal.classList.contains('hidden')) {
                            renderInvestmentHistory(investmentId);
@@ -1989,13 +2127,13 @@
             try {
                 await updateDoc(accountRef, { name: newName });
                 editInvestmentAccountModal.classList.add('hidden');
-                listenForInvestments();
+                listenForInvestments(); // 刷新
             } catch (error) {
                 console.error("更新投資帳戶名稱失敗:", error);
             }
         }
 
-        async function handleEditInvestmentTxClick(e) {
+        function handleEditInvestmentTxClick(e) {
             const editBtn = e.target.closest('.edit-investment-tx-btn');
             if (!editBtn) return;
 
@@ -2042,7 +2180,7 @@
             try {
                 await updateDoc(investmentRef, { marketValue: amount });
                 updateMarketValueModal.classList.add('hidden');
-                listenForInvestments();
+                listenForInvestments(); // 刷新
             } catch(error) {
                 console.error("更新資產現值失敗:", error);
             }
@@ -2151,25 +2289,17 @@
                 batch.delete(txRef);
                 batch.update(debtRef, { remainingAmount: increment(amountToRestore) });
                 await batch.commit();
-                handleDebtCardClick(debtId);
+                handleDebtCardClick(debtId); // 重新載入 modal 資訊
             } catch (error) {
                 console.error("刪除還款紀錄失敗:", error);
                 deleteBtn.disabled = false;
             }
         }
 
-        async function handleDelete(eventOrElement, selector, collectionRef) {
-            const deleteBtn = eventOrElement.target ? eventOrElement.target.closest(selector) : eventOrElement;
-            if (deleteBtn && collectionRef) {
-                const id = deleteBtn.dataset.id;
-                try {
-                    deleteBtn.disabled = true;
-                    await deleteDoc(doc(db, collectionRef.path, id));
-                } catch (error) { console.error("刪除失敗:", error); deleteBtn.disabled = false; }
-            }
-        }
 
+        // --- 報表與篩選 ---
         function handleFilterThisMonth() {
+            if (!startDateInput) return;
             const now = new Date();
             const start = new Date(now.getFullYear(), now.getMonth(), 1);
             const end = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
@@ -2179,6 +2309,7 @@
         }
 
         function handleFilterCustomDate() {
+            if (!startDateInput) return;
             const startVal = startDateInput.value, endVal = endDateInput.value;
             if (!startVal || !endVal) { console.warn("請選擇開始與結束日期"); return; }
             const start = new Date(startVal), end = new Date(endVal);
@@ -2233,8 +2364,10 @@
             const project = projectFilterSelect.value;
 
             if (activeCategoryFilter.category === category && activeCategoryFilter.type === type) {
+                // 如果再次點擊同一個，取消篩選
                 handleFilterCustomDate();
             } else {
+                // 點擊新的
                 document.querySelectorAll('.category-stat-item').forEach(item => item.classList.remove('active'));
                 statItem.classList.add('active');
                 const start = new Date(startDateInput.value);
@@ -2243,25 +2376,59 @@
                 filterAndRenderDetails(start, end, category, type, project);
             }
         }
-
-        function handlePrint(sectionSelector) {
-            const printSection = document.querySelector(sectionSelector);
-            if (!printSection) {
-                console.error("Print section not found:", sectionSelector);
-                return;
-            }
-            printSection.classList.add('print-section');
-            window.print();
-        }
         
-        function handleAfterPrint() {
-            document.querySelectorAll('.print-section').forEach(el => {
-                el.classList.remove('print-section');
-            });
+        // --- AI 分析 ---
+        async function handleGenerateInvestmentSummary() {
+            aiInvestmentBtnText.classList.add('hidden');
+            aiInvestmentSpinner.classList.remove('hidden');
+            generateInvestmentSummaryBtn.disabled = true;
+            aiInvestmentSummaryOutput.classList.add('hidden');
+
+            const systemPrompt = "你是一位專業的投資分析師。請用繁體中文，根據使用者提供的投資組合數據，提供一個簡短（最多3-4點）的分析與建議。請保持友善且專業的語氣。";
+            
+            let dataSummary = `這是我目前的投資組合：\n`;
+            dataSummary += `- 總資產現值: ${totalInvestmentValueEl.textContent}\n`;
+            dataSummary += `- 總已實現報酬: ${totalInvestmentReturnEl.textContent}\n`;
+            dataSummary += `- 總報酬率 (ROI): ${totalInvestmentRoiEl.textContent}\n`;
+            dataSummary += `\n帳戶列表:\n`;
+
+            if (allInvestments.length === 0) {
+                dataSummary += "- 目前沒有任何投資帳戶。\n";
+            } else {
+                allInvestments.forEach(inv => {
+                    const income = inv.transactions.filter(t => t.type === 'income').reduce((sum, t) => sum + t.amount, 0);
+                    const expense = inv.transactions.filter(t => t.type === 'expense').reduce((sum, t) => sum + t.amount, 0);
+                    const profit = income - expense;
+                    const roi = expense > 0 ? (profit / expense) * 100 : 0;
+                    dataSummary += `- 帳戶: ${inv.name}\n  - 現值: NT$ ${(inv.marketValue || 0).toLocaleString()}\n  - 已實現報酬: NT$ ${profit.toLocaleString()}\n  - 報酬率: ${roi.toFixed(2)}%\n`;
+                });
+            }
+            
+            dataSummary += "\n請根據以上數據提供分析與建議。";
+
+            const result = await callGeminiApi(systemPrompt, dataSummary);
+            
+            aiInvestmentSummaryOutput.textContent = result;
+            aiInvestmentSummaryOutput.classList.remove('hidden');
+            aiInvestmentBtnText.classList.remove('hidden');
+            aiInvestmentSpinner.classList.add('hidden');
+            generateInvestmentSummaryBtn.disabled = false;
         }
 
+        // --- 輔助函式 (Helpers) ---
+        async function handleDelete(eventOrElement, selector, collectionRef) {
+            const deleteBtn = eventOrElement.target ? eventOrElement.target.closest(selector) : eventOrElement;
+            if (deleteBtn && collectionRef) {
+                const id = deleteBtn.dataset.id;
+                if (!id) return;
+                // 可加入確認刪除的提示
+                try {
+                    deleteBtn.disabled = true;
+                    await deleteDoc(doc(db, collectionRef.path, id));
+                } catch (error) { console.error("刪除失敗:", error); deleteBtn.disabled = false; }
+            }
+        }
 
-        // --- Helper Functions ---
         function updateTypeSelection() {
             const isExpense = expenseRadio.checked;
             typeLabels[0].classList.toggle('bg-red-500', isExpense); typeLabels[0].classList.toggle('text-white', isExpense);
@@ -2281,6 +2448,7 @@
         }
 
         function populateProjectFilter() {
+            if (!projectFilterSelect) return;
             const projectsFromTransactions = allTransactions.map(tx => tx.project).filter(p => p);
             const projectsFromCustomList = customProjects.map(p => p.name);
             const allProjectNames = [...new Set([...projectsFromTransactions, ...projectsFromCustomList])].sort();
@@ -2293,28 +2461,32 @@
                 projectFilterSelect.insertAdjacentHTML('beforeend', `<option value="${name}"${selected}>${name}</option>`);
             });
         }
-
-        function populateInvestmentBudgetSelect() {
-            budgetInvestmentSelect.innerHTML = '<option value="">-- 選擇投資帳戶 --</option>';
+        
+        function populateBudgetSelects() {
+            if (!budgetInvestmentSelect || !debtBudgetSelect) return;
+            
+            // 投資帳戶
+            budgetInvestmentSelect.innerHTML = '<option value="" data-name="">-- 請選擇投資帳戶 --</option>';
             allInvestments.forEach(inv => {
                 budgetInvestmentSelect.insertAdjacentHTML('beforeend', `<option value="${inv.id}" data-name="${inv.name}">${inv.name}</option>`);
             });
-        }
-        
-        function populateDebtBudgetSelect() {
-            budgetDebtSelect.innerHTML = '<option value="">-- 選擇負債項目 --</option>';
+            
+            // 負債項目
+            debtBudgetSelect.innerHTML = '<option value="" data-name="">-- 請選擇負債 --</option>';
             allDebts.forEach(debt => {
-                budgetDebtSelect.insertAdjacentHTML('beforeend', `<option value="${debt.id}" data-name="${debt.name}">${debt.name}</option>`);
+                debtBudgetSelect.insertAdjacentHTML('beforeend', `<option value="${debt.id}" data-name="${debt.name}">${debt.name}</option>`);
             });
         }
 
         function populateModalList(ulElement, items, emptyMsg, type) {
+            if (!ulElement) return;
             ulElement.innerHTML = '';
             if (items.length === 0) { ulElement.innerHTML = `<li class="text-center text-gray-500">${emptyMsg}</li>`; return; }
             items.forEach(item => { ulElement.insertAdjacentHTML('beforeend', `<li class="flex justify-between items-center p-2 rounded-md hover:bg-gray-100"><span>${item.name}</span><button data-id="${item.id}" class="delete-${type}-btn text-red-400 hover:text-red-600 font-bold">刪除</button></li>`); });
         }
 
         function setupModal(openBtn, modal, closeBtns) {
+            if (!openBtn || !modal) return;
             openBtn.addEventListener('click', () => modal.classList.remove('hidden'));
             closeBtns.forEach(btn => btn.addEventListener('click', () => modal.classList.add('hidden')));
             modal.addEventListener('click', (e) => { if (e.target === modal) modal.classList.add('hidden'); });
@@ -2330,14 +2502,120 @@
             }
         }
 
+        // --- PDF & 列印 ---
+        function handlePrint(sectionSelector) {
+            const printSection = document.querySelector(sectionSelector);
+            if (!printSection) {
+                console.error("Print section not found:", sectionSelector);
+                return;
+            }
+            printSection.classList.add('print-section');
+            window.print();
+        }
+        
+        function handleAfterPrint() {
+            document.querySelectorAll('.print-section').forEach(el => {
+                el.classList.remove('print-section');
+            });
+        }
+
+        async function handleExportPDF() {
+            const { jsPDF } = window.jspdf;
+            const pdf = new jsPDF('p', 'mm', 'a4');
+            const pdfWidth = pdf.internal.pageSize.getWidth();
+            const pdfHeight = pdf.internal.pageSize.getHeight();
+            
+            const selectedViews = [];
+            pdfOptionsForm.querySelectorAll('input[type="checkbox"]:checked').forEach(cb => {
+                selectedViews.push(cb.value);
+            });
+
+            if (selectedViews.length === 0) {
+                alert("請至少選擇一個要匯出的頁面。");
+                return;
+            }
+
+            pdfExportModal.classList.add('hidden');
+            pdfExportOverlay.classList.remove('hidden');
+            document.body.classList.add('exporting-pdf');
+
+            const originalActiveTab = document.querySelector('.tab-btn.active').id.replace('tab-', '');
+            const originalScrollTop = window.scrollY;
+
+            try {
+                for (let i = 0; i < selectedViews.length; i++) {
+                    const viewId = selectedViews[i];
+                    const element = document.getElementById(viewId);
+                    if (!element) continue;
+
+                    // 暫時切換到該分頁以確保內容被渲染
+                    switchTab(viewId.replace('-view', ''));
+                    // 等待 DOM 更新
+                    await new Promise(r => setTimeout(r, 100));
+
+                    const canvas = await html2canvas(element, {
+                        scale: 2, // 提高解析度
+                        useCORS: true,
+                        logging: false,
+                        onclone: (doc) => {
+                            // 在複製的文檔中移除不想匯出的元素
+                            doc.querySelectorAll('.no-export').forEach(el => el.style.display = 'none');
+                        }
+                    });
+
+                    const imgData = canvas.toDataURL('image/png');
+                    const imgWidth = canvas.width;
+                    const imgHeight = canvas.height;
+                    const ratio = imgHeight / imgWidth;
+                    
+                    let imgHeightInPdf = pdfWidth * ratio;
+                    let position = 0;
+
+                    if (i > 0) {
+                        pdf.addPage();
+                    }
+                    
+                    // 分頁處理
+                    if (imgHeightInPdf > pdfHeight) {
+                        let pageHeight = pdfHeight;
+                        let heightLeft = imgHeight; // 原始 canvas 的高度
+                        
+                        while (heightLeft > 0) {
+                            pdf.addImage(imgData, 'PNG', 0, position, pdfWidth, imgHeightInPdf, '', 'FAST');
+                            heightLeft -= (pageHeight / imgHeightInPdf) * imgHeight;
+                            position -= pdfHeight;
+                            
+                            if (heightLeft > 0) {
+                                pdf.addPage();
+                            }
+                        }
+                    } else {
+                        pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, imgHeightInPdf, '', 'FAST');
+                    }
+                }
+                
+                pdf.save('財務報告.pdf');
+
+            } catch (error) {
+                console.error("PDF 匯出失敗:", error);
+                alert("抱歉，產生 PDF 時發生錯誤。");
+            } finally {
+                // 恢復原狀
+                pdfExportOverlay.classList.add('hidden');
+                document.body.classList.remove('exporting-pdf');
+                switchTab(originalActiveTab);
+                window.scrollTo(0, originalScrollTop);
+            }
+        }
+
+
         // --- App Initialization ---
         setupEventListeners();
         updateTypeSelection();
         transactionDateInput.valueAsDate = new Date();
         historyDateFilter.valueAsDate = new Date();
         document.getElementById('event-date').valueAsDate = new Date();
-        document.getElementById('budget-expected-date').valueAsDate = new Date();
-        document.getElementById('debt-budget-expected-date').valueAsDate = new Date();
+        renderCalendar(currentCalendarDate);
     </script>
 </body>
 </html>
