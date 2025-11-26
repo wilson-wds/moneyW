@@ -135,14 +135,27 @@
 
             <!-- Reports -->
             <div id="view-reports" class="view-section hidden p-3 space-y-3 animate-fade">
+                <div class="bg-white p-3 rounded-xl card-shadow flex gap-2 items-center mb-2">
+                    <div class="flex-1">
+                        <label class="text-[10px] text-gray-400 block pl-1">月份</label>
+                        <input type="month" id="report-month" class="w-full bg-gray-50 rounded-lg px-2 py-1.5 text-xs font-bold border-transparent focus:border-primary" onchange="App.renderReports()">
+                    </div>
+                    <div class="flex-1">
+                        <label class="text-[10px] text-gray-400 block pl-1">專案篩選</label>
+                        <select id="report-project" class="w-full bg-gray-50 rounded-lg px-2 py-1.5 text-xs font-bold border-transparent focus:border-primary" onchange="App.renderReports()">
+                            <option value="all">全部專案</option>
+                        </select>
+                    </div>
+                </div>
+
                 <div class="bg-white p-4 rounded-2xl card-shadow">
-                    <h3 class="font-bold mb-4 text-center text-xs text-gray-500 uppercase tracking-wider">本月支出分佈</h3>
+                    <h3 class="font-bold mb-4 text-center text-xs text-gray-500 uppercase tracking-wider">支出分佈</h3>
                     <div class="h-56 relative"><canvas id="expense-chart"></canvas></div>
                 </div>
                 <div class="bg-white p-4 rounded-2xl card-shadow">
                     <h3 class="font-bold mb-3 text-xs border-b border-gray-100 pb-2 text-gray-500">分類統計</h3>
                     <ul id="report-stats" class="space-y-2 text-xs mb-4"></ul>
-                    <h3 class="font-bold mb-3 text-xs border-b border-gray-100 pb-2 text-gray-500">本月交易明細</h3>
+                    <h3 class="font-bold mb-3 text-xs border-b border-gray-100 pb-2 text-gray-500">交易明細</h3>
                     <ul id="report-details" class="space-y-2"></ul>
                 </div>
             </div>
@@ -246,7 +259,9 @@
             <button onclick="closeModal()" class="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center text-gray-500 flex-shrink-0"><i class="fa-solid fa-xmark"></i></button>
         </div>
         <div class="max-h-[60vh] overflow-y-auto hide-scrollbar">
-            <ul class="details-list space-y-2"></ul>
+            <ul class="details-list space-y-2">
+                <li class="text-center text-gray-400 py-4">載入中...</li>
+            </ul>
         </div>
         <div class="details-actions mt-4 pt-2 border-t border-gray-100"></div>
     </template>
@@ -254,7 +269,7 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, signInAnonymously, onAuthStateChanged, GoogleAuthProvider, signInWithPopup, signOut } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, collection, addDoc, query, onSnapshot, doc, deleteDoc, updateDoc, increment, Timestamp, writeBatch, where, orderBy } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getFirestore, collection, addDoc, query, onSnapshot, doc, deleteDoc, updateDoc, increment, Timestamp, writeBatch, where, orderBy, getDocs } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         const app = initializeApp({ apiKey: "AIzaSyAqFHm6Bn35m8xauc50ZvNNy_rxIZzCMTE", authDomain: "moneyw-f8105.firebaseapp.com", projectId: "moneyw-f8105", storageBucket: "moneyw-f8105.appspot.com", messagingSenderId: "155586195799", appId: "1:155586195799:web:302184fbf613f032a88e12" });
         const auth = getAuth(app); const db = getFirestore(app);
@@ -267,12 +282,13 @@
                 document.getElementById('app-container').classList.toggle('hidden', !u);
                 if(u) {
                     document.getElementById('user-info').innerText = u.isAnonymous ? '訪客' : u.displayName;
-                    document.getElementById('date-filter').value = new Date().toISOString().slice(0, 7);
+                    const today = new Date();
+                    document.getElementById('date-filter').value = today.toISOString().slice(0, 7);
+                    document.getElementById('report-month').value = today.toISOString().slice(0, 7);
                     App.startListeners(u.uid);
                 } else App.stopListeners();
             }),
             startListeners: (uid) => {
-                // Changed: Removed orderBy from query to prevent missing data if fields are missing in old data
                 const listen = (c, k, render) => State.listeners.push(onSnapshot(query(collection(db, `users/${uid}/${c}`)), s => { State.data[k] = s.docs.map(d=>({id:d.id, ...d.data()})); render(); }));
                 listen('transactions', 'transactions', () => { App.renderTransactions(); App.updateDashboard(); App.renderReports(); App.renderInvestments(); });
                 listen('debts', 'debts', App.renderDebts);
@@ -283,7 +299,7 @@
             },
             stopListeners: () => { State.listeners.forEach(u=>u()); State.listeners=[]; },
             loginGoogle: () => signInWithPopup(auth, new GoogleAuthProvider()), loginAnon: () => signInAnonymously(auth), logout: () => signOut(auth),
-            handleDateFilterChange: () => { App.renderTransactions(); App.updateDashboard(); App.renderReports(); },
+            handleDateFilterChange: () => { App.renderTransactions(); App.updateDashboard(); },
 
             // Handlers
             handleSaveTransaction: async (e) => {
@@ -331,40 +347,67 @@
                 const col = ctx === 'investment' ? 'investmentBudgets' : 'debtBudgets';
                 await updateDoc(doc(db, `users/${State.user.uid}/${col}`, id), { isRealized: true });
             },
-            showDetails: (type, id) => {
+            showDetails: async (type, id) => {
                 const item = State.data[type + 's'].find(i => i.id === id);
                 if (!item) return;
-                const relatedTxs = State.data.transactions.filter(t => t.project === item.name).sort((a,b) => b.timestamp - a.timestamp);
+                
                 const tpl = document.getElementById('tpl-details-modal').innerHTML;
                 const content = document.getElementById('modal-content');
                 content.innerHTML = tpl;
                 content.querySelector('.details-title').innerText = item.name;
+                document.getElementById('modal-overlay').classList.remove('hidden'); 
+                document.getElementById('modal-overlay').classList.add('flex');
+
+                let relatedTxs = [];
                 
-                if(type === 'investment') {
+                // Special handling for investments to merge old subcollection data
+                if (type === 'investment') {
+                    const subColRef = collection(db, `users/${State.user.uid}/investments/${id}/transactions`);
+                    const subSnap = await getDocs(subColRef);
+                    const subTxs = subSnap.docs.map(d => {
+                        const data = d.data();
+                        return { 
+                            id: d.id, 
+                            ...data,
+                            // Normalize fields
+                            timestamp: data.timestamp || data.date, 
+                            remarks: data.remarks || data.remark,
+                            isSub: true
+                        };
+                    });
+
+                    const mainTxs = State.data.transactions.filter(t => t.project === item.name);
+                    const linkedMainIds = new Set(subTxs.map(t => t.mainTransactionId).filter(Boolean));
+                    const uniqueMainTxs = mainTxs.filter(t => !linkedMainIds.has(t.id));
+                    
+                    relatedTxs = [...subTxs, ...uniqueMainTxs];
+
                     const btn = document.createElement('button');
                     btn.className = "w-full bg-blue-50 text-blue-600 py-2.5 rounded-xl font-bold text-xs mt-3 shadow-sm";
                     btn.innerText = "更新目前市值";
                     btn.onclick = () => App.updateMarketValue(id, item.marketValue);
                     content.querySelector('.details-actions').appendChild(btn);
+                } else {
+                    relatedTxs = State.data.transactions.filter(t => t.project === item.name);
                 }
 
+                relatedTxs.sort((a,b) => (b.timestamp?.toDate() || 0) - (a.timestamp?.toDate() || 0));
+
                 const listEl = content.querySelector('.details-list');
-                // New style mimicking image_49ca34.png
                 listEl.innerHTML = relatedTxs.length ? relatedTxs.map(t => `
                     <li class="flex justify-between items-center py-3 px-3 rounded-xl mb-2 ${t.type==='expense' ? 'bg-red-50' : 'bg-green-50'}">
                         <div>
-                            <p class="text-[10px] text-gray-500 mb-0.5">${t.timestamp.toDate().toLocaleDateString()}</p>
+                            <p class="text-[10px] text-gray-500 mb-0.5">${t.timestamp?.toDate().toLocaleDateString() || '無日期'}</p>
                             <p class="text-xs font-bold text-gray-700">${t.remarks || t.category}</p>
                         </div>
                         <div class="flex items-center gap-3">
                             <span class="text-sm font-bold ${t.type==='expense'?'text-red-500':'text-green-600'}">${t.type==='expense'?'-':'+'} NT$ ${t.amount.toLocaleString()}</span>
                             <div class="flex gap-1">
-                                <button onclick="openModal('transaction-modal', '${t.id}')" class="text-gray-400 hover:text-blue-500 p-1"><i class="fa-solid fa-pen text-xs"></i></button>
-                                <button onclick="App.deleteItem('transactions', '${t.id}')" class="text-gray-400 hover:text-red-500 p-1"><i class="fa-solid fa-xmark text-xs"></i></button>
+                                ${!t.isSub ? `<button onclick="openModal('transaction-modal', '${t.id}')" class="text-gray-400 hover:text-blue-500 p-1"><i class="fa-solid fa-pen text-xs"></i></button>` : ''}
+                                ${!t.isSub ? `<button onclick="App.deleteItem('transactions', '${t.id}')" class="text-gray-400 hover:text-red-500 p-1"><i class="fa-solid fa-xmark text-xs"></i></button>` : ''}
                             </div>
                         </div>
                     </li>`).join('') : '<li class="text-center text-xs text-gray-400 py-4">無相關紀錄</li>';
-                document.getElementById('modal-overlay').classList.remove('hidden'); document.getElementById('modal-overlay').classList.add('flex');
             },
 
             // Renderers
@@ -417,7 +460,6 @@
                     ti += i.initialValue||0;
                     tr += profit;
                     
-                    // Removed max-w and truncate on title container to fix clipped text
                     return `<div class="bg-white p-3 rounded-xl card-shadow flex justify-between items-center cursor-pointer" onclick="App.showDetails('investment', '${i.id}')">
                         <div class="flex-1 min-w-0 mr-2"><h4 class="font-bold text-gray-800 text-sm whitespace-normal">${i.name}</h4><p class="text-[10px] font-normal text-gray-400">成本:${i.initialValue}</p></div>
                         <div class="flex items-center gap-3 shrink-0"><div class="text-right"><p class="font-bold text-gray-800 text-sm">$${(i.marketValue||0).toLocaleString()}</p><p class="text-[10px] font-bold ${profit>=0?'text-green-500':'text-red-500'}">${profit>0?'+':''}${profit.toLocaleString()}</p></div><button onclick="event.stopPropagation();openModal('investment-modal','${i.id}')" class="text-gray-300 hover:text-blue-500"><i class="fa-solid fa-pen text-xs"></i></button></div></div>`
@@ -439,12 +481,28 @@
                 document.getElementById('debt-total-remaining').innerText = `$${tr.toLocaleString()}`; document.getElementById('debt-progress-bar').style.width = `${to>0?((to-tr)/to)*100:0}%`; document.getElementById('debt-progress-text').innerText = `${to>0?((to-tr)/to*100).toFixed(0):0}%`;
                 document.getElementById('debt-budget-list').innerHTML = State.data.debtBudgets.filter(b=>!b.isRealized).map(b=>`<li class="flex justify-between items-center bg-white p-2 rounded-xl border border-gray-100 card-shadow mb-1"><div class="text-xs"><span class="font-bold text-gray-700">${(State.data.debts.find(d=>d.id===b.targetId)?.name)||'未知'}</span>: ${b.description} <span class="text-danger">$${b.amount}</span><span class="text-[10px] text-gray-400 ml-2">${b.expectedDate?.toDate().toLocaleDateString()||''}</span></div><div class="flex gap-2"><button onclick="App.realizeBudget('debt','${b.id}')" class="text-secondary hover:text-green-700 bg-green-50 w-6 h-6 rounded-full flex items-center justify-center"><i class="fa-solid fa-check"></i></button><button onclick="App.deleteItem('debtBudgets','${b.id}')" class="text-gray-300 hover:text-red-500"><i class="fa-solid fa-trash"></i></button></div></li>`).join('')||'<li class="text-xs text-gray-400 text-center py-2">無計畫項目</li>';
             },
-            renderEvents: () => document.getElementById('event-list').innerHTML = State.data.events.sort((a,b)=>b.date-a.date).map(e=>`<div class="relative pl-4 border-l-2 border-gray-200 pb-3"><div class="absolute -left-[5px] top-1 w-2.5 h-2.5 bg-primary rounded-full"></div><p class="text-[10px] text-gray-400">${e.date.toDate().toLocaleDateString()}</p><h4 class="font-bold text-gray-800 text-xs">${e.title}</h4><p class="text-xs text-gray-500 mt-1">${e.description}</p><button onclick="App.deleteItem('events','${e.id}')" class="absolute right-0 top-0 text-gray-200 hover:text-red-300"><i class="fa-solid fa-trash text-xs"></i></button></div>`).join(''),
             renderReports: () => {
-                const filterVal = document.getElementById('date-filter').value; const [yr, mn] = filterVal.split('-').map(Number);
+                // Populate Project Select
+                const projSel = document.getElementById('report-project');
+                const currentProj = projSel.value;
+                const projects = [...new Set(State.data.transactions.map(t => t.project).filter(p => p))];
+                projSel.innerHTML = '<option value="all">全部專案</option>' + projects.map(p => `<option value="${p}">${p}</option>`).join('');
+                if(projects.includes(currentProj)) projSel.value = currentProj;
+
+                // Get Filter Values
+                const filterVal = document.getElementById('report-month').value; 
+                const projectVal = projSel.value;
+                const [yr, mn] = filterVal.split('-').map(Number);
                 const start = new Date(yr, mn - 1, 1), end = new Date(yr, mn, 0, 23, 59, 59);
+                
                 if(State.chart) State.chart.destroy();
-                const txs = State.data.transactions.filter(t => { const d = t.timestamp.toDate(); return d >= start && d <= end; }).sort((a,b)=>b.timestamp-a.timestamp);
+                const txs = State.data.transactions.filter(t => { 
+                    const d = t.timestamp.toDate(); 
+                    const dateMatch = d >= start && d <= end;
+                    const projMatch = projectVal === 'all' || t.project === projectVal;
+                    return dateMatch && projMatch;
+                }).sort((a,b)=>b.timestamp-a.timestamp);
+
                 const map={}, total=txs.filter(t=>t.type==='expense').reduce((s,t)=>{map[t.category]=(map[t.category]||0)+t.amount;return s+t.amount},0);
                 State.chart = new Chart(document.getElementById('expense-chart').getContext('2d'), { type: 'doughnut', data: { labels: Object.keys(map), datasets: [{ data: Object.values(map), backgroundColor: ['#4F46E5','#10B981','#F59E0B','#EF4444','#EC4899','#8B5CF6'], borderWidth:0 }] }, options: {responsive:true, maintainAspectRatio:false, plugins:{legend:{position:'right',labels:{font:{size:10},boxWidth:10}}}} });
                 document.getElementById('report-stats').innerHTML = total > 0 ? Object.entries(map).sort((a,b)=>b[1]-a[1]).map(([k,v])=>`<li class="flex justify-between border-b border-gray-50 pb-1"><span>${k}</span><span class="font-bold">$${v.toLocaleString()} <span class="text-[10px] text-gray-400 font-normal">(${((v/total)*100).toFixed(1)}%)</span></span></li>`).join('') : '<li class="text-center text-gray-400 py-4">無支出數據</li>';
