@@ -242,8 +242,8 @@
     <!-- Details Modal Template -->
     <template id="tpl-details-modal">
         <div class="flex justify-between items-center mb-2">
-            <h3 class="text-lg font-bold text-gray-800 details-title"></h3>
-            <button onclick="closeModal()" class="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center text-gray-500"><i class="fa-solid fa-xmark"></i></button>
+            <h3 class="text-lg font-bold text-gray-800 details-title truncate pr-4"></h3>
+            <button onclick="closeModal()" class="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center text-gray-500 flex-shrink-0"><i class="fa-solid fa-xmark"></i></button>
         </div>
         <p class="text-xs text-gray-400 mb-4 details-subtitle"></p>
         <div class="max-h-[60vh] overflow-y-auto hide-scrollbar">
@@ -273,8 +273,9 @@
                 } else App.stopListeners();
             }),
             startListeners: (uid) => {
+                // Changed: Removed orderBy from query to prevent missing data if fields are missing in old data
                 const listen = (c, k, render) => State.listeners.push(onSnapshot(query(collection(db, `users/${uid}/${c}`)), s => { State.data[k] = s.docs.map(d=>({id:d.id, ...d.data()})); render(); }));
-                listen('transactions', 'transactions', () => { App.renderTransactions(); App.updateDashboard(); App.renderReports(); });
+                listen('transactions', 'transactions', () => { App.renderTransactions(); App.updateDashboard(); App.renderReports(); App.renderInvestments(); });
                 listen('debts', 'debts', App.renderDebts);
                 listen('investments', 'investments', App.renderInvestments);
                 listen('events', 'events', App.renderEvents);
@@ -397,22 +398,34 @@
                 } else { document.getElementById('today-income').innerText = '-'; document.getElementById('today-expense').innerText = '-'; }
             },
             renderInvestments: () => {
-                const invs = State.data.investments; let tv=0, ti=0;
+                const invs = State.data.investments.sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
+                let tv=0, ti=0, tr=0;
                 document.getElementById('inv-list').innerHTML = invs.map(i=>{
-                    tv+=i.marketValue||0; ti+=i.initialValue||0; const g=(i.marketValue||0)-(i.initialValue||0);
+                    const relatedTxs = State.data.transactions.filter(t => t.project === i.name);
+                    const inc = relatedTxs.filter(t=>t.type==='income').reduce((s,t)=>s+t.amount,0);
+                    const exp = relatedTxs.filter(t=>t.type==='expense').reduce((s,t)=>s+t.amount,0);
+                    const profit = inc - exp;
+                    tv += i.marketValue||0;
+                    ti += i.initialValue||0;
+                    tr += profit;
+                    
                     return `<div class="bg-white p-3 rounded-xl card-shadow flex justify-between items-center cursor-pointer" onclick="App.showDetails('investment', '${i.id}')">
-                        <div><h4 class="font-bold text-gray-800 text-sm">${i.name} <span class="text-[10px] font-normal text-gray-400">成本:${i.initialValue}</span></h4></div>
-                        <div class="flex items-center gap-3"><div class="text-right"><p class="font-bold text-gray-800 text-sm">$${(i.marketValue||0).toLocaleString()}</p><p class="text-[10px] font-bold ${g>=0?'text-red-500':'text-green-500'}">${g>0?'+':''}${g}</p></div><button onclick="event.stopPropagation();openModal('investment-modal','${i.id}')" class="text-gray-300 hover:text-blue-500"><i class="fa-solid fa-pen text-xs"></i></button></div></div>`
+                        <div class="overflow-hidden max-w-[65%]"><h4 class="font-bold text-gray-800 text-sm truncate">${i.name}</h4><p class="text-[10px] font-normal text-gray-400">成本:${i.initialValue}</p></div>
+                        <div class="flex items-center gap-3"><div class="text-right"><p class="font-bold text-gray-800 text-sm">$${(i.marketValue||0).toLocaleString()}</p><p class="text-[10px] font-bold ${profit>=0?'text-green-500':'text-red-500'}">${profit>0?'+':''}${profit.toLocaleString()}</p></div><button onclick="event.stopPropagation();openModal('investment-modal','${i.id}')" class="text-gray-300 hover:text-blue-500"><i class="fa-solid fa-pen text-xs"></i></button></div></div>`
                 }).join('');
-                const tg=tv-ti, roi=ti>0?(tg/ti)*100:0;
-                document.getElementById('inv-total-val').innerText = `$${tv.toLocaleString()}`; document.getElementById('inv-total-ret').innerText = `${tg>0?'+':''}${tg.toLocaleString()}`; document.getElementById('inv-roi').innerText = `${roi.toFixed(1)}%`;
+                const roi = ti>0 ? (tr/ti)*100 : 0;
+                document.getElementById('inv-total-val').innerText = `$${tv.toLocaleString()}`; 
+                document.getElementById('inv-total-ret').innerText = `${tr>0?'+':''}${tr.toLocaleString()}`; 
+                document.getElementById('inv-roi').innerText = `${roi.toFixed(1)}%`;
+                
                 document.getElementById('inv-budget-list').innerHTML = State.data.investmentBudgets.filter(b=>!b.isRealized).map(b=>`<li class="flex justify-between items-center bg-white p-2 rounded-xl border border-gray-100 card-shadow mb-1"><div class="text-xs"><span class="font-bold text-gray-700">${(invs.find(i=>i.id===b.targetId)?.name)||'未知'}</span>: ${b.description} <span class="text-secondary">$${b.amount}</span></div><div class="flex gap-2"><button onclick="App.realizeBudget('investment','${b.id}')" class="text-secondary hover:text-green-700 bg-green-50 w-6 h-6 rounded-full flex items-center justify-center"><i class="fa-solid fa-check"></i></button><button onclick="App.deleteItem('investmentBudgets','${b.id}')" class="text-gray-300 hover:text-red-500"><i class="fa-solid fa-trash"></i></button></div></li>`).join('')||'<li class="text-xs text-gray-400 text-center py-2">無預算項目</li>';
             },
             renderDebts: () => {
                 let tr=0, to=0;
-                document.getElementById('debt-list').innerHTML = State.data.debts.map(d=>{
+                const debts = State.data.debts.sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
+                document.getElementById('debt-list').innerHTML = debts.map(d=>{
                     tr+=d.remainingAmount; to+=d.totalAmount; const p=Math.round(((d.totalAmount-d.remainingAmount)/d.totalAmount)*100);
-                    return `<div class="bg-white p-3 rounded-xl card-shadow cursor-pointer" onclick="App.showDetails('debt', '${d.id}')"><div class="flex justify-between mb-1"><span class="font-bold text-sm">${d.name}</span><button onclick="event.stopPropagation();openModal('debt-modal','${d.id}')" class="text-gray-300 hover:text-blue-500"><i class="fa-solid fa-pen text-xs"></i></button></div><div class="flex justify-between text-xs text-gray-500 mb-1"><span>剩 $${d.remainingAmount}</span><span>${p}%</span></div><div class="w-full bg-gray-100 rounded-full h-1.5 mb-2"><div class="bg-primary h-1.5 rounded-full" style="width:${p}%"></div></div><div class="flex justify-end gap-2"><button onclick="event.stopPropagation();openRepayModal('${d.id}','${d.name}')" class="text-xs bg-green-50 text-green-600 px-2 py-0.5 rounded font-bold">還款</button><button onclick="event.stopPropagation();App.deleteItem('debts','${d.id}')" class="text-xs text-gray-300 px-1"><i class="fa-solid fa-trash"></i></button></div></div>`
+                    return `<div class="bg-white p-3 rounded-xl card-shadow cursor-pointer" onclick="App.showDetails('debt', '${d.id}')"><div class="flex justify-between mb-1"><span class="font-bold text-sm truncate max-w-[180px]">${d.name}</span><button onclick="event.stopPropagation();openModal('debt-modal','${d.id}')" class="text-gray-300 hover:text-blue-500"><i class="fa-solid fa-pen text-xs"></i></button></div><div class="flex justify-between text-xs text-gray-500 mb-1"><span>剩 $${d.remainingAmount}</span><span>${p}%</span></div><div class="w-full bg-gray-100 rounded-full h-1.5 mb-2"><div class="bg-primary h-1.5 rounded-full" style="width:${p}%"></div></div><div class="flex justify-end gap-2"><button onclick="event.stopPropagation();openRepayModal('${d.id}','${d.name}')" class="text-xs bg-green-50 text-green-600 px-2 py-0.5 rounded font-bold">還款</button><button onclick="event.stopPropagation();App.deleteItem('debts','${d.id}')" class="text-xs text-gray-300 px-1"><i class="fa-solid fa-trash"></i></button></div></div>`
                 }).join('');
                 document.getElementById('debt-total-remaining').innerText = `$${tr.toLocaleString()}`; document.getElementById('debt-progress-bar').style.width = `${to>0?((to-tr)/to)*100:0}%`; document.getElementById('debt-progress-text').innerText = `${to>0?((to-tr)/to*100).toFixed(0):0}%`;
                 document.getElementById('debt-budget-list').innerHTML = State.data.debtBudgets.filter(b=>!b.isRealized).map(b=>`<li class="flex justify-between items-center bg-white p-2 rounded-xl border border-gray-100 card-shadow mb-1"><div class="text-xs"><span class="font-bold text-gray-700">${(State.data.debts.find(d=>d.id===b.targetId)?.name)||'未知'}</span>: ${b.description} <span class="text-danger">$${b.amount}</span></div><div class="flex gap-2"><button onclick="App.realizeBudget('debt','${b.id}')" class="text-secondary hover:text-green-700 bg-green-50 w-6 h-6 rounded-full flex items-center justify-center"><i class="fa-solid fa-check"></i></button><button onclick="App.deleteItem('debtBudgets','${b.id}')" class="text-gray-300 hover:text-red-500"><i class="fa-solid fa-trash"></i></button></div></li>`).join('')||'<li class="text-xs text-gray-400 text-center py-2">無計畫項目</li>';
