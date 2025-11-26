@@ -175,7 +175,7 @@
             <!-- Events -->
             <div id="view-events" class="view-section hidden p-3 space-y-3 animate-fade">
                  <button onclick="openModal('event-modal')" class="w-full py-3 border-2 border-dashed border-gray-300 rounded-2xl text-gray-400 font-bold hover:bg-gray-50 hover:border-gray-400 transition mb-2 text-xs">+ 紀錄大事記</button>
-                 <div id="event-list" class="space-y-3 pl-2"></div>
+                 <div id="event-list" class="space-y-4 pl-2"></div>
             </div>
         </main>
 
@@ -266,7 +266,13 @@
     
     <template id="tpl-event-form">
         <div class="flex justify-between items-center mb-4"><h3 class="text-lg font-bold text-gray-800">大事記</h3><button onclick="closeModal()" class="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center text-gray-500"><i class="fa-solid fa-xmark"></i></button></div>
-        <form onsubmit="App.handleAddEvent(event)" class="space-y-4"><input type="date" name="date" class="w-full bg-gray-50 rounded-xl p-3 text-sm" required><input type="text" name="title" class="w-full bg-gray-50 rounded-xl p-3 text-sm" placeholder="標題" required><textarea name="desc" rows="3" class="w-full bg-gray-50 rounded-xl p-3 text-sm" placeholder="內容..."></textarea><div class="flex gap-2 text-sm pt-2"><button type="button" onclick="closeModal()" class="flex-1 bg-gray-100 py-3 rounded-xl font-bold text-gray-500">取消</button><button type="submit" class="w-full bg-dark text-white py-3 rounded-xl font-bold text-sm shadow-lg">紀錄</button></div></form>
+        <form onsubmit="App.handleSaveEvent(event)" class="space-y-4">
+            <input type="hidden" name="id">
+            <input type="date" name="date" class="w-full bg-gray-50 rounded-xl p-3 text-sm" required>
+            <input type="text" name="title" class="w-full bg-gray-50 rounded-xl p-3 text-sm" placeholder="標題" required>
+            <textarea name="desc" rows="3" class="w-full bg-gray-50 rounded-xl p-3 text-sm" placeholder="內容..."></textarea>
+            <div class="flex gap-2 text-sm pt-2"><button type="button" onclick="closeModal()" class="flex-1 bg-gray-100 py-3 rounded-xl font-bold text-gray-500">取消</button><button type="submit" class="w-full bg-dark text-white py-3 rounded-xl font-bold text-sm shadow-lg">紀錄</button></div>
+        </form>
     </template>
 
     <!-- Details Modal Template -->
@@ -308,14 +314,12 @@
                     document.getElementById('user-info').innerText = u.isAnonymous ? '訪客' : u.displayName;
                     const today = new Date();
                     document.getElementById('date-filter').value = today.toISOString().slice(0, 7);
-                    // Setup Year and Month Selectors for Report
                     const yearSel = document.getElementById('report-year');
                     const currentYear = today.getFullYear();
                     for(let y = currentYear - 2; y <= currentYear + 1; y++) {
                         yearSel.innerHTML += `<option value="${y}" ${y===currentYear?'selected':''}>${y}年</option>`;
                     }
                     document.getElementById('report-month-select').value = (today.getMonth() + 1).toString();
-                    
                     App.startListeners(u.uid);
                 } else App.stopListeners();
             }),
@@ -324,13 +328,11 @@
                     State.data[k] = s.docs.map(d=>({id:d.id, ...d.data()})); 
                     if(cb) cb(); 
                 }));
-                
                 listen('transactions', 'transactions', () => { App.renderTransactions(); App.updateDashboard(); App.renderReports(); App.renderInvestments(); });
                 listen('debts', 'debts', App.renderDebts);
                 listen('events', 'events', App.renderEvents);
                 listen('investmentBudgets', 'investmentBudgets', App.renderInvestments);
                 listen('debtBudgets', 'debtBudgets', App.renderDebts);
-                
                 State.listeners.push(onSnapshot(query(collection(db, `users/${uid}/investments`)), async (s) => {
                     State.data.investments = s.docs.map(d=>({id:d.id, ...d.data()}));
                     for (let inv of State.data.investments) {
@@ -401,7 +403,12 @@
                 batch.set(doc(collection(db, `users/${uid}/transactions`)), { type:'expense', amount:amt, category:'負債還款', project:debt.name, remarks:`償還: ${debt.name}`, timestamp:Timestamp.fromDate(new Date(f.date.value)) });
                 await batch.commit(); closeModal();
             },
-            handleAddEvent: async(e) => { e.preventDefault(); const f=e.target; await addDoc(collection(db, `users/${State.user.uid}/events`), {title:f.title.value, description:f.desc.value, date:Timestamp.fromDate(new Date(f.date.value))}); closeModal(); },
+            handleSaveEvent: async(e) => {
+                e.preventDefault(); const f=e.target, uid=State.user.uid;
+                const d = { title:f.title.value, description:f.desc.value, date:Timestamp.fromDate(new Date(f.date.value)) };
+                f.id.value ? await updateDoc(doc(db, `users/${uid}/events`, f.id.value), d) : await addDoc(collection(db, `users/${uid}/events`), d);
+                closeModal();
+            },
             
             // Actions
             deleteItem: async (c,id) => confirm('刪除?') && await deleteDoc(doc(db, `users/${State.user.uid}/${c}`, id)),
@@ -424,27 +431,19 @@
                 await batch.commit();
             },
             exportReport: () => {
-                // Re-use logic from renderReports to filter
                 const projSel = document.getElementById('report-project').value;
                 const yr = parseInt(document.getElementById('report-year').value);
                 const mnVal = document.getElementById('report-month-select').value;
                 let start, end;
                 if(mnVal === 'all') { start = new Date(yr, 0, 1); end = new Date(yr, 11, 31, 23, 59, 59); }
                 else { const mn = parseInt(mnVal); start = new Date(yr, mn - 1, 1); end = new Date(yr, mn, 0, 23, 59, 59); }
-                
                 const txs = State.data.transactions.filter(t => { 
                     const d = t.timestamp.toDate(); 
                     return d >= start && d <= end && (projSel === 'all' || t.project === projSel);
-                }).sort((a,b)=>a.timestamp-b.timestamp); // Old to new
-
-                const csvContent = "日期,分類,專案/帳戶,備註,類型,金額\n" + 
-                    txs.map(t => `${t.timestamp.toDate().toLocaleDateString()},${t.category},${t.project||''},${t.remarks||''},${t.type==='income'?'收入':'支出'},${t.amount}`).join("\n");
-                
+                }).sort((a,b)=>a.timestamp-b.timestamp);
+                const csvContent = "日期,分類,專案/帳戶,備註,類型,金額\n" + txs.map(t => `${t.timestamp.toDate().toLocaleDateString()},${t.category},${t.project||''},${t.remarks||''},${t.type==='income'?'收入':'支出'},${t.amount}`).join("\n");
                 const blob = new Blob(["\uFEFF"+csvContent], { type: 'text/csv;charset=utf-8;' });
-                const link = document.createElement("a");
-                link.href = URL.createObjectURL(blob);
-                link.download = `report_${yr}_${mnVal}.csv`;
-                link.click();
+                const link = document.createElement("a"); link.href = URL.createObjectURL(blob); link.download = `report_${yr}_${mnVal}.csv`; link.click();
             },
             showDetails: async (type, id) => {
                 const item = State.data[type + 's'].find(i => i.id === id);
@@ -526,6 +525,8 @@
                 const invs = State.data.investments.sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
                 const activeInvs = invs.filter(i => State.view.invTab === 'active' ? !i.isArchived : i.isArchived);
                 let tv=0, ti=0, tr=0;
+                let totalCost = 0;
+
                 document.getElementById('inv-list').innerHTML = activeInvs.length ? activeInvs.map(i=>{
                     const subTxs = State.data.legacyTxs[i.id] || [];
                     const mainTxs = State.data.transactions.filter(t => t.project === i.name);
@@ -535,15 +536,19 @@
                     const inc = allRelatedTxs.filter(t=>t.type==='income').reduce((s,t)=>s+t.amount,0);
                     const exp = allRelatedTxs.filter(t=>t.type==='expense').reduce((s,t)=>s+t.amount,0);
                     const profit = inc - exp;
-                    if(State.view.invTab === 'active') { tv += i.marketValue||0; ti += i.initialValue||0; tr += profit; }
+                    if(State.view.invTab === 'active') { 
+                        tv += i.marketValue||0; 
+                        totalCost += parseFloat(exp)||0; 
+                        tr += profit; 
+                    }
                     return `<div class="bg-white p-3 rounded-xl card-shadow flex justify-between items-center cursor-pointer" onclick="App.showDetails('investment', '${i.id}')">
                         <div class="flex-1 min-w-0 mr-2"><h4 class="font-bold text-gray-800 text-sm whitespace-normal">${i.name}</h4><p class="text-[10px] font-normal text-gray-400">成本:${i.initialValue}</p></div>
                         <div class="flex items-center gap-3 shrink-0"><div class="text-right"><p class="font-bold text-gray-800 text-sm">$${(i.marketValue||0).toLocaleString()}</p><p class="text-[10px] font-bold ${profit>=0?'text-green-500':'text-red-500'}">${profit>0?'+':''}${profit.toLocaleString()}</p></div><button onclick="event.stopPropagation();openModal('investment-modal','${i.id}')" class="text-gray-300 hover:text-blue-500"><i class="fa-solid fa-pen text-xs"></i></button></div></div>`
                 }).join('') : '<div class="text-center text-gray-400 py-4 text-xs">無帳戶</div>';
-                const roi = ti>0 ? (tr/ti)*100 : 0;
+                
+                const roi = totalCost > 0 ? (tr / totalCost) * 100 : 0;
                 document.getElementById('inv-total-val').innerText = `$${tv.toLocaleString()}`; document.getElementById('inv-total-ret').innerText = `${tr>0?'+':''}${tr.toLocaleString()}`; document.getElementById('inv-roi').innerText = `${roi.toFixed(1)}%`;
                 
-                // Budget Sorting & Styling
                 const todayZero = new Date().setHours(0,0,0,0);
                 const sortedBudgets = State.data.investmentBudgets.filter(b=>!b.isRealized).sort((a,b) => (a.expectedDate?.seconds || 0) - (b.expectedDate?.seconds || 0));
                 document.getElementById('inv-budget-list').innerHTML = sortedBudgets.map(b=>{
@@ -562,7 +567,6 @@
                 }).join('');
                 document.getElementById('debt-total-remaining').innerText = `$${tr.toLocaleString()}`; document.getElementById('debt-progress-bar').style.width = `${to>0?((to-tr)/to)*100:0}%`; document.getElementById('debt-progress-text').innerText = `${to>0?((to-tr)/to*100).toFixed(0):0}%`;
                 
-                // Budget Sorting & Styling
                 const todayZero = new Date().setHours(0,0,0,0);
                 const sortedBudgets = State.data.debtBudgets.filter(b=>!b.isRealized).sort((a,b) => (a.expectedDate?.seconds || 0) - (b.expectedDate?.seconds || 0));
                 document.getElementById('debt-budget-list').innerHTML = sortedBudgets.map(b=>{
@@ -571,6 +575,38 @@
                     const boxClass = isOverdue ? 'bg-red-50 border-red-200' : 'bg-white border-gray-100';
                     return `<li class="flex justify-between items-center p-2 rounded-xl border card-shadow mb-1 ${boxClass}"><div class="text-xs"><span class="font-bold text-gray-700">${(State.data.debts.find(d=>d.id===b.targetId)?.name)||'未知'}</span>: ${b.description} <span class="text-danger">$${b.amount}</span><span class="text-[10px] ml-2 ${dateClass}">${b.expectedDate?.toDate().toLocaleDateString()||''}</span></div><div class="flex gap-2"><button onclick="App.realizeBudget('debt','${b.id}')" class="text-secondary hover:text-green-700 bg-green-50 w-6 h-6 rounded-full flex items-center justify-center"><i class="fa-solid fa-check"></i></button><button onclick="openBudgetModal('debt','${b.id}')" class="text-gray-300 hover:text-blue-500"><i class="fa-solid fa-pen"></i></button><button onclick="App.deleteItem('debtBudgets','${b.id}')" class="text-gray-300 hover:text-red-500"><i class="fa-solid fa-trash"></i></button></div></li>`;
                 }).join('')||'<li class="text-xs text-gray-400 text-center py-2">無計畫項目</li>';
+            },
+            renderEvents: () => {
+                const grouped = {};
+                State.data.events.sort((a,b)=>b.date-a.date).forEach(e => {
+                    const key = e.date.toDate().toLocaleDateString('zh-TW', {year:'numeric', month:'long'});
+                    if(!grouped[key]) grouped[key] = [];
+                    grouped[key].push(e);
+                });
+                
+                document.getElementById('event-list').innerHTML = Object.keys(grouped).length ? Object.entries(grouped).map(([month, events]) => `
+                    <div class="mb-6">
+                        <h3 class="text-xs font-bold text-gray-400 mb-3 border-b border-gray-200 pb-1">${month}</h3>
+                        <div class="space-y-4">
+                            ${events.map(e => `
+                                <div class="relative pl-4 border-l-2 border-primary/30 pb-2 group">
+                                    <div class="absolute -left-[5px] top-1.5 w-2.5 h-2.5 bg-primary rounded-full border-2 border-white shadow-sm"></div>
+                                    <div class="flex justify-between items-start">
+                                        <div>
+                                            <p class="text-[10px] font-bold text-primary mb-0.5">${e.date.toDate().toLocaleDateString('zh-TW', {day:'numeric', weekday:'short'})}</p>
+                                            <h4 class="font-bold text-gray-800 text-sm">${e.title}</h4>
+                                            <p class="text-xs text-gray-500 mt-1 leading-relaxed whitespace-pre-wrap">${e.description}</p>
+                                        </div>
+                                        <div class="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                            <button onclick="openModal('event-modal','${e.id}')" class="text-gray-300 hover:text-blue-500"><i class="fa-solid fa-pen text-xs"></i></button>
+                                            <button onclick="App.deleteItem('events','${e.id}')" class="text-gray-300 hover:text-red-500"><i class="fa-solid fa-trash text-xs"></i></button>
+                                        </div>
+                                    </div>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                `).join('') : '<div class="text-center py-10 text-gray-400 text-xs">尚無大事記</div>';
             },
             renderReports: () => {
                 const projSel = document.getElementById('report-project').value;
@@ -581,7 +617,11 @@
                 else { const mn = parseInt(mnVal); start = new Date(yr, mn - 1, 1); end = new Date(yr, mn, 0, 23, 59, 59); }
                 
                 if(State.chart) State.chart.destroy();
-                const txs = State.data.transactions.filter(t => { const d = t.timestamp.toDate(); return d >= start && d <= end && (projSel === 'all' || t.project === projSel); }).sort((a,b)=>b.timestamp-a.timestamp);
+                const txs = State.data.transactions.filter(t => { 
+                    const d = t.timestamp.toDate(); 
+                    return d >= start && d <= end && (projSel === 'all' || t.project === projSel);
+                }).sort((a,b)=>a.timestamp-b.timestamp); // Old to new
+
                 const map={}, total=txs.filter(t=>t.type==='expense').reduce((s,t)=>{map[t.category]=(map[t.category]||0)+t.amount;return s+t.amount},0);
                 State.chart = new Chart(document.getElementById('expense-chart').getContext('2d'), { type: 'doughnut', data: { labels: Object.keys(map), datasets: [{ data: Object.values(map), backgroundColor: ['#4F46E5','#10B981','#F59E0B','#EF4444','#EC4899','#8B5CF6'], borderWidth:0 }] }, options: {responsive:true, maintainAspectRatio:false, plugins:{legend:{position:'right',labels:{font:{size:10},boxWidth:10}}}} });
                 document.getElementById('report-stats').innerHTML = total > 0 ? Object.entries(map).sort((a,b)=>b[1]-a[1]).map(([k,v])=>`<li class="flex justify-between border-b border-gray-50 pb-1"><span>${k}</span><span class="font-bold">$${v.toLocaleString()} <span class="text-[10px] text-gray-400 font-normal">(${((v/total)*100).toFixed(1)}%)</span></span></li>`).join('') : '<li class="text-center text-gray-400 py-4">無支出數據</li>';
@@ -594,14 +634,18 @@
                 if(defaults.project && c.querySelector('[name=project]')) c.querySelector('[name=project]').value = defaults.project;
                 if(defaults.category && c.querySelector('[name=category]')) c.querySelector('[name=category]').value = defaults.category;
                 if(id) {
-                    const item = State.data[t==='transaction-modal'?'transactions':t==='investment-modal'?'investments':'debts'].find(i=>i.id===id);
+                    let item;
+                    if (t==='event-modal') item = State.data.events.find(i=>i.id===id);
+                    else item = State.data[t==='transaction-modal'?'transactions':t==='investment-modal'?'investments':'debts'].find(i=>i.id===id);
+                    
                     if(item) {
                         c.querySelector('[name=id]').value = id;
                         if(t==='transaction-modal') { c.querySelector('[name=amount]').value=item.amount; c.querySelector('[name=date]').value=toDateStr(item.timestamp); c.querySelector('[name=category]').value=item.category; c.querySelector('[name=remarks]').value=item.remarks; toggleTxType(item.type); }
                         else if(t==='investment-modal') { c.querySelector('[name=name]').value=item.name; c.querySelector('[name=initial]').value=item.initialValue; if(c.querySelector('[name=isArchived]')) c.querySelector('[name=isArchived]').checked = item.isArchived || false; }
                         else if(t==='debt-modal') { c.querySelector('[name=name]').value=item.name; c.querySelector('[name=total]').value=item.totalAmount; }
+                        else if(t==='event-modal') { c.querySelector('[name=title]').value=item.title; c.querySelector('[name=desc]').value=item.description; c.querySelector('[name=date]').value=toDateStr(item.date); }
                     }
-                } else if(t==='transaction-modal') c.querySelector('[name=date]').value = new Date().toISOString().split('T')[0];
+                } else if(t==='transaction-modal' || t==='event-modal') c.querySelector('[name=date]').value = new Date().toISOString().split('T')[0];
                 document.getElementById('modal-overlay').classList.remove('hidden'); document.getElementById('modal-overlay').classList.add('flex');
             }
         };
