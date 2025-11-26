@@ -42,6 +42,7 @@
         @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
         .nav-btn.active { color: #4F46E5; }
         .nav-btn.active i { transform: translateY(-2px); }
+        .tab-pill.active { background-color: #4F46E5; color: white; }
         input:focus, select:focus, textarea:focus { ring: 2px; ring-color: #4F46E5; border-color: transparent; outline: none; }
     </style>
 </head>
@@ -100,16 +101,24 @@
 
             <!-- Investment -->
             <div id="view-investment" class="view-section hidden p-3 space-y-3 animate-fade">
-                <div class="bg-gradient-to-br from-indigo-600 to-blue-700 rounded-2xl p-4 text-white shadow-lg card-shadow">
-                    <p class="text-indigo-100 text-xs mb-1">總資產現值</p>
+                <div class="bg-gradient-to-br from-indigo-600 to-blue-700 rounded-2xl p-4 text-white shadow-lg card-shadow mb-4">
+                    <p class="text-indigo-100 text-xs mb-1">總資產現值 (進行中)</p>
                     <h2 id="inv-total-val" class="text-3xl font-bold tracking-tight">--</h2>
                     <div class="flex gap-4 mt-3 text-xs border-t border-white/20 pt-3">
                         <div><span class="opacity-70 block mb-0.5">總損益</span> <span id="inv-total-ret" class="font-bold text-base">--</span></div>
                         <div><span class="opacity-70 block mb-0.5">報酬率</span> <span id="inv-roi" class="font-bold text-base">--</span></div>
                     </div>
                 </div>
-                <div class="flex justify-between items-center px-1"><span class="text-xs font-bold text-gray-500">投資帳戶 (點擊查看明細)</span><button onclick="openModal('investment-modal')" class="text-primary text-xs font-bold bg-primary/10 px-2 py-1 rounded hover:bg-primary/20 transition">+ 新增</button></div>
+
+                <!-- Tab Switcher for Investment -->
+                <div class="flex bg-gray-200 p-1 rounded-xl mb-3">
+                    <button class="tab-pill flex-1 py-1.5 rounded-lg text-xs font-bold text-gray-500 active transition" onclick="App.switchInvTab('active', this)">進行中</button>
+                    <button class="tab-pill flex-1 py-1.5 rounded-lg text-xs font-bold text-gray-500 transition" onclick="App.switchInvTab('archived', this)">已結案</button>
+                </div>
+
+                <div class="flex justify-between items-center px-1 mb-2"><span class="text-xs font-bold text-gray-500">投資帳戶 (點擊查看明細)</span><button onclick="openModal('investment-modal')" class="text-primary text-xs font-bold bg-primary/10 px-2 py-1 rounded hover:bg-primary/20 transition">+ 新增</button></div>
                 <div id="inv-list" class="grid gap-2"></div>
+                
                 <div class="mt-4 pt-4 border-t border-gray-200">
                     <div class="flex justify-between items-center px-1 mb-2"><span class="text-xs font-bold text-gray-500">收入預算/目標</span><button onclick="openBudgetModal('investment')" class="text-secondary text-xs font-bold bg-secondary/10 px-2 py-1 rounded hover:bg-secondary/20 transition">+ 預算</button></div>
                     <ul id="inv-budget-list" class="space-y-2"></ul>
@@ -210,6 +219,10 @@
             <input type="hidden" name="id">
             <input type="text" name="name" class="w-full bg-gray-50 rounded-xl p-3 text-sm focus:bg-white border-transparent focus:border-primary transition" placeholder="名稱 (如: 台積電)" required>
             <input type="number" name="initial" class="w-full bg-gray-50 rounded-xl p-3 text-sm focus:bg-white border-transparent focus:border-primary transition" placeholder="初始成本 (選填)">
+            <div class="flex items-center gap-2 px-1">
+                <input type="checkbox" name="isArchived" id="inv-archived" class="rounded text-primary focus:ring-primary">
+                <label for="inv-archived" class="text-sm text-gray-600">已結案 (歸檔)</label>
+            </div>
             <div class="flex gap-2 text-sm pt-2"><button type="button" onclick="closeModal()" class="flex-1 bg-gray-100 py-3 rounded-xl font-bold text-gray-500">取消</button><button type="submit" class="flex-1 bg-primary text-white py-3 rounded-xl font-bold shadow-lg shadow-primary/30">儲存</button></div>
         </form>
     </template>
@@ -273,7 +286,14 @@
 
         const app = initializeApp({ apiKey: "AIzaSyAqFHm6Bn35m8xauc50ZvNNy_rxIZzCMTE", authDomain: "moneyw-f8105.firebaseapp.com", projectId: "moneyw-f8105", storageBucket: "moneyw-f8105.appspot.com", messagingSenderId: "155586195799", appId: "1:155586195799:web:302184fbf613f032a88e12" });
         const auth = getAuth(app); const db = getFirestore(app);
-        const State = { user: null, data: { transactions: [], debts: [], investments: [], events: [], investmentBudgets: [], debtBudgets: [] }, listeners: [], chart: null, categories: { expense: ['飲食', '交通', '居住', '娛樂', '購物', '醫療', '教育', '投資', '其他'], income: ['薪資', '獎金', '投資', '兼職', '其他'] } };
+        const State = { 
+            user: null, 
+            data: { transactions: [], debts: [], investments: [], events: [], investmentBudgets: [], debtBudgets: [], legacyTxs: {} }, 
+            listeners: [], 
+            chart: null, 
+            categories: { expense: ['飲食', '交通', '居住', '娛樂', '購物', '醫療', '教育', '投資', '其他'], income: ['薪資', '獎金', '投資', '兼職', '其他'] },
+            view: { invTab: 'active' }
+        };
 
         window.App = {
             init: () => onAuthStateChanged(auth, u => {
@@ -289,17 +309,44 @@
                 } else App.stopListeners();
             }),
             startListeners: (uid) => {
-                const listen = (c, k, render) => State.listeners.push(onSnapshot(query(collection(db, `users/${uid}/${c}`)), s => { State.data[k] = s.docs.map(d=>({id:d.id, ...d.data()})); render(); }));
+                const listen = (c, k, cb) => State.listeners.push(onSnapshot(query(collection(db, `users/${uid}/${c}`)), s => { 
+                    State.data[k] = s.docs.map(d=>({id:d.id, ...d.data()})); 
+                    if(cb) cb(); 
+                }));
+                
                 listen('transactions', 'transactions', () => { App.renderTransactions(); App.updateDashboard(); App.renderReports(); App.renderInvestments(); });
                 listen('debts', 'debts', App.renderDebts);
-                listen('investments', 'investments', App.renderInvestments);
                 listen('events', 'events', App.renderEvents);
                 listen('investmentBudgets', 'investmentBudgets', App.renderInvestments);
                 listen('debtBudgets', 'debtBudgets', App.renderDebts);
+                
+                // Special Listener for Investments to fetch legacy subcollections
+                State.listeners.push(onSnapshot(query(collection(db, `users/${uid}/investments`)), async (s) => {
+                    State.data.investments = s.docs.map(d=>({id:d.id, ...d.data()}));
+                    // Fetch legacy data for all investments if missing
+                    for (let inv of State.data.investments) {
+                        if (!State.data.legacyTxs[inv.id]) {
+                            const subSnap = await getDocs(collection(db, `users/${uid}/investments/${inv.id}/transactions`));
+                            State.data.legacyTxs[inv.id] = subSnap.docs.map(d => ({
+                                id: d.id, ...d.data(), 
+                                timestamp: d.data().timestamp || d.data().date, 
+                                remarks: d.data().remarks || d.data().remark, 
+                                isSub: true
+                            }));
+                        }
+                    }
+                    App.renderInvestments();
+                }));
             },
             stopListeners: () => { State.listeners.forEach(u=>u()); State.listeners=[]; },
             loginGoogle: () => signInWithPopup(auth, new GoogleAuthProvider()), loginAnon: () => signInAnonymously(auth), logout: () => signOut(auth),
             handleDateFilterChange: () => { App.renderTransactions(); App.updateDashboard(); },
+            switchInvTab: (tab, btn) => {
+                State.view.invTab = tab;
+                document.querySelectorAll('.tab-pill').forEach(e => e.classList.remove('active', 'bg-gray-600', 'text-white'));
+                btn.classList.add('active');
+                App.renderInvestments();
+            },
 
             // Handlers
             handleSaveTransaction: async (e) => {
@@ -310,7 +357,7 @@
             },
             handleSaveInvestment: async (e) => {
                 e.preventDefault(); const f=e.target, uid=State.user.uid, init=parseFloat(f.initial.value)||0;
-                const d = { name: f.name.value, initialValue: init };
+                const d = { name: f.name.value, initialValue: init, isArchived: f.isArchived.checked };
                 if(!f.id.value) { d.marketValue = init; d.createdAt = Timestamp.now(); }
                 f.id.value ? await updateDoc(doc(db, `users/${uid}/investments`, f.id.value), d) : (await addDoc(collection(db, `users/${uid}/investments`), d) && init>0 && await addDoc(collection(db, `users/${uid}/transactions`), {type:'expense', amount:init, category:'投資', project:f.name.value, remarks:'初始投入', timestamp:Timestamp.now()}));
                 closeModal();
@@ -350,38 +397,22 @@
             showDetails: async (type, id) => {
                 const item = State.data[type + 's'].find(i => i.id === id);
                 if (!item) return;
-                
                 const tpl = document.getElementById('tpl-details-modal').innerHTML;
                 const content = document.getElementById('modal-content');
                 content.innerHTML = tpl;
                 content.querySelector('.details-title').innerText = item.name;
-                document.getElementById('modal-overlay').classList.remove('hidden'); 
-                document.getElementById('modal-overlay').classList.add('flex');
+                document.getElementById('modal-overlay').classList.remove('hidden'); document.getElementById('modal-overlay').classList.add('flex');
 
                 let relatedTxs = [];
-                
-                // Special handling for investments to merge old subcollection data
                 if (type === 'investment') {
-                    const subColRef = collection(db, `users/${State.user.uid}/investments/${id}/transactions`);
-                    const subSnap = await getDocs(subColRef);
-                    const subTxs = subSnap.docs.map(d => {
-                        const data = d.data();
-                        return { 
-                            id: d.id, 
-                            ...data,
-                            // Normalize fields
-                            timestamp: data.timestamp || data.date, 
-                            remarks: data.remarks || data.remark,
-                            isSub: true
-                        };
-                    });
-
+                    // Combine fetched legacy txs with current global transactions
+                    const subTxs = State.data.legacyTxs[id] || [];
                     const mainTxs = State.data.transactions.filter(t => t.project === item.name);
                     const linkedMainIds = new Set(subTxs.map(t => t.mainTransactionId).filter(Boolean));
+                    // Filter main transactions to avoid duplicates if they are already linked
                     const uniqueMainTxs = mainTxs.filter(t => !linkedMainIds.has(t.id));
-                    
                     relatedTxs = [...subTxs, ...uniqueMainTxs];
-
+                    
                     const btn = document.createElement('button');
                     btn.className = "w-full bg-blue-50 text-blue-600 py-2.5 rounded-xl font-bold text-xs mt-3 shadow-sm";
                     btn.innerText = "更新目前市值";
@@ -390,32 +421,21 @@
                 } else {
                     relatedTxs = State.data.transactions.filter(t => t.project === item.name);
                 }
-
                 relatedTxs.sort((a,b) => (b.timestamp?.toDate() || 0) - (a.timestamp?.toDate() || 0));
 
                 const listEl = content.querySelector('.details-list');
                 listEl.innerHTML = relatedTxs.length ? relatedTxs.map(t => `
                     <li class="flex justify-between items-center py-3 px-3 rounded-xl mb-2 ${t.type==='expense' ? 'bg-red-50' : 'bg-green-50'}">
-                        <div>
-                            <p class="text-[10px] text-gray-500 mb-0.5">${t.timestamp?.toDate().toLocaleDateString() || '無日期'}</p>
-                            <p class="text-xs font-bold text-gray-700">${t.remarks || t.category}</p>
-                        </div>
-                        <div class="flex items-center gap-3">
-                            <span class="text-sm font-bold ${t.type==='expense'?'text-red-500':'text-green-600'}">${t.type==='expense'?'-':'+'} NT$ ${t.amount.toLocaleString()}</span>
-                            <div class="flex gap-1">
-                                ${!t.isSub ? `<button onclick="openModal('transaction-modal', '${t.id}')" class="text-gray-400 hover:text-blue-500 p-1"><i class="fa-solid fa-pen text-xs"></i></button>` : ''}
-                                ${!t.isSub ? `<button onclick="App.deleteItem('transactions', '${t.id}')" class="text-gray-400 hover:text-red-500 p-1"><i class="fa-solid fa-xmark text-xs"></i></button>` : ''}
-                            </div>
-                        </div>
+                        <div><p class="text-[10px] text-gray-500 mb-0.5">${t.timestamp?.toDate().toLocaleDateString() || '無日期'}</p><p class="text-xs font-bold text-gray-700">${t.remarks || t.category}</p></div>
+                        <div class="flex items-center gap-3"><span class="text-sm font-bold ${t.type==='expense'?'text-red-500':'text-green-600'}">${t.type==='expense'?'-':'+'} NT$ ${t.amount.toLocaleString()}</span>
+                        <div class="flex gap-1">${!t.isSub ? `<button onclick="openModal('transaction-modal', '${t.id}')" class="text-gray-400 hover:text-blue-500 p-1"><i class="fa-solid fa-pen text-xs"></i></button><button onclick="App.deleteItem('transactions', '${t.id}')" class="text-gray-400 hover:text-red-500 p-1"><i class="fa-solid fa-xmark text-xs"></i></button>` : ''}</div></div>
                     </li>`).join('') : '<li class="text-center text-xs text-gray-400 py-4">無相關紀錄</li>';
             },
 
             // Renderers
             renderTransactions: () => {
-                const filterVal = document.getElementById('date-filter').value; // YYYY-MM
-                const [yr, mn] = filterVal.split('-').map(Number);
-                const start = new Date(yr, mn - 1, 1);
-                const end = new Date(yr, mn, 0, 23, 59, 59);
+                const filterVal = document.getElementById('date-filter').value; const [yr, mn] = filterVal.split('-').map(Number);
+                const start = new Date(yr, mn - 1, 1), end = new Date(yr, mn, 0, 23, 59, 59);
                 let txs = State.data.transactions.filter(t => { const d = t.timestamp.toDate(); return d >= start && d <= end; }).sort((a,b) => b.timestamp - a.timestamp);
                 const grouped = {};
                 txs.forEach(t => {
@@ -426,17 +446,11 @@
                 });
                 document.getElementById('tx-list').innerHTML = Object.keys(grouped).length ? Object.entries(grouped).map(([date, data]) => `
                     <div class="mb-4"><div class="flex justify-between items-center text-xs font-bold text-gray-400 mb-2 px-1 sticky top-0"><span>${date}</span><div class="flex gap-2"><span class="text-green-600/70">+${data.income}</span> <span class="text-red-500/70">-${data.expense}</span></div></div>
-                    <div class="bg-white rounded-2xl shadow-sm card-shadow overflow-hidden">${data.list.map(t => `
-                        <div class="flex justify-between items-center py-3 px-3 border-b border-gray-50 last:border-0 hover:bg-gray-50 cursor-pointer active:bg-gray-100 transition" onclick="openModal('transaction-modal', '${t.id}')">
-                            <div class="flex items-center gap-3"><div class="bg-gray-100 w-9 h-9 rounded-full flex items-center justify-center text-gray-500 text-xs font-bold shrink-0">${t.category[0]}</div><div class="min-w-0"><p class="font-bold text-gray-800 text-xs truncate">${t.category}</p><p class="text-[10px] text-gray-400 truncate">${t.remarks || ''}</p></div></div>
-                            <div class="text-right shrink-0"><p class="font-bold text-sm ${t.type==='expense'?'text-red-500':'text-green-600'}">${t.type==='expense'?'-':'+'} ${t.amount}</p></div>
-                        </div>`).join('')}</div></div>`).join('') : `<div class="text-center py-10"><div class="text-gray-300 text-4xl mb-2"><i class="fa-solid fa-receipt"></i></div><p class="text-gray-400 text-xs">本月尚無紀錄</p></div>`;
+                    <div class="bg-white rounded-2xl shadow-sm card-shadow overflow-hidden">${data.list.map(t => `<div class="flex justify-between items-center py-3 px-3 border-b border-gray-50 last:border-0 hover:bg-gray-50 cursor-pointer active:bg-gray-100 transition" onclick="openModal('transaction-modal', '${t.id}')"><div class="flex items-center gap-3"><div class="bg-gray-100 w-9 h-9 rounded-full flex items-center justify-center text-gray-500 text-xs font-bold shrink-0">${t.category[0]}</div><div class="min-w-0"><p class="font-bold text-gray-800 text-xs truncate">${t.category}</p><p class="text-[10px] text-gray-400 truncate">${t.remarks || ''}</p></div></div><div class="text-right shrink-0"><p class="font-bold text-sm ${t.type==='expense'?'text-red-500':'text-green-600'}">${t.type==='expense'?'-':'+'} ${t.amount}</p></div></div>`).join('')}</div></div>`).join('') : `<div class="text-center py-10"><div class="text-gray-300 text-4xl mb-2"><i class="fa-solid fa-receipt"></i></div><p class="text-gray-400 text-xs">本月尚無紀錄</p></div>`;
             },
             updateDashboard: () => {
-                const filterVal = document.getElementById('date-filter').value;
-                const [yr, mn] = filterVal.split('-').map(Number);
-                const startMonth = new Date(yr, mn - 1, 1);
-                const endMonth = new Date(yr, mn, 0, 23, 59, 59);
+                const filterVal = document.getElementById('date-filter').value; const [yr, mn] = filterVal.split('-').map(Number);
+                const startMonth = new Date(yr, mn - 1, 1), endMonth = new Date(yr, mn, 0, 23, 59, 59);
                 const txsMonth = State.data.transactions.filter(t => { const d = t.timestamp.toDate(); return d >= startMonth && d <= endMonth; });
                 const incM = txsMonth.filter(t=>t.type==='income').reduce((s,t)=>s+t.amount,0), expM = txsMonth.filter(t=>t.type==='expense').reduce((s,t)=>s+t.amount,0);
                 document.getElementById('monthly-balance').innerText = `$${(incM-expM).toLocaleString()}`; document.getElementById('monthly-income').innerText = `$${incM.toLocaleString()}`; document.getElementById('monthly-expense').innerText = `$${expM.toLocaleString()}`;
@@ -450,25 +464,33 @@
             },
             renderInvestments: () => {
                 const invs = State.data.investments.sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
+                const activeInvs = invs.filter(i => State.view.invTab === 'active' ? !i.isArchived : i.isArchived);
                 let tv=0, ti=0, tr=0;
-                document.getElementById('inv-list').innerHTML = invs.map(i=>{
-                    const relatedTxs = State.data.transactions.filter(t => t.project === i.name);
-                    const inc = relatedTxs.filter(t=>t.type==='income').reduce((s,t)=>s+t.amount,0);
-                    const exp = relatedTxs.filter(t=>t.type==='expense').reduce((s,t)=>s+t.amount,0);
+                
+                document.getElementById('inv-list').innerHTML = activeInvs.length ? activeInvs.map(i=>{
+                    // Merge Logic for List Card Calculation
+                    const subTxs = State.data.legacyTxs[i.id] || [];
+                    const mainTxs = State.data.transactions.filter(t => t.project === i.name);
+                    const linkedMainIds = new Set(subTxs.map(t => t.mainTransactionId).filter(Boolean));
+                    const uniqueMainTxs = mainTxs.filter(t => !linkedMainIds.has(t.id));
+                    const allRelatedTxs = [...subTxs, ...uniqueMainTxs];
+
+                    const inc = allRelatedTxs.filter(t=>t.type==='income').reduce((s,t)=>s+t.amount,0);
+                    const exp = allRelatedTxs.filter(t=>t.type==='expense').reduce((s,t)=>s+t.amount,0);
                     const profit = inc - exp;
-                    tv += i.marketValue||0;
-                    ti += i.initialValue||0;
-                    tr += profit;
                     
+                    if(State.view.invTab === 'active') {
+                        tv += i.marketValue||0; ti += i.initialValue||0; tr += profit;
+                    }
                     return `<div class="bg-white p-3 rounded-xl card-shadow flex justify-between items-center cursor-pointer" onclick="App.showDetails('investment', '${i.id}')">
                         <div class="flex-1 min-w-0 mr-2"><h4 class="font-bold text-gray-800 text-sm whitespace-normal">${i.name}</h4><p class="text-[10px] font-normal text-gray-400">成本:${i.initialValue}</p></div>
                         <div class="flex items-center gap-3 shrink-0"><div class="text-right"><p class="font-bold text-gray-800 text-sm">$${(i.marketValue||0).toLocaleString()}</p><p class="text-[10px] font-bold ${profit>=0?'text-green-500':'text-red-500'}">${profit>0?'+':''}${profit.toLocaleString()}</p></div><button onclick="event.stopPropagation();openModal('investment-modal','${i.id}')" class="text-gray-300 hover:text-blue-500"><i class="fa-solid fa-pen text-xs"></i></button></div></div>`
-                }).join('');
+                }).join('') : '<div class="text-center text-gray-400 py-4 text-xs">無帳戶</div>';
+                
                 const roi = ti>0 ? (tr/ti)*100 : 0;
                 document.getElementById('inv-total-val').innerText = `$${tv.toLocaleString()}`; 
                 document.getElementById('inv-total-ret').innerText = `${tr>0?'+':''}${tr.toLocaleString()}`; 
                 document.getElementById('inv-roi').innerText = `${roi.toFixed(1)}%`;
-                
                 document.getElementById('inv-budget-list').innerHTML = State.data.investmentBudgets.filter(b=>!b.isRealized).map(b=>`<li class="flex justify-between items-center bg-white p-2 rounded-xl border border-gray-100 card-shadow mb-1"><div class="text-xs"><span class="font-bold text-gray-700">${(invs.find(i=>i.id===b.targetId)?.name)||'未知'}</span>: ${b.description} <span class="text-secondary">$${b.amount}</span><span class="text-[10px] text-gray-400 ml-2">${b.expectedDate?.toDate().toLocaleDateString()||''}</span></div><div class="flex gap-2"><button onclick="App.realizeBudget('investment','${b.id}')" class="text-secondary hover:text-green-700 bg-green-50 w-6 h-6 rounded-full flex items-center justify-center"><i class="fa-solid fa-check"></i></button><button onclick="App.deleteItem('investmentBudgets','${b.id}')" class="text-gray-300 hover:text-red-500"><i class="fa-solid fa-trash"></i></button></div></li>`).join('')||'<li class="text-xs text-gray-400 text-center py-2">無預算項目</li>';
             },
             renderDebts: () => {
@@ -482,49 +504,41 @@
                 document.getElementById('debt-budget-list').innerHTML = State.data.debtBudgets.filter(b=>!b.isRealized).map(b=>`<li class="flex justify-between items-center bg-white p-2 rounded-xl border border-gray-100 card-shadow mb-1"><div class="text-xs"><span class="font-bold text-gray-700">${(State.data.debts.find(d=>d.id===b.targetId)?.name)||'未知'}</span>: ${b.description} <span class="text-danger">$${b.amount}</span><span class="text-[10px] text-gray-400 ml-2">${b.expectedDate?.toDate().toLocaleDateString()||''}</span></div><div class="flex gap-2"><button onclick="App.realizeBudget('debt','${b.id}')" class="text-secondary hover:text-green-700 bg-green-50 w-6 h-6 rounded-full flex items-center justify-center"><i class="fa-solid fa-check"></i></button><button onclick="App.deleteItem('debtBudgets','${b.id}')" class="text-gray-300 hover:text-red-500"><i class="fa-solid fa-trash"></i></button></div></li>`).join('')||'<li class="text-xs text-gray-400 text-center py-2">無計畫項目</li>';
             },
             renderReports: () => {
-                // Populate Project Select
                 const projSel = document.getElementById('report-project');
                 const currentProj = projSel.value;
                 const projects = [...new Set(State.data.transactions.map(t => t.project).filter(p => p))];
                 projSel.innerHTML = '<option value="all">全部專案</option>' + projects.map(p => `<option value="${p}">${p}</option>`).join('');
                 if(projects.includes(currentProj)) projSel.value = currentProj;
-
-                // Get Filter Values
                 const filterVal = document.getElementById('report-month').value; 
                 const projectVal = projSel.value;
                 const [yr, mn] = filterVal.split('-').map(Number);
                 const start = new Date(yr, mn - 1, 1), end = new Date(yr, mn, 0, 23, 59, 59);
-                
                 if(State.chart) State.chart.destroy();
-                const txs = State.data.transactions.filter(t => { 
-                    const d = t.timestamp.toDate(); 
-                    const dateMatch = d >= start && d <= end;
-                    const projMatch = projectVal === 'all' || t.project === projectVal;
-                    return dateMatch && projMatch;
-                }).sort((a,b)=>b.timestamp-a.timestamp);
-
+                const txs = State.data.transactions.filter(t => { const d = t.timestamp.toDate(); return d >= start && d <= end && (projectVal === 'all' || t.project === projectVal); }).sort((a,b)=>b.timestamp-a.timestamp);
                 const map={}, total=txs.filter(t=>t.type==='expense').reduce((s,t)=>{map[t.category]=(map[t.category]||0)+t.amount;return s+t.amount},0);
                 State.chart = new Chart(document.getElementById('expense-chart').getContext('2d'), { type: 'doughnut', data: { labels: Object.keys(map), datasets: [{ data: Object.values(map), backgroundColor: ['#4F46E5','#10B981','#F59E0B','#EF4444','#EC4899','#8B5CF6'], borderWidth:0 }] }, options: {responsive:true, maintainAspectRatio:false, plugins:{legend:{position:'right',labels:{font:{size:10},boxWidth:10}}}} });
                 document.getElementById('report-stats').innerHTML = total > 0 ? Object.entries(map).sort((a,b)=>b[1]-a[1]).map(([k,v])=>`<li class="flex justify-between border-b border-gray-50 pb-1"><span>${k}</span><span class="font-bold">$${v.toLocaleString()} <span class="text-[10px] text-gray-400 font-normal">(${((v/total)*100).toFixed(1)}%)</span></span></li>`).join('') : '<li class="text-center text-gray-400 py-4">無支出數據</li>';
                 document.getElementById('report-details').innerHTML = txs.length ? txs.map(t => `<li class="flex justify-between py-1 border-b border-gray-50 last:border-0"><span class="text-xs text-gray-500">${t.timestamp.toDate().toLocaleDateString()} ${t.category}</span><span class="text-xs font-bold ${t.type==='expense'?'text-red-500':'text-green-600'}">${t.type==='expense'?'-':'+'} ${t.amount}</span></li>`).join('') : '<li class="text-center text-xs text-gray-400 py-2">無交易紀錄</li>';
+            },
+            // Modal Helpers
+            openModal: (t, id) => {
+                const c=document.getElementById('modal-content'); c.innerHTML=document.getElementById(t==='transaction-modal'?'tpl-transaction-form':t==='investment-modal'?'tpl-investment-form':t==='debt-modal'?'tpl-debt-form':'tpl-event-form').innerHTML;
+                if(t==='transaction-modal') renderDatalist(c.querySelector('#cat-list'), State.categories.expense);
+                if(id) {
+                    const item = State.data[t==='transaction-modal'?'transactions':t==='investment-modal'?'investments':'debts'].find(i=>i.id===id);
+                    if(item) {
+                        c.querySelector('[name=id]').value = id;
+                        if(t==='transaction-modal') { c.querySelector('[name=amount]').value=item.amount; c.querySelector('[name=date]').value=toDateStr(item.timestamp); c.querySelector('[name=category]').value=item.category; c.querySelector('[name=remarks]').value=item.remarks; toggleTxType(item.type); }
+                        else if(t==='investment-modal') { c.querySelector('[name=name]').value=item.name; c.querySelector('[name=initial]').value=item.initialValue; if(c.querySelector('[name=isArchived]')) c.querySelector('[name=isArchived]').checked = item.isArchived || false; }
+                        else if(t==='debt-modal') { c.querySelector('[name=name]').value=item.name; c.querySelector('[name=total]').value=item.totalAmount; }
+                    }
+                } else if(t==='transaction-modal') c.querySelector('[name=date]').value = new Date().toISOString().split('T')[0];
+                document.getElementById('modal-overlay').classList.remove('hidden'); document.getElementById('modal-overlay').classList.add('flex');
             }
         };
 
         window.switchTab = (v,b) => { document.querySelectorAll('.view-section').forEach(e=>e.classList.add('hidden')); document.getElementById(`view-${v}`).classList.remove('hidden'); document.querySelectorAll('.nav-btn').forEach(e=>e.classList.remove('active')); if(b) b.classList.add('active'); const t={accounting:'總覽',investment:'投資組合',debt:'負債管理',reports:'財務報表',events:'大事記'}; document.getElementById('page-title').innerText=t[v]; if(v==='reports') App.renderReports(); };
-        window.openModal = (t, id) => {
-            const c=document.getElementById('modal-content'); c.innerHTML=document.getElementById(t==='transaction-modal'?'tpl-transaction-form':t==='investment-modal'?'tpl-investment-form':t==='debt-modal'?'tpl-debt-form':'tpl-event-form').innerHTML;
-            if(t==='transaction-modal') renderDatalist(c.querySelector('#cat-list'), State.categories.expense);
-            if(id) {
-                const item = State.data[t==='transaction-modal'?'transactions':t==='investment-modal'?'investments':'debts'].find(i=>i.id===id);
-                if(item) {
-                    c.querySelector('[name=id]').value = id;
-                    if(t==='transaction-modal') { c.querySelector('[name=amount]').value=item.amount; c.querySelector('[name=date]').value=toDateStr(item.timestamp); c.querySelector('[name=category]').value=item.category; c.querySelector('[name=remarks]').value=item.remarks; toggleTxType(item.type); }
-                    else if(t==='investment-modal') { c.querySelector('[name=name]').value=item.name; c.querySelector('[name=initial]').value=item.initialValue; }
-                    else if(t==='debt-modal') { c.querySelector('[name=name]').value=item.name; c.querySelector('[name=total]').value=item.totalAmount; }
-                }
-            } else if(t==='transaction-modal') c.querySelector('[name=date]').value = new Date().toISOString().split('T')[0];
-            document.getElementById('modal-overlay').classList.remove('hidden'); document.getElementById('modal-overlay').classList.add('flex');
-        };
+        window.openModal = (t, id) => App.openModal(t, id);
         window.openBudgetModal = (ctx) => {
             const c=document.getElementById('modal-content'); c.innerHTML=document.getElementById('tpl-budget-form').innerHTML;
             c.querySelector('#budget-modal-title').innerText = ctx==='investment'?'新增投資預算':'新增還款計畫';
