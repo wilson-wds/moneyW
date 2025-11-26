@@ -20,38 +20,40 @@
         }
     </script>
     <style>
-        body { -webkit-tap-highlight-color: transparent; background-color: #F3F4F6; }
+        body { -webkit-tap-highlight-color: transparent; background-color: #e5e7eb; /* Gray-200 for desktop background */ }
+        .app-frame { max-width: 28rem; /* max-w-md */ margin: 0 auto; background-color: #F9FAFB; height: 100vh; display: flex; flex-direction: column; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25); position: relative; overflow: hidden; }
         .glass { background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(10px); }
         .hide-scrollbar::-webkit-scrollbar { display: none; }
         .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
         .fab { box-shadow: 0 4px 15px rgba(79, 70, 229, 0.4); }
-        .card-shadow { box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
+        .card-shadow { box-shadow: 0 2px 8px rgba(0,0,0,0.04); border: 1px solid rgba(0,0,0,0.02); }
         .animate-fade { animation: fadeIn 0.3s ease-in-out; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
         .nav-btn.active { color: #4F46E5; }
         .nav-btn.active i { transform: translateY(-2px); }
         input:focus, select:focus, textarea:focus { ring: 2px; ring-color: #4F46E5; border-color: transparent; outline: none; }
+        .date-header { position: sticky; top: 0; background: rgba(249, 250, 251, 0.95); backdrop-filter: blur(4px); z-index: 5; }
     </style>
 </head>
-<body class="text-gray-700 h-screen flex flex-col overflow-hidden text-sm">
+<body class="text-gray-700 text-sm">
 
-    <!-- Auth View -->
-    <div id="login-view" class="fixed inset-0 z-50 bg-white flex flex-col justify-center items-center p-6 animate-fade">
-        <div class="mb-8 text-center">
+    <!-- Auth View (Full Screen Overlay) -->
+    <div id="login-view" class="fixed inset-0 z-50 bg-white flex flex-col justify-center items-center p-6 animate-fade max-w-md mx-auto h-full shadow-2xl">
+        <div class="mb-10 text-center">
             <div class="w-16 h-16 bg-primary/10 rounded-2xl flex items-center justify-center mx-auto mb-4 text-primary text-3xl"><i class="fa-solid fa-wallet"></i></div>
             <h1 class="text-2xl font-bold text-gray-800">雲端記帳</h1>
-            <p class="text-gray-500 mt-2 text-xs">簡單、直覺、好用的財務管家</p>
+            <p class="text-gray-500 mt-2 text-xs">個人財務管理助手</p>
         </div>
-        <button onclick="App.loginGoogle()" class="w-full max-w-xs bg-white border border-gray-300 text-gray-700 py-2.5 rounded-xl font-medium shadow-sm hover:bg-gray-50 flex items-center justify-center gap-2 transition">
+        <button onclick="App.loginGoogle()" class="w-full bg-white border border-gray-300 text-gray-700 py-3 rounded-xl font-medium shadow-sm hover:bg-gray-50 flex items-center justify-center gap-2 transition">
             <i class="fa-brands fa-google text-red-500"></i> Google 登入
         </button>
-        <button onclick="App.loginAnon()" class="mt-3 w-full max-w-xs bg-gray-800 text-white py-2.5 rounded-xl font-medium shadow-lg hover:bg-gray-900 transition">訪客體驗</button>
+        <button onclick="App.loginAnon()" class="mt-3 w-full bg-gray-800 text-white py-3 rounded-xl font-medium shadow-lg hover:bg-gray-900 transition">訪客體驗</button>
     </div>
 
-    <!-- Main App -->
-    <div id="app-container" class="hidden flex-col h-full">
+    <!-- Main App Frame (Restricted Width for Desktop) -->
+    <div id="app-container" class="hidden app-frame">
         <!-- Header -->
-        <header class="bg-white px-4 py-3 flex justify-between items-center shadow-sm z-10">
+        <header class="bg-white px-4 py-3 flex justify-between items-center shadow-sm z-20 shrink-0">
             <h1 class="font-bold text-gray-800 flex items-center gap-2"><i class="fa-solid fa-chart-pie text-primary"></i> <span id="page-title">總覽</span></h1>
             <div class="flex items-center gap-3">
                 <div id="user-info" class="text-xs font-medium text-gray-500"></div>
@@ -60,167 +62,195 @@
         </header>
 
         <!-- Content -->
-        <main id="main-content" class="flex-1 overflow-y-auto p-3 pb-24 hide-scrollbar relative bg-gray-50">
+        <main id="main-content" class="flex-1 overflow-y-auto hide-scrollbar relative bg-gray-50 pb-20">
             
-            <!-- Dashboard -->
-            <div id="view-accounting" class="view-section space-y-3 animate-fade">
-                <div class="grid grid-cols-2 gap-2">
-                    <div class="bg-primary/5 p-3 rounded-xl border border-primary/10">
-                        <p class="text-xs text-gray-500 mb-1">本月結餘</p>
-                        <p id="monthly-balance" class="text-lg font-bold text-primary">--</p>
+            <!-- Dashboard (Accounting) -->
+            <div id="view-accounting" class="view-section animate-fade">
+                <!-- Date Filter & Monthly Summary -->
+                <div class="bg-white p-4 rounded-b-2xl card-shadow mb-3 sticky top-0 z-10">
+                    <div class="flex justify-between items-center mb-3">
+                        <span class="text-xs font-bold text-gray-400">本月概況</span>
+                        <input type="month" id="date-filter" class="bg-gray-100 border-none rounded-lg px-2 py-1 text-xs font-bold text-gray-600 focus:ring-0 cursor-pointer" onchange="App.handleDateFilterChange()">
                     </div>
-                    <div class="bg-red-50 p-3 rounded-xl border border-red-100">
-                        <p class="text-xs text-gray-500 mb-1">本月支出</p>
-                        <p id="monthly-expense" class="text-lg font-bold text-danger">--</p>
+                    <div class="grid grid-cols-3 gap-2 text-center">
+                        <div class="bg-green-50 p-2 rounded-lg">
+                            <p class="text-[10px] text-green-600 mb-0.5">收入</p>
+                            <p id="monthly-income" class="text-sm font-bold text-green-700">0</p>
+                        </div>
+                        <div class="bg-red-50 p-2 rounded-lg">
+                            <p class="text-[10px] text-red-600 mb-0.5">支出</p>
+                            <p id="monthly-expense" class="text-sm font-bold text-red-700">0</p>
+                        </div>
+                        <div class="bg-blue-50 p-2 rounded-lg">
+                            <p class="text-[10px] text-blue-600 mb-0.5">結餘</p>
+                            <p id="monthly-balance" class="text-sm font-bold text-blue-700">0</p>
+                        </div>
+                    </div>
+                    <!-- Today Summary Small Block -->
+                    <div class="mt-3 pt-3 border-t border-gray-100 flex justify-between items-center">
+                        <span class="text-xs font-bold text-gray-800">本日小計</span>
+                        <div class="flex gap-3 text-xs">
+                            <span class="text-green-600 font-medium">收: <span id="today-income">0</span></span>
+                            <span class="text-red-500 font-medium">支: <span id="today-expense">0</span></span>
+                        </div>
                     </div>
                 </div>
 
-                <div class="flex gap-2 overflow-x-auto hide-scrollbar py-1">
-                    <button onclick="openModal('transaction-modal')" class="bg-primary text-white px-3 py-1.5 rounded-full text-xs shadow-md whitespace-nowrap"><i class="fa-solid fa-plus mr-1"></i> 記一筆</button>
-                    <input type="date" id="date-filter" class="bg-white border-none rounded-full px-3 py-1.5 text-xs shadow-sm" onchange="App.renderTransactions()">
-                </div>
-
-                <div class="bg-white rounded-xl p-3 card-shadow">
-                    <h3 class="font-bold text-gray-800 mb-2 text-xs">近期紀錄</h3>
-                    <ul id="tx-list" class="space-y-2"></ul>
+                <!-- Transaction List (Grouped) -->
+                <div class="px-3 pb-4">
+                    <ul id="tx-list" class="space-y-3">
+                        <!-- Rendered via JS -->
+                    </ul>
                 </div>
             </div>
 
             <!-- Investment -->
-            <div id="view-investment" class="view-section hidden space-y-3 animate-fade">
-                <div class="bg-gradient-to-r from-blue-600 to-indigo-600 rounded-xl p-4 text-white shadow-lg">
-                    <p class="text-blue-100 text-xs">總資產現值</p>
-                    <h2 id="inv-total-val" class="text-2xl font-bold mt-1">--</h2>
-                    <div class="flex gap-4 mt-2 text-xs">
-                        <div><span class="opacity-70">總損益</span> <span id="inv-total-ret" class="font-bold">--</span></div>
-                        <div><span class="opacity-70">ROI</span> <span id="inv-roi" class="font-bold">--</span></div>
+            <div id="view-investment" class="view-section hidden p-3 space-y-3 animate-fade">
+                <div class="bg-gradient-to-br from-indigo-600 to-blue-700 rounded-2xl p-4 text-white shadow-lg card-shadow">
+                    <p class="text-indigo-100 text-xs mb-1">總資產現值</p>
+                    <h2 id="inv-total-val" class="text-3xl font-bold tracking-tight">--</h2>
+                    <div class="flex gap-4 mt-3 text-xs border-t border-white/20 pt-3">
+                        <div><span class="opacity-70 block mb-0.5">總損益</span> <span id="inv-total-ret" class="font-bold text-base">--</span></div>
+                        <div><span class="opacity-70 block mb-0.5">報酬率</span> <span id="inv-roi" class="font-bold text-base">--</span></div>
                     </div>
                 </div>
-                <div class="flex justify-between items-center"><span class="text-xs font-bold text-gray-500">投資帳戶</span><button onclick="openModal('investment-modal')" class="text-primary text-xs font-bold">+ 新增</button></div>
+                <div class="flex justify-between items-center px-1"><span class="text-xs font-bold text-gray-500">投資帳戶</span><button onclick="openModal('investment-modal')" class="text-primary text-xs font-bold bg-primary/10 px-2 py-1 rounded hover:bg-primary/20 transition">+ 新增</button></div>
                 <div id="inv-list" class="grid gap-2"></div>
 
                 <div class="mt-4 pt-4 border-t border-gray-200">
-                    <div class="flex justify-between items-center mb-2"><span class="text-xs font-bold text-gray-500">收入預算/目標</span><button onclick="openBudgetModal('investment')" class="text-secondary text-xs font-bold">+ 預算</button></div>
+                    <div class="flex justify-between items-center px-1 mb-2"><span class="text-xs font-bold text-gray-500">收入預算/目標</span><button onclick="openBudgetModal('investment')" class="text-secondary text-xs font-bold bg-secondary/10 px-2 py-1 rounded hover:bg-secondary/20 transition">+ 預算</button></div>
                     <ul id="inv-budget-list" class="space-y-2"></ul>
                 </div>
             </div>
 
             <!-- Debt -->
-            <div id="view-debt" class="view-section hidden space-y-3 animate-fade">
-                <div class="bg-white p-4 rounded-xl card-shadow border-l-4 border-warning">
-                    <p class="text-xs text-gray-500">剩餘總負債</p>
-                    <p id="debt-total-remaining" class="text-2xl font-bold text-gray-800">--</p>
-                    <div class="w-full bg-gray-100 rounded-full h-1.5 mt-2"><div id="debt-progress-bar" class="bg-warning h-1.5 rounded-full" style="width: 0%"></div></div>
+            <div id="view-debt" class="view-section hidden p-3 space-y-3 animate-fade">
+                <div class="bg-white p-4 rounded-2xl card-shadow border-t-4 border-warning">
+                    <div class="flex justify-between items-end mb-2">
+                        <div>
+                            <p class="text-xs text-gray-500">剩餘總負債</p>
+                            <p id="debt-total-remaining" class="text-2xl font-bold text-gray-800">--</p>
+                        </div>
+                        <div class="text-right">
+                             <p class="text-[10px] text-gray-400">總進度</p>
+                             <p id="debt-progress-text" class="text-sm font-bold text-warning">0%</p>
+                        </div>
+                    </div>
+                    <div class="w-full bg-gray-100 rounded-full h-2"><div id="debt-progress-bar" class="bg-warning h-2 rounded-full transition-all duration-500" style="width: 0%"></div></div>
                 </div>
-                <div class="flex justify-between items-center"><span class="text-xs font-bold text-gray-500">負債項目</span><button onclick="openModal('debt-modal')" class="text-primary text-xs font-bold">+ 新增</button></div>
+                <div class="flex justify-between items-center px-1"><span class="text-xs font-bold text-gray-500">負債項目</span><button onclick="openModal('debt-modal')" class="text-primary text-xs font-bold bg-primary/10 px-2 py-1 rounded hover:bg-primary/20 transition">+ 新增</button></div>
                 <div id="debt-list" class="space-y-2"></div>
 
                 <div class="mt-4 pt-4 border-t border-gray-200">
-                    <div class="flex justify-between items-center mb-2"><span class="text-xs font-bold text-gray-500">還款計畫</span><button onclick="openBudgetModal('debt')" class="text-danger text-xs font-bold">+ 計畫</button></div>
+                    <div class="flex justify-between items-center px-1 mb-2"><span class="text-xs font-bold text-gray-500">還款計畫</span><button onclick="openBudgetModal('debt')" class="text-danger text-xs font-bold bg-danger/10 px-2 py-1 rounded hover:bg-danger/20 transition">+ 計畫</button></div>
                     <ul id="debt-budget-list" class="space-y-2"></ul>
                 </div>
             </div>
 
             <!-- Reports -->
-            <div id="view-reports" class="view-section hidden space-y-3 animate-fade">
-                <div class="bg-white p-3 rounded-xl card-shadow">
-                    <h3 class="font-bold mb-3 text-center text-xs">支出分佈</h3>
-                    <div class="h-48 relative"><canvas id="expense-chart"></canvas></div>
+            <div id="view-reports" class="view-section hidden p-3 space-y-3 animate-fade">
+                <div class="bg-white p-4 rounded-2xl card-shadow">
+                    <h3 class="font-bold mb-4 text-center text-xs text-gray-500 uppercase tracking-wider">本月支出分佈</h3>
+                    <div class="h-56 relative"><canvas id="expense-chart"></canvas></div>
                 </div>
-                <div class="bg-white p-3 rounded-xl card-shadow">
-                    <h3 class="font-bold mb-2 text-xs border-b pb-2">詳細數據</h3>
+                <div class="bg-white p-4 rounded-2xl card-shadow">
+                    <h3 class="font-bold mb-3 text-xs border-b border-gray-100 pb-2 text-gray-500">分類統計明細</h3>
                     <ul id="report-stats" class="space-y-2 text-xs"></ul>
                 </div>
             </div>
 
             <!-- Events -->
-            <div id="view-events" class="view-section hidden space-y-3 animate-fade">
-                 <button onclick="openModal('event-modal')" class="w-full py-2 border-2 border-dashed border-gray-300 rounded-xl text-gray-400 font-bold hover:bg-gray-50 mb-2 text-xs">+ 紀錄大事記</button>
+            <div id="view-events" class="view-section hidden p-3 space-y-3 animate-fade">
+                 <button onclick="openModal('event-modal')" class="w-full py-3 border-2 border-dashed border-gray-300 rounded-2xl text-gray-400 font-bold hover:bg-gray-50 hover:border-gray-400 transition mb-2 text-xs">+ 紀錄大事記</button>
                  <div id="event-list" class="space-y-3 pl-2"></div>
             </div>
         </main>
 
         <!-- Nav -->
-        <nav class="bg-white border-t border-gray-100 px-4 py-2 flex justify-between items-center text-[10px] font-medium text-gray-400 z-20">
-            <button onclick="switchTab('accounting', this)" class="nav-btn active flex flex-col items-center gap-1 transition"><i class="fa-solid fa-house text-base"></i> 記帳</button>
-            <button onclick="switchTab('investment', this)" class="nav-btn flex flex-col items-center gap-1 transition"><i class="fa-solid fa-arrow-trend-up text-base"></i> 投資</button>
-            <div class="relative -top-5">
-                <button onclick="openModal('transaction-modal')" class="fab w-12 h-12 bg-primary rounded-full text-white text-xl flex items-center justify-center transition hover:scale-105 active:scale-95"><i class="fa-solid fa-plus"></i></button>
+        <nav class="bg-white border-t border-gray-100 px-6 py-2 flex justify-between items-center text-[10px] font-medium text-gray-400 z-30 shrink-0 pb-safe">
+            <button onclick="switchTab('accounting', this)" class="nav-btn active flex flex-col items-center gap-1 transition p-2"><i class="fa-solid fa-house text-lg"></i> 記帳</button>
+            <button onclick="switchTab('investment', this)" class="nav-btn flex flex-col items-center gap-1 transition p-2"><i class="fa-solid fa-arrow-trend-up text-lg"></i> 投資</button>
+            <div class="relative -top-6">
+                <button onclick="openModal('transaction-modal')" class="fab w-14 h-14 bg-primary rounded-full text-white text-2xl flex items-center justify-center transition hover:scale-105 active:scale-95 shadow-xl shadow-primary/30"><i class="fa-solid fa-plus"></i></button>
             </div>
-            <button onclick="switchTab('debt', this)" class="nav-btn flex flex-col items-center gap-1 transition"><i class="fa-solid fa-credit-card text-base"></i> 負債</button>
-            <button onclick="switchTab('reports', this)" class="nav-btn flex flex-col items-center gap-1 transition"><i class="fa-solid fa-chart-simple text-base"></i> 報表</button>
+            <button onclick="switchTab('debt', this)" class="nav-btn flex flex-col items-center gap-1 transition p-2"><i class="fa-solid fa-credit-card text-lg"></i> 負債</button>
+            <button onclick="switchTab('reports', this)" class="nav-btn flex flex-col items-center gap-1 transition p-2"><i class="fa-solid fa-chart-simple text-lg"></i> 報表</button>
         </nav>
     </div>
 
-    <!-- Modal -->
+    <!-- Modal System -->
     <div id="modal-overlay" class="fixed inset-0 bg-black/40 z-50 hidden flex items-end sm:items-center justify-center animate-fade backdrop-blur-sm">
-        <div id="modal-content" class="bg-white w-full sm:w-[380px] rounded-t-2xl sm:rounded-xl p-5 shadow-2xl transform transition-transform duration-300 pb-8 sm:pb-5"></div>
+        <div id="modal-content" class="bg-white w-full max-w-[28rem] rounded-t-3xl sm:rounded-2xl p-6 shadow-2xl transform transition-transform duration-300 pb-10 sm:pb-6"></div>
     </div>
 
     <!-- Templates -->
     <template id="tpl-transaction-form">
-        <div class="flex justify-between items-center mb-4"><h3 class="text-lg font-bold">記帳</h3><button onclick="closeModal()" class="text-gray-400"><i class="fa-solid fa-xmark"></i></button></div>
-        <form onsubmit="App.handleSaveTransaction(event)" class="space-y-3">
+        <div class="flex justify-between items-center mb-5"><h3 class="text-lg font-bold text-gray-800">記一筆</h3><button onclick="closeModal()" class="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center text-gray-500"><i class="fa-solid fa-xmark"></i></button></div>
+        <form onsubmit="App.handleSaveTransaction(event)" class="space-y-4">
             <input type="hidden" name="id">
-            <div class="flex bg-gray-100 p-1 rounded-lg">
-                <button type="button" class="type-btn flex-1 py-1.5 rounded-md text-xs font-bold bg-white shadow text-danger transition" onclick="toggleTxType('expense')" id="btn-expense">支出</button>
-                <button type="button" class="type-btn flex-1 py-1.5 rounded-md text-xs font-bold text-gray-500 transition" onclick="toggleTxType('income')" id="btn-income">收入</button>
+            <div class="flex bg-gray-100 p-1 rounded-xl">
+                <button type="button" class="type-btn flex-1 py-2 rounded-lg text-xs font-bold bg-white shadow text-danger transition" onclick="toggleTxType('expense')" id="btn-expense">支出</button>
+                <button type="button" class="type-btn flex-1 py-2 rounded-lg text-xs font-bold text-gray-500 transition" onclick="toggleTxType('income')" id="btn-income">收入</button>
             </div>
             <input type="hidden" name="type" id="tx-type" value="expense">
-            <input type="number" name="amount" class="w-full text-2xl font-bold text-gray-800 border-b border-gray-200 py-1 focus:border-primary bg-transparent text-center" placeholder="0" required>
-            <div class="grid grid-cols-2 gap-3">
-                <input type="date" name="date" class="bg-gray-50 rounded-lg px-3 py-2 text-xs" required>
-                <input list="cat-list" name="category" class="bg-gray-50 rounded-lg px-3 py-2 text-xs" placeholder="分類" required><datalist id="cat-list"></datalist>
+            <div>
+                <label class="text-[10px] font-bold text-gray-400 ml-1">金額</label>
+                <input type="number" name="amount" class="w-full text-3xl font-bold text-gray-800 border-b border-gray-200 py-1 focus:border-primary bg-transparent text-center focus:outline-none" placeholder="0" required inputmode="decimal">
             </div>
-            <input type="text" name="remarks" class="w-full bg-gray-50 rounded-lg px-3 py-2 text-xs" placeholder="備註...">
-            <button type="submit" class="w-full bg-primary text-white font-bold py-3 rounded-xl shadow-lg mt-1 text-sm">儲存</button>
+            <div class="grid grid-cols-2 gap-3">
+                <div><label class="text-[10px] font-bold text-gray-400 ml-1">日期</label><input type="date" name="date" class="w-full bg-gray-50 rounded-xl px-3 py-2.5 text-xs font-medium focus:bg-white focus:ring-1 focus:ring-primary transition" required></div>
+                <div><label class="text-[10px] font-bold text-gray-400 ml-1">分類</label><input list="cat-list" name="category" class="w-full bg-gray-50 rounded-xl px-3 py-2.5 text-xs font-medium focus:bg-white focus:ring-1 focus:ring-primary transition" placeholder="選擇分類" required><datalist id="cat-list"></datalist></div>
+            </div>
+            <div><label class="text-[10px] font-bold text-gray-400 ml-1">備註</label><input type="text" name="remarks" class="w-full bg-gray-50 rounded-xl px-3 py-2.5 text-xs font-medium focus:bg-white focus:ring-1 focus:ring-primary transition" placeholder="寫點什麼..."></div>
+            <button type="submit" class="w-full bg-primary text-white font-bold py-3.5 rounded-xl shadow-lg shadow-primary/30 mt-2 text-sm active:scale-95 transition">儲存</button>
         </form>
     </template>
 
     <template id="tpl-investment-form">
-        <h3 class="text-lg font-bold mb-3">投資帳戶</h3>
-        <form onsubmit="App.handleSaveInvestment(event)" class="space-y-3">
+        <h3 class="text-lg font-bold mb-4">投資帳戶</h3>
+        <form onsubmit="App.handleSaveInvestment(event)" class="space-y-4">
             <input type="hidden" name="id">
-            <input type="text" name="name" class="w-full bg-gray-50 rounded-lg p-2.5 text-sm" placeholder="名稱 (如: 台積電)" required>
-            <input type="number" name="initial" class="w-full bg-gray-50 rounded-lg p-2.5 text-sm" placeholder="初始成本 (選填)">
-            <div class="flex gap-2 text-sm"><button type="button" onclick="closeModal()" class="flex-1 bg-gray-200 py-2.5 rounded-lg font-bold">取消</button><button type="submit" class="flex-1 bg-primary text-white py-2.5 rounded-lg font-bold shadow">儲存</button></div>
+            <input type="text" name="name" class="w-full bg-gray-50 rounded-xl p-3 text-sm focus:bg-white border-transparent focus:border-primary transition" placeholder="名稱 (如: 台積電)" required>
+            <input type="number" name="initial" class="w-full bg-gray-50 rounded-xl p-3 text-sm focus:bg-white border-transparent focus:border-primary transition" placeholder="初始成本 (選填)">
+            <div class="flex gap-2 text-sm pt-2"><button type="button" onclick="closeModal()" class="flex-1 bg-gray-100 py-3 rounded-xl font-bold text-gray-500">取消</button><button type="submit" class="flex-1 bg-primary text-white py-3 rounded-xl font-bold shadow-lg shadow-primary/30">儲存</button></div>
         </form>
     </template>
 
     <template id="tpl-debt-form">
-        <h3 class="text-lg font-bold mb-3">負債項目</h3>
-        <form onsubmit="App.handleSaveDebt(event)" class="space-y-3">
+        <h3 class="text-lg font-bold mb-4">負債項目</h3>
+        <form onsubmit="App.handleSaveDebt(event)" class="space-y-4">
             <input type="hidden" name="id">
-            <input type="text" name="name" class="w-full bg-gray-50 rounded-lg p-2.5 text-sm" placeholder="名稱 (如: 學貸)" required>
-            <input type="number" name="total" class="w-full bg-gray-50 rounded-lg p-2.5 text-sm" placeholder="總金額" required>
-            <div class="flex gap-2 text-sm"><button type="button" onclick="closeModal()" class="flex-1 bg-gray-200 py-2.5 rounded-lg font-bold">取消</button><button type="submit" class="flex-1 bg-warning text-white py-2.5 rounded-lg font-bold shadow">儲存</button></div>
+            <input type="text" name="name" class="w-full bg-gray-50 rounded-xl p-3 text-sm" placeholder="名稱 (如: 學貸)" required>
+            <input type="number" name="total" class="w-full bg-gray-50 rounded-xl p-3 text-sm" placeholder="總金額" required>
+            <div class="flex gap-2 text-sm pt-2"><button type="button" onclick="closeModal()" class="flex-1 bg-gray-100 py-3 rounded-xl font-bold text-gray-500">取消</button><button type="submit" class="flex-1 bg-warning text-white py-3 rounded-xl font-bold shadow-lg shadow-warning/30">儲存</button></div>
         </form>
     </template>
 
     <template id="tpl-budget-form">
-        <h3 class="text-lg font-bold mb-3" id="budget-modal-title">新增預算</h3>
-        <form onsubmit="App.handleSaveBudget(event)" class="space-y-3">
+        <h3 class="text-lg font-bold mb-4" id="budget-modal-title">新增預算</h3>
+        <form onsubmit="App.handleSaveBudget(event)" class="space-y-4">
             <input type="hidden" name="id">
             <input type="hidden" name="context" id="budget-context">
-            <select name="targetId" id="budget-target" class="w-full bg-gray-50 rounded-lg p-2.5 text-sm" required></select>
-            <input type="number" name="amount" class="w-full bg-gray-50 rounded-lg p-2.5 text-sm" placeholder="金額" required>
-            <input type="date" name="date" class="w-full bg-gray-50 rounded-lg p-2.5 text-sm" required>
-            <input type="text" name="desc" class="w-full bg-gray-50 rounded-lg p-2.5 text-sm" placeholder="說明 (如: 預計賣出/還款)" required>
-            <button type="submit" class="w-full bg-primary text-white py-2.5 rounded-lg font-bold shadow text-sm">設定</button>
+            <select name="targetId" id="budget-target" class="w-full bg-gray-50 rounded-xl p-3 text-sm appearance-none" required></select>
+            <input type="number" name="amount" class="w-full bg-gray-50 rounded-xl p-3 text-sm" placeholder="金額" required>
+            <input type="date" name="date" class="w-full bg-gray-50 rounded-xl p-3 text-sm" required>
+            <input type="text" name="desc" class="w-full bg-gray-50 rounded-xl p-3 text-sm" placeholder="說明 (如: 預計賣出/還款)" required>
+            <button type="submit" class="w-full bg-primary text-white py-3 rounded-xl font-bold shadow-lg shadow-primary/30 text-sm">設定</button>
         </form>
     </template>
 
     <template id="tpl-repay-form">
         <h3 class="text-lg font-bold mb-1">還款</h3>
-        <p id="repay-debt-name" class="text-xs text-gray-500 mb-3"></p>
-        <form onsubmit="App.handleRepayDebt(event)" class="space-y-3">
+        <p id="repay-debt-name" class="text-xs text-gray-500 mb-4"></p>
+        <form onsubmit="App.handleRepayDebt(event)" class="space-y-4">
             <input type="hidden" name="id" id="repay-id">
-            <input type="number" name="amount" class="w-full text-2xl font-bold border-b py-1 focus:border-primary text-center" placeholder="金額" required>
-            <input type="date" name="date" class="w-full bg-gray-50 rounded-lg p-2.5 text-sm" required>
-            <button type="submit" class="w-full bg-green-500 text-white py-2.5 rounded-lg font-bold shadow">確認</button>
+            <input type="number" name="amount" class="w-full text-3xl font-bold border-b py-2 focus:border-primary text-center focus:outline-none" placeholder="金額" required inputmode="decimal">
+            <input type="date" name="date" class="w-full bg-gray-50 rounded-xl p-3 text-sm" required>
+            <button type="submit" class="w-full bg-green-500 text-white py-3 rounded-xl font-bold shadow-lg shadow-green-500/30">確認</button>
         </form>
     </template>
-    <template id="tpl-event-form"><h3 class="text-lg font-bold mb-3">大事記</h3><form onsubmit="App.handleAddEvent(event)" class="space-y-3"><input type="date" name="date" class="w-full bg-gray-50 rounded-lg p-2.5 text-sm" required><input type="text" name="title" class="w-full bg-gray-50 rounded-lg p-2.5 text-sm" placeholder="標題" required><textarea name="desc" rows="2" class="w-full bg-gray-50 rounded-lg p-2.5 text-sm" placeholder="內容..."></textarea><button type="submit" class="w-full bg-dark text-white py-2.5 rounded-lg font-bold text-sm">紀錄</button></form></template>
+    
+    <template id="tpl-event-form"><h3 class="text-lg font-bold mb-4">大事記</h3><form onsubmit="App.handleAddEvent(event)" class="space-y-4"><input type="date" name="date" class="w-full bg-gray-50 rounded-xl p-3 text-sm" required><input type="text" name="title" class="w-full bg-gray-50 rounded-xl p-3 text-sm" placeholder="標題" required><textarea name="desc" rows="3" class="w-full bg-gray-50 rounded-xl p-3 text-sm" placeholder="內容..."></textarea><button type="submit" class="w-full bg-dark text-white py-3 rounded-xl font-bold text-sm shadow-lg">紀錄</button></form></template>
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
@@ -236,10 +266,10 @@
                 State.user = u;
                 document.getElementById('login-view').classList.toggle('hidden', !!u);
                 document.getElementById('app-container').classList.toggle('hidden', !u);
-                document.getElementById('app-container').classList.toggle('flex', !!u);
                 if(u) {
                     document.getElementById('user-info').innerText = u.isAnonymous ? '訪客' : u.displayName;
-                    document.getElementById('date-filter').valueAsDate = new Date();
+                    // Default to current month YYYY-MM
+                    document.getElementById('date-filter').value = new Date().toISOString().slice(0, 7);
                     App.startListeners(u.uid);
                 } else App.stopListeners();
             }),
@@ -254,6 +284,7 @@
             },
             stopListeners: () => { State.listeners.forEach(u=>u()); State.listeners=[]; },
             loginGoogle: () => signInWithPopup(auth, new GoogleAuthProvider()), loginAnon: () => signInAnonymously(auth), logout: () => signOut(auth),
+            handleDateFilterChange: () => { App.renderTransactions(); App.updateDashboard(); App.renderReports(); },
 
             // Handlers
             handleSaveTransaction: async (e) => {
@@ -304,23 +335,79 @@
 
             // Renderers
             renderTransactions: () => {
-                const d = new Date(document.getElementById('date-filter').value), mTxs = State.data.transactions.filter(t=>t.timestamp.toDate().getMonth()===d.getMonth());
-                const txs = [...State.data.transactions].sort((a,b)=>b.timestamp-a.timestamp).slice(0,30);
-                document.getElementById('tx-list').innerHTML = txs.map(t=>`
-                    <li class="flex justify-between items-center py-2 border-b border-gray-50 last:border-0 cursor-pointer hover:bg-gray-50 p-1 rounded" onclick="openModal('transaction-modal', '${t.id}')">
-                        <div class="flex items-center gap-2">
-                            <div class="bg-gray-100 w-8 h-8 rounded-full flex items-center justify-center text-gray-500 text-xs font-bold">${t.category[0]}</div>
-                            <div><p class="font-bold text-gray-800 text-xs">${t.category}</p><p class="text-[10px] text-gray-400">${t.timestamp.toDate().toLocaleDateString()} ${t.remarks||''}</p></div>
+                const filterVal = document.getElementById('date-filter').value; // YYYY-MM
+                const [yr, mn] = filterVal.split('-').map(Number);
+                const start = new Date(yr, mn - 1, 1);
+                const end = new Date(yr, mn, 0, 23, 59, 59);
+
+                // Filter by month
+                let txs = State.data.transactions.filter(t => {
+                    const d = t.timestamp.toDate();
+                    return d >= start && d <= end;
+                }).sort((a,b) => b.timestamp - a.timestamp);
+
+                // Group by Date
+                const grouped = {};
+                txs.forEach(t => {
+                    const dateKey = t.timestamp.toDate().toLocaleDateString('zh-TW', { month: 'numeric', day: 'numeric', weekday: 'short' });
+                    if (!grouped[dateKey]) grouped[dateKey] = { list: [], income: 0, expense: 0 };
+                    grouped[dateKey].list.push(t);
+                    if (t.type === 'income') grouped[dateKey].income += t.amount;
+                    else grouped[dateKey].expense += t.amount;
+                });
+
+                const container = document.getElementById('tx-list');
+                container.innerHTML = Object.keys(grouped).length ? Object.entries(grouped).map(([date, data]) => `
+                    <div class="mb-4">
+                        <div class="flex justify-between items-center text-xs font-bold text-gray-400 mb-2 px-1 sticky top-0">
+                            <span>${date}</span>
+                            <div class="flex gap-2"><span class="text-green-600/70">+${data.income}</span> <span class="text-red-500/70">-${data.expense}</span></div>
                         </div>
-                        <div class="text-right"><p class="font-bold text-xs ${t.type==='expense'?'':'text-green-600'}">${t.type==='expense'?'-':'+'} ${t.amount}</p></div>
-                    </li>`).join('')||'<div class="text-center text-xs text-gray-400 py-2">無紀錄</div>';
+                        <div class="bg-white rounded-2xl shadow-sm card-shadow overflow-hidden">
+                            ${data.list.map(t => `
+                            <div class="flex justify-between items-center py-3 px-3 border-b border-gray-50 last:border-0 hover:bg-gray-50 cursor-pointer active:bg-gray-100 transition" onclick="openModal('transaction-modal', '${t.id}')">
+                                <div class="flex items-center gap-3">
+                                    <div class="bg-gray-100 w-9 h-9 rounded-full flex items-center justify-center text-gray-500 text-xs font-bold shrink-0">${t.category[0]}</div>
+                                    <div class="min-w-0">
+                                        <p class="font-bold text-gray-800 text-xs truncate">${t.category}</p>
+                                        <p class="text-[10px] text-gray-400 truncate">${t.remarks || ''}</p>
+                                    </div>
+                                </div>
+                                <div class="text-right shrink-0"><p class="font-bold text-sm ${t.type==='expense'?'text-gray-800':'text-green-600'}">${t.type==='expense'?'-':'+'} ${t.amount}</p></div>
+                            </div>`).join('')}
+                        </div>
+                    </div>
+                `).join('') : `<div class="text-center py-10"><div class="text-gray-300 text-4xl mb-2"><i class="fa-solid fa-receipt"></i></div><p class="text-gray-400 text-xs">本月尚無紀錄</p></div>`;
             },
             updateDashboard: () => {
-                const now = new Date(), start = new Date(now.getFullYear(), now.getMonth(), 1);
-                const txs = State.data.transactions.filter(t=>t.timestamp.toDate()>=start);
-                const inc = txs.filter(t=>t.type==='income').reduce((s,t)=>s+t.amount,0), exp = txs.filter(t=>t.type==='expense').reduce((s,t)=>s+t.amount,0);
-                document.getElementById('monthly-balance').innerText = `$${(inc-exp).toLocaleString()}`;
-                document.getElementById('monthly-expense').innerText = `$${exp.toLocaleString()}`;
+                const filterVal = document.getElementById('date-filter').value;
+                const [yr, mn] = filterVal.split('-').map(Number);
+                const startMonth = new Date(yr, mn - 1, 1);
+                const endMonth = new Date(yr, mn, 0, 23, 59, 59);
+
+                // Month Stats
+                const txsMonth = State.data.transactions.filter(t => { const d = t.timestamp.toDate(); return d >= startMonth && d <= endMonth; });
+                const incM = txsMonth.filter(t=>t.type==='income').reduce((s,t)=>s+t.amount,0), expM = txsMonth.filter(t=>t.type==='expense').reduce((s,t)=>s+t.amount,0);
+                
+                document.getElementById('monthly-balance').innerText = `$${(incM-expM).toLocaleString()}`;
+                document.getElementById('monthly-income').innerText = `$${incM.toLocaleString()}`;
+                document.getElementById('monthly-expense').innerText = `$${expM.toLocaleString()}`;
+
+                // Today Stats
+                const today = new Date();
+                const isCurrentMonth = today.getMonth() + 1 === mn && today.getFullYear() === yr;
+                
+                if (isCurrentMonth) {
+                    const startDay = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+                    const endDay = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 1);
+                    const txsDay = State.data.transactions.filter(t => { const d = t.timestamp.toDate(); return d >= startDay && d < endDay; });
+                    const incD = txsDay.filter(t=>t.type==='income').reduce((s,t)=>s+t.amount,0), expD = txsDay.filter(t=>t.type==='expense').reduce((s,t)=>s+t.amount,0);
+                    document.getElementById('today-income').innerText = incD.toLocaleString();
+                    document.getElementById('today-expense').innerText = expD.toLocaleString();
+                } else {
+                    document.getElementById('today-income').innerText = '-';
+                    document.getElementById('today-expense').innerText = '-';
+                }
             },
             renderInvestments: () => {
                 const invs = State.data.investments;
@@ -335,8 +422,8 @@
                 document.getElementById('inv-total-val').innerText = `$${tv.toLocaleString()}`; document.getElementById('inv-total-ret').innerText = `${tg>0?'+':''}${tg.toLocaleString()}`; document.getElementById('inv-roi').innerText = `${roi.toFixed(1)}%`;
                 // Budgets
                 document.getElementById('inv-budget-list').innerHTML = State.data.investmentBudgets.filter(b=>!b.isRealized).map(b=>`
-                    <li class="flex justify-between items-center bg-white p-2 rounded border border-gray-100"><div class="text-xs"><span class="font-bold text-gray-700">${(invs.find(i=>i.id===b.targetId)?.name)||'未知'}</span>: ${b.description} <span class="text-secondary">$${b.amount}</span></div><div class="flex gap-2"><button onclick="App.realizeBudget('investment','${b.id}')" class="text-secondary hover:text-green-700"><i class="fa-solid fa-check"></i></button><button onclick="App.deleteItem('investmentBudgets','${b.id}')" class="text-gray-300 hover:text-red-500"><i class="fa-solid fa-trash"></i></button></div></li>
-                `).join('')||'<li class="text-xs text-gray-400 text-center">無預算</li>';
+                    <li class="flex justify-between items-center bg-white p-2 rounded-xl border border-gray-100 card-shadow mb-1"><div class="text-xs"><span class="font-bold text-gray-700">${(invs.find(i=>i.id===b.targetId)?.name)||'未知'}</span>: ${b.description} <span class="text-secondary">$${b.amount}</span></div><div class="flex gap-2"><button onclick="App.realizeBudget('investment','${b.id}')" class="text-secondary hover:text-green-700 bg-green-50 w-6 h-6 rounded-full flex items-center justify-center"><i class="fa-solid fa-check"></i></button><button onclick="App.deleteItem('investmentBudgets','${b.id}')" class="text-gray-300 hover:text-red-500"><i class="fa-solid fa-trash"></i></button></div></li>
+                `).join('')||'<li class="text-xs text-gray-400 text-center py-2">無預算項目</li>';
             },
             renderDebts: () => {
                 let tr=0, to=0;
@@ -344,18 +431,28 @@
                     tr+=d.remainingAmount; to+=d.totalAmount; const p=Math.round(((d.totalAmount-d.remainingAmount)/d.totalAmount)*100);
                     return `<div class="bg-white p-3 rounded-xl card-shadow"><div class="flex justify-between mb-1"><span class="font-bold text-sm">${d.name}</span><button onclick="openModal('debt-modal','${d.id}')" class="text-gray-300 hover:text-blue-500"><i class="fa-solid fa-pen text-xs"></i></button></div><div class="flex justify-between text-xs text-gray-500 mb-1"><span>剩 $${d.remainingAmount}</span><span>${p}%</span></div><div class="w-full bg-gray-100 rounded-full h-1.5 mb-2"><div class="bg-primary h-1.5 rounded-full" style="width:${p}%"></div></div><div class="flex justify-end gap-2"><button onclick="openRepayModal('${d.id}','${d.name}')" class="text-xs bg-green-50 text-green-600 px-2 py-0.5 rounded font-bold">還款</button><button onclick="App.deleteItem('debts','${d.id}')" class="text-xs text-gray-300 px-1"><i class="fa-solid fa-trash"></i></button></div></div>`
                 }).join('');
-                document.getElementById('debt-total-remaining').innerText = `$${tr.toLocaleString()}`; document.getElementById('debt-progress-bar').style.width = `${to>0?((to-tr)/to)*100:0}%`;
+                document.getElementById('debt-total-remaining').innerText = `$${tr.toLocaleString()}`;
+                const tp = to>0?((to-tr)/to)*100:0;
+                document.getElementById('debt-progress-bar').style.width = `${tp}%`;
+                document.getElementById('debt-progress-text').innerText = `${tp.toFixed(0)}%`;
                 // Budgets
                 document.getElementById('debt-budget-list').innerHTML = State.data.debtBudgets.filter(b=>!b.isRealized).map(b=>`
-                    <li class="flex justify-between items-center bg-white p-2 rounded border border-gray-100"><div class="text-xs"><span class="font-bold text-gray-700">${(State.data.debts.find(d=>d.id===b.targetId)?.name)||'未知'}</span>: ${b.description} <span class="text-danger">$${b.amount}</span></div><div class="flex gap-2"><button onclick="App.realizeBudget('debt','${b.id}')" class="text-secondary hover:text-green-700"><i class="fa-solid fa-check"></i></button><button onclick="App.deleteItem('debtBudgets','${b.id}')" class="text-gray-300 hover:text-red-500"><i class="fa-solid fa-trash"></i></button></div></li>
-                `).join('')||'<li class="text-xs text-gray-400 text-center">無計畫</li>';
+                    <li class="flex justify-between items-center bg-white p-2 rounded-xl border border-gray-100 card-shadow mb-1"><div class="text-xs"><span class="font-bold text-gray-700">${(State.data.debts.find(d=>d.id===b.targetId)?.name)||'未知'}</span>: ${b.description} <span class="text-danger">$${b.amount}</span></div><div class="flex gap-2"><button onclick="App.realizeBudget('debt','${b.id}')" class="text-secondary hover:text-green-700 bg-green-50 w-6 h-6 rounded-full flex items-center justify-center"><i class="fa-solid fa-check"></i></button><button onclick="App.deleteItem('debtBudgets','${b.id}')" class="text-gray-300 hover:text-red-500"><i class="fa-solid fa-trash"></i></button></div></li>
+                `).join('')||'<li class="text-xs text-gray-400 text-center py-2">無計畫項目</li>';
             },
             renderEvents: () => document.getElementById('event-list').innerHTML = State.data.events.sort((a,b)=>b.date-a.date).map(e=>`<div class="relative pl-4 border-l-2 border-gray-200 pb-3"><div class="absolute -left-[5px] top-1 w-2.5 h-2.5 bg-primary rounded-full"></div><p class="text-[10px] text-gray-400">${e.date.toDate().toLocaleDateString()}</p><h4 class="font-bold text-gray-800 text-xs">${e.title}</h4><p class="text-xs text-gray-500 mt-1">${e.description}</p><button onclick="App.deleteItem('events','${e.id}')" class="absolute right-0 top-0 text-gray-200 hover:text-red-300"><i class="fa-solid fa-trash text-xs"></i></button></div>`).join(''),
             renderReports: () => {
+                const filterVal = document.getElementById('date-filter').value;
+                const [yr, mn] = filterVal.split('-').map(Number);
+                const start = new Date(yr, mn - 1, 1);
+                const end = new Date(yr, mn, 0, 23, 59, 59);
+                
                 if(State.chart) State.chart.destroy();
-                const map={}, total=State.data.transactions.filter(t=>t.type==='expense').reduce((s,t)=>{map[t.category]=(map[t.category]||0)+t.amount;return s+t.amount},0);
+                const txs = State.data.transactions.filter(t => { const d = t.timestamp.toDate(); return d >= start && d <= end; });
+                const map={}, total=txs.filter(t=>t.type==='expense').reduce((s,t)=>{map[t.category]=(map[t.category]||0)+t.amount;return s+t.amount},0);
+                
                 State.chart = new Chart(document.getElementById('expense-chart').getContext('2d'), { type: 'doughnut', data: { labels: Object.keys(map), datasets: [{ data: Object.values(map), backgroundColor: ['#4F46E5','#10B981','#F59E0B','#EF4444','#EC4899','#8B5CF6'], borderWidth:0 }] }, options: {responsive:true, maintainAspectRatio:false, plugins:{legend:{position:'right',labels:{font:{size:10},boxWidth:10}}}} });
-                document.getElementById('report-stats').innerHTML = Object.entries(map).sort((a,b)=>b[1]-a[1]).map(([k,v])=>`<li class="flex justify-between border-b border-gray-50 pb-1"><span>${k}</span><span class="font-bold">$${v.toLocaleString()} <span class="text-[10px] text-gray-400 font-normal">(${((v/total)*100).toFixed(1)}%)</span></span></li>`).join('');
+                document.getElementById('report-stats').innerHTML = total > 0 ? Object.entries(map).sort((a,b)=>b[1]-a[1]).map(([k,v])=>`<li class="flex justify-between border-b border-gray-50 pb-1"><span>${k}</span><span class="font-bold">$${v.toLocaleString()} <span class="text-[10px] text-gray-400 font-normal">(${((v/total)*100).toFixed(1)}%)</span></span></li>`).join('') : '<li class="text-center text-gray-400 py-4">無支出數據</li>';
             }
         };
 
