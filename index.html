@@ -180,14 +180,17 @@
         </main>
 
         <!-- Nav -->
-        <nav class="bg-white border-t border-gray-100 px-6 py-2 flex justify-between items-center text-[10px] font-medium text-gray-400 z-50 shrink-0 pb-safe">
-            <button onclick="switchTab('accounting', this)" class="nav-btn active flex flex-col items-center gap-1 transition p-2"><i class="fa-solid fa-house text-lg"></i> 記帳</button>
-            <button onclick="switchTab('investment', this)" class="nav-btn flex flex-col items-center gap-1 transition p-2"><i class="fa-solid fa-arrow-trend-up text-lg"></i> 投資</button>
-            <div class="relative -top-6 pointer-events-none">
-                <button onclick="openModal('transaction-modal')" class="fab w-14 h-14 bg-primary rounded-full text-white text-2xl flex items-center justify-center transition hover:scale-105 active:scale-95 shadow-xl shadow-primary/30 pointer-events-auto"><i class="fa-solid fa-plus"></i></button>
+        <nav class="bg-white border-t border-gray-100 px-2 py-2 flex justify-between items-center text-[10px] font-medium text-gray-400 z-50 shrink-0 pb-safe">
+            <button onclick="switchTab('accounting', this)" class="nav-btn active flex flex-col items-center gap-1 transition p-1 min-w-[3.5rem]"><i class="fa-solid fa-house text-lg"></i> 記帳</button>
+            <button onclick="switchTab('investment', this)" class="nav-btn flex flex-col items-center gap-1 transition p-1 min-w-[3.5rem]"><i class="fa-solid fa-arrow-trend-up text-lg"></i> 投資</button>
+            <button onclick="switchTab('debt', this)" class="nav-btn flex flex-col items-center gap-1 transition p-1 min-w-[3.5rem]"><i class="fa-solid fa-credit-card text-lg"></i> 負債</button>
+            
+            <div class="relative -top-6 pointer-events-none mx-1">
+                <button onclick="openModal('transaction-modal')" class="fab w-12 h-12 bg-primary rounded-full text-white text-xl flex items-center justify-center transition hover:scale-105 active:scale-95 shadow-xl shadow-primary/30 pointer-events-auto"><i class="fa-solid fa-plus"></i></button>
             </div>
-            <button onclick="switchTab('debt', this)" class="nav-btn flex flex-col items-center gap-1 transition p-2"><i class="fa-solid fa-credit-card text-lg"></i> 負債</button>
-            <button onclick="switchTab('reports', this)" class="nav-btn flex flex-col items-center gap-1 transition p-2"><i class="fa-solid fa-chart-simple text-lg"></i> 報表</button>
+            
+            <button onclick="switchTab('events', this)" class="nav-btn flex flex-col items-center gap-1 transition p-1 min-w-[3.5rem]"><i class="fa-solid fa-calendar-day text-lg"></i> 大事記</button>
+            <button onclick="switchTab('reports', this)" class="nav-btn flex flex-col items-center gap-1 transition p-1 min-w-[3.5rem]"><i class="fa-solid fa-chart-simple text-lg"></i> 報表</button>
         </nav>
     </div>
 
@@ -266,13 +269,7 @@
     
     <template id="tpl-event-form">
         <div class="flex justify-between items-center mb-4"><h3 class="text-lg font-bold text-gray-800">大事記</h3><button onclick="closeModal()" class="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center text-gray-500"><i class="fa-solid fa-xmark"></i></button></div>
-        <form onsubmit="App.handleSaveEvent(event)" class="space-y-4">
-            <input type="hidden" name="id">
-            <input type="date" name="date" class="w-full bg-gray-50 rounded-xl p-3 text-sm" required>
-            <input type="text" name="title" class="w-full bg-gray-50 rounded-xl p-3 text-sm" placeholder="標題" required>
-            <textarea name="desc" rows="3" class="w-full bg-gray-50 rounded-xl p-3 text-sm" placeholder="內容..."></textarea>
-            <div class="flex gap-2 text-sm pt-2"><button type="button" onclick="closeModal()" class="flex-1 bg-gray-100 py-3 rounded-xl font-bold text-gray-500">取消</button><button type="submit" class="w-full bg-dark text-white py-3 rounded-xl font-bold text-sm shadow-lg">紀錄</button></div>
-        </form>
+        <form onsubmit="App.handleSaveEvent(event)" class="space-y-4"><input type="date" name="date" class="w-full bg-gray-50 rounded-xl p-3 text-sm" required><input type="text" name="title" class="w-full bg-gray-50 rounded-xl p-3 text-sm" placeholder="標題" required><textarea name="desc" rows="3" class="w-full bg-gray-50 rounded-xl p-3 text-sm" placeholder="內容..."></textarea><div class="flex gap-2 text-sm pt-2"><button type="button" onclick="closeModal()" class="flex-1 bg-gray-100 py-3 rounded-xl font-bold text-gray-500">取消</button><button type="submit" class="w-full bg-dark text-white py-3 rounded-xl font-bold text-sm shadow-lg">紀錄</button></div></form>
     </template>
 
     <!-- Details Modal Template -->
@@ -320,6 +317,7 @@
                         yearSel.innerHTML += `<option value="${y}" ${y===currentYear?'selected':''}>${y}年</option>`;
                     }
                     document.getElementById('report-month-select').value = (today.getMonth() + 1).toString();
+                    
                     App.startListeners(u.uid);
                 } else App.stopListeners();
             }),
@@ -328,11 +326,13 @@
                     State.data[k] = s.docs.map(d=>({id:d.id, ...d.data()})); 
                     if(cb) cb(); 
                 }));
+                
                 listen('transactions', 'transactions', () => { App.renderTransactions(); App.updateDashboard(); App.renderReports(); App.renderInvestments(); });
                 listen('debts', 'debts', App.renderDebts);
                 listen('events', 'events', App.renderEvents);
                 listen('investmentBudgets', 'investmentBudgets', App.renderInvestments);
                 listen('debtBudgets', 'debtBudgets', App.renderDebts);
+                
                 State.listeners.push(onSnapshot(query(collection(db, `users/${uid}/investments`)), async (s) => {
                     State.data.investments = s.docs.map(d=>({id:d.id, ...d.data()}));
                     for (let inv of State.data.investments) {
