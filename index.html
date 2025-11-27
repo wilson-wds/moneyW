@@ -283,7 +283,13 @@
     
     <template id="tpl-event-form">
         <div class="flex justify-between items-center mb-4"><h3 class="text-lg font-bold text-gray-800">大事記</h3><button type="button" onclick="closeModal()" class="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center text-gray-500"><i class="fa-solid fa-xmark"></i></button></div>
-        <form onsubmit="App.handleSaveEvent(event)" class="space-y-4"><input type="date" name="date" class="w-full bg-gray-50 rounded-xl p-3 text-sm" required><input type="text" name="title" class="w-full bg-gray-50 rounded-xl p-3 text-sm" placeholder="標題" required><textarea name="desc" rows="3" class="w-full bg-gray-50 rounded-xl p-3 text-sm" placeholder="內容..."></textarea><div class="flex gap-2 text-sm pt-2"><button type="button" onclick="closeModal()" class="flex-1 bg-gray-100 py-3 rounded-xl font-bold text-gray-500">取消</button><button type="submit" class="w-full bg-dark text-white py-3 rounded-xl font-bold text-sm shadow-lg">紀錄</button></div></form>
+        <form onsubmit="App.handleSaveEvent(event)" class="space-y-4">
+            <input type="hidden" name="id">
+            <input type="date" name="date" class="w-full bg-gray-50 rounded-xl p-3 text-sm" required>
+            <input type="text" name="title" class="w-full bg-gray-50 rounded-xl p-3 text-sm" placeholder="標題" required>
+            <textarea name="desc" rows="3" class="w-full bg-gray-50 rounded-xl p-3 text-sm" placeholder="內容..."></textarea>
+            <div class="flex gap-2 text-sm pt-2"><button type="button" onclick="closeModal()" class="flex-1 bg-gray-100 py-3 rounded-xl font-bold text-gray-500">取消</button><button type="submit" class="w-full bg-dark text-white py-3 rounded-xl font-bold text-sm shadow-lg">紀錄</button></div>
+        </form>
     </template>
 
     <!-- Details Modal Template -->
@@ -327,6 +333,17 @@
             view: { invTab: 'active' }
         };
 
+        // Helper function to safely get date
+        const getTxDate = (tx) => {
+            if (tx.timestamp && tx.timestamp.toDate) return tx.timestamp.toDate();
+            if (tx.date) {
+                const d = new Date(tx.date);
+                if (!isNaN(d.getTime())) return d;
+            }
+            // Fallback for legacy items with no proper date field
+            return new Date(0);
+        };
+
         window.App = {
             init: () => onAuthStateChanged(auth, u => {
                 State.user = u;
@@ -343,8 +360,6 @@
                         yearSel.innerHTML += `<option value="${y}" ${y===currentYear?'selected':''}>${y}年</option>`;
                     }
                     document.getElementById('report-month-select').value = (today.getMonth() + 1).toString();
-                    document.getElementById('inv-date-filter').value = today.toISOString().slice(0, 7);
-                    document.getElementById('debt-date-filter').value = today.toISOString().slice(0, 7);
                     
                     App.startListeners(u.uid);
                 } else App.stopListeners();
@@ -368,18 +383,11 @@
                             const subSnap = await getDocs(collection(db, `users/${uid}/investments/${inv.id}/transactions`));
                             State.data.legacyTxs[inv.id] = subSnap.docs.map(d => {
                                 const data = d.data();
-                                // Safe timestamp normalization for legacy data
                                 let ts = data.timestamp || data.date;
-                                if (ts && !ts.toDate) { // If not a firestore timestamp object
-                                    // Try creating a date object
+                                if (ts && !ts.toDate) {
                                     const dateObj = new Date(ts);
-                                    if (!isNaN(dateObj.getTime())) {
-                                        ts = Timestamp.fromDate(dateObj);
-                                    } else {
-                                        ts = Timestamp.fromDate(new Date(0)); // Fallback
-                                    }
+                                    ts = !isNaN(dateObj.getTime()) ? Timestamp.fromDate(dateObj) : Timestamp.fromDate(new Date(0));
                                 }
-                                
                                 return {
                                     id: d.id, ...data, 
                                     timestamp: ts,
@@ -414,17 +422,20 @@
                         const sub = State.data.legacyTxs[inv.id] || [];
                         sub.forEach(t => {
                             // Normalize timestamp safely
-                            let tsObj;
-                            const d = t.timestamp || t.date;
-                            if(d && d.toDate) tsObj = d;
-                            else if(d) tsObj = Timestamp.fromDate(new Date(d));
-                            else tsObj = Timestamp.fromDate(new Date(0));
+                            let tsObj = getTxDate(t);
+                            // Convert JS Date to Firestore Timestamp for consistency in sorting if needed, 
+                            // but here we can just keep it as is and handle in sort.
+                            // To be consistent with global txs which have .toDate(), let's ensure tsObj is Timestamp-like if possible,
+                            // or just standard JS Date. 
+                            // Actually, `getTxDate` returns JS Date. Global txs have `.timestamp` (Timestamp).
+                            // Let's wrap JS Date back to Timestamp for consistency downstream
+                            const finalTs = Timestamp.fromDate(tsObj);
 
                             allTxs.push({
                                 ...t,
-                                project: inv.name, // Ensure project name matches current investment name
+                                project: inv.name, 
                                 category: t.category || (t.type === 'income' ? '投資收入' : '投資支出'),
-                                timestamp: tsObj,
+                                timestamp: finalTs,
                                 amount: parseFloat(t.amount) || 0,
                                 isLegacy: true
                             });
@@ -440,7 +451,7 @@
                     }
                 });
 
-                return allTxs.sort((a,b) => (b.timestamp.toDate() - a.timestamp.toDate()));
+                return allTxs.sort((a,b) => (getTxDate(b) - getTxDate(a)));
             },
 
             // Handlers
@@ -462,7 +473,6 @@
                 const d = { name: f.name.value, initialValue: init, isArchived: f.isArchived.checked };
                 if(!f.id.value) { d.marketValue = init; d.createdAt = Timestamp.now(); }
                 else {
-                     // Handle rename logic
                      const oldInv = State.data.investments.find(i => i.id === f.id.value);
                      const oldName = oldInv ? oldInv.name : '';
                      if (oldName && oldName !== f.name.value) {
@@ -536,18 +546,21 @@
                 if(mnVal === 'all') { start = new Date(yr, 0, 1); end = new Date(yr, 11, 31, 23, 59, 59); }
                 else { const mn = parseInt(mnVal); start = new Date(yr, mn - 1, 1); end = new Date(yr, mn, 0, 23, 59, 59); }
                 
-                // Use unified data source
                 const allTxs = App.getAllTransactions();
 
                 const txs = allTxs.filter(t => { 
-                    const d = t.timestamp.toDate(); 
+                    const d = getTxDate(t);
                     const dateMatch = d >= start && d <= end;
                     const projMatch = projSel === 'all' || t.project === projSel;
                     const catMatch = catSel === 'all' || t.category === catSel;
                     return dateMatch && projMatch && catMatch;
-                }).sort((a,b) => (a.timestamp.toDate() || 0) - (b.timestamp.toDate() || 0));
+                }).sort((a,b) => getTxDate(a) - getTxDate(b));
 
-                const csvContent = "日期,分類,專案/帳戶,備註,類型,金額\n" + txs.map(t => `${t.timestamp.toDate().toLocaleDateString()},${t.category},${t.project||''},${t.remarks||''},${t.type==='income'?'收入':'支出'},${t.amount}`).join("\n");
+                const csvContent = "日期,分類,專案/帳戶,備註,類型,金額\n" + txs.map(t => {
+                    const d = getTxDate(t);
+                    return `${d.toLocaleDateString()},${t.category},${t.project||''},${t.remarks||''},${t.type==='income'?'收入':'支出'},${t.amount}`;
+                }).join("\n");
+                
                 const blob = new Blob(["\uFEFF"+csvContent], { type: 'text/csv;charset=utf-8;' });
                 const link = document.createElement("a"); link.href = URL.createObjectURL(blob); link.download = `report_${yr}_${mnVal}.csv`; link.click();
             },
@@ -561,44 +574,8 @@
                 document.getElementById('modal-overlay').classList.remove('hidden'); document.getElementById('modal-overlay').classList.add('flex');
 
                 let relatedTxs = [];
-                
-                // --- NEW: Budget rendering logic for details modal ---
-                const budgetCol = type === 'investment' ? 'investmentBudgets' : 'debtBudgets';
-                const relatedBudgets = State.data[budgetCol].filter(b => b.targetId === id && !b.isRealized).sort((a,b) => (a.expectedDate?.seconds || 0) - (b.expectedDate?.seconds || 0));
-                
-                const budgetSection = content.querySelector('.details-budget-section');
-                const budgetListEl = content.querySelector('.details-budget-list');
-                
-                if (relatedBudgets.length > 0) {
-                    budgetSection.classList.remove('hidden');
-                    budgetListEl.innerHTML = relatedBudgets.map(b => {
-                        const isOverdue = b.expectedDate && b.expectedDate.toDate() < new Date().setHours(0,0,0,0);
-                        const dateClass = isOverdue ? 'text-red-500 font-bold' : 'text-gray-400';
-                        const boxClass = isOverdue ? 'bg-red-50 border-red-200' : 'bg-white border border-gray-100';
-                        return `<li class="flex justify-between items-center p-2 rounded-xl ${boxClass}">
-                            <div class="text-xs">
-                                <span class="font-bold text-gray-700">${b.description}</span> 
-                                <span class="${type==='investment'?'text-secondary':'text-danger'}">$${b.amount.toLocaleString()}</span>
-                                <span class="text-[10px] ml-2 ${dateClass}">${b.expectedDate?.toDate().toLocaleDateString()||''}</span>
-                            </div>
-                            <div class="flex gap-1">
-                                <button onclick="App.realizeBudget('${type}', '${b.id}')" class="text-gray-400 hover:text-green-600"><i class="fa-solid fa-check"></i></button>
-                                <button onclick="App.openBudgetModal('${type}', '${b.id}')" class="text-gray-400 hover:text-blue-500"><i class="fa-solid fa-pen"></i></button>
-                                <button onclick="App.deleteItem('${budgetCol}', '${b.id}')" class="text-gray-400 hover:text-red-500"><i class="fa-solid fa-trash"></i></button>
-                            </div>
-                        </li>`;
-                    }).join('');
-                } else {
-                    budgetSection.classList.add('hidden');
-                }
-                // ---------------------------------------------------
-
                 // Safe sorting logic for legacy txs
-                const safeSort = (a, b) => {
-                    const da = a.timestamp ? a.timestamp.toDate() : (a.date ? new Date(a.date) : new Date(0));
-                    const db = b.timestamp ? b.timestamp.toDate() : (b.date ? new Date(b.date) : new Date(0));
-                    return db - da;
-                };
+                const safeSort = (a, b) => getTxDate(b) - getTxDate(a); // Descending
 
                 if (type === 'investment') {
                     const subTxs = State.data.legacyTxs[id] || [];
@@ -627,8 +604,7 @@
 
                 const listEl = content.querySelector('.details-list');
                 listEl.innerHTML = relatedTxs.length ? relatedTxs.map(t => {
-                     // Safe date access
-                     const d = t.timestamp ? t.timestamp.toDate() : (t.date ? new Date(t.date) : new Date());
+                     const d = getTxDate(t);
                      return `
                     <li class="flex justify-between items-center py-3 px-3 rounded-xl mb-2 ${t.type==='expense' ? 'bg-red-50' : 'bg-green-50'}">
                         <div><p class="text-[10px] text-gray-500 mb-0.5">${d.toLocaleDateString()}</p><p class="text-xs font-bold text-gray-700">${t.remarks || t.category}</p></div>
@@ -640,53 +616,28 @@
             // Renderers
             renderEvents: () => {
                 const grouped = {};
-                // 1. Prepare events list by extracting/parsing date first
-                const eventList = State.data.events.map(e => {
-                    let d;
-                    if (e.date && e.date.toDate) {
-                         d = e.date.toDate();
-                    } else if (e.date) {
-                         // Handle string date or timestamp-like object
-                         if (typeof e.date === 'string') {
-                             d = new Date(e.date);
-                         } else if (e.date.seconds) { // Fallback for raw Firestore timestamp obj
-                             d = new Date(e.date.seconds * 1000);
-                         } else {
-                             d = new Date(e.date);
-                         }
-                    } else {
-                         d = new Date(0); 
-                    }
-                    
-                    // Final validation check
-                    if (isNaN(d.getTime())) d = new Date(0);
-
-                    return { ...e, _parsedDate: d };
-                });
-
-                // 2. Sort safely
-                eventList.sort((a, b) => b._parsedDate - a._parsedDate);
-
-                // 3. Group
-                eventList.forEach(e => {
-                    if (e._parsedDate.getTime() === 0 && !e.title) return; // Skip completely empty/invalid
-                    const key = e._parsedDate.getTime() === 0 ? '未分類日期' : e._parsedDate.toLocaleDateString('zh-TW', {year:'numeric', month:'long'});
-                    if (!grouped[key]) grouped[key] = [];
+                
+                // Safe sort using helper
+                State.data.events.sort((a,b) => getTxDate(b) - getTxDate(a)).forEach(e => {
+                    const d = getTxDate(e);
+                    if(d.getTime() === 0) return; // Skip completely invalid dates if necessary, or keep them under 'Unknown'
+                    const key = d.toLocaleDateString('zh-TW', {year:'numeric', month:'long'});
+                    if(!grouped[key]) grouped[key] = [];
                     grouped[key].push(e);
                 });
                 
-                // 4. Render
-                const container = document.getElementById('event-list');
-                container.innerHTML = Object.keys(grouped).length ? Object.entries(grouped).map(([month, events]) => `
+                document.getElementById('event-list').innerHTML = Object.keys(grouped).length ? Object.entries(grouped).map(([month, events]) => `
                     <div class="mb-6">
                         <h3 class="text-xs font-bold text-gray-400 mb-3 border-b border-gray-200 pb-1">${month}</h3>
                         <div class="space-y-4">
-                            ${events.map(e => `
+                            ${events.map(e => {
+                                const d = getTxDate(e);
+                                return `
                                 <div class="relative pl-4 border-l-2 border-primary/30 pb-2 group">
                                     <div class="absolute -left-[5px] top-1.5 w-2.5 h-2.5 bg-primary rounded-full border-2 border-white shadow-sm"></div>
                                     <div class="flex justify-between items-start">
                                         <div>
-                                            <p class="text-[10px] font-bold text-primary mb-0.5">${e._parsedDate.getTime() === 0 ? '---' : e._parsedDate.toLocaleDateString('zh-TW', {day:'numeric', weekday:'short'})}</p>
+                                            <p class="text-[10px] font-bold text-primary mb-0.5">${d.toLocaleDateString('zh-TW', {day:'numeric', weekday:'short'})}</p>
                                             <h4 class="font-bold text-gray-800 text-sm">${e.title}</h4>
                                             <p class="text-xs text-gray-500 mt-1 leading-relaxed whitespace-pre-wrap">${e.description || ''}</p>
                                         </div>
@@ -696,7 +647,7 @@
                                         </div>
                                     </div>
                                 </div>
-                            `).join('')}
+                            `}).join('')}
                         </div>
                     </div>
                 `).join('') : '<div class="text-center py-10 text-gray-400 text-xs">尚無大事記</div>';
@@ -704,10 +655,17 @@
             renderTransactions: () => {
                 const filterVal = document.getElementById('date-filter').value; const [yr, mn] = filterVal.split('-').map(Number);
                 const start = new Date(yr, mn - 1, 1), end = new Date(yr, mn, 0, 23, 59, 59);
-                let txs = State.data.transactions.filter(t => { const d = t.timestamp.toDate(); return d >= start && d <= end; }).sort((a,b) => b.timestamp - a.timestamp);
+                
+                // Use helper for safe date filtering
+                let txs = State.data.transactions.filter(t => { 
+                    const d = getTxDate(t);
+                    return d >= start && d <= end; 
+                }).sort((a,b) => getTxDate(b) - getTxDate(a));
+
                 const grouped = {};
                 txs.forEach(t => {
-                    const dateKey = t.timestamp.toDate().toLocaleDateString('zh-TW', { month: 'numeric', day: 'numeric', weekday: 'short' });
+                    const d = getTxDate(t);
+                    const dateKey = d.toLocaleDateString('zh-TW', { month: 'numeric', day: 'numeric', weekday: 'short' });
                     if (!grouped[dateKey]) grouped[dateKey] = { list: [], income: 0, expense: 0 };
                     grouped[dateKey].list.push(t);
                     if (t.type === 'income') grouped[dateKey].income += t.amount; else grouped[dateKey].expense += t.amount;
@@ -726,13 +684,21 @@
             updateDashboard: () => {
                 const filterVal = document.getElementById('date-filter').value; const [yr, mn] = filterVal.split('-').map(Number);
                 const startMonth = new Date(yr, mn - 1, 1), endMonth = new Date(yr, mn, 0, 23, 59, 59);
-                const txsMonth = State.data.transactions.filter(t => { const d = t.timestamp.toDate(); return d >= startMonth && d <= endMonth; });
+                
+                const txsMonth = State.data.transactions.filter(t => { 
+                    const d = getTxDate(t);
+                    return d >= startMonth && d <= endMonth; 
+                });
+
                 const incM = txsMonth.filter(t=>t.type==='income').reduce((s,t)=>s+t.amount,0), expM = txsMonth.filter(t=>t.type==='expense').reduce((s,t)=>s+t.amount,0);
                 document.getElementById('monthly-balance').innerText = `$${(incM-expM).toLocaleString()}`; document.getElementById('monthly-income').innerText = `$${incM.toLocaleString()}`; document.getElementById('monthly-expense').innerText = `$${expM.toLocaleString()}`;
                 const today = new Date();
                 if (today.getMonth() + 1 === mn && today.getFullYear() === yr) {
                     const startDay = new Date(today.getFullYear(), today.getMonth(), today.getDate()), endDay = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 1);
-                    const txsDay = State.data.transactions.filter(t => { const d = t.timestamp.toDate(); return d >= startDay && d < endDay; });
+                    const txsDay = State.data.transactions.filter(t => { 
+                        const d = getTxDate(t);
+                        return d >= startDay && d < endDay; 
+                    });
                     const incD = txsDay.filter(t=>t.type==='income').reduce((s,t)=>s+t.amount,0), expD = txsDay.filter(t=>t.type==='expense').reduce((s,t)=>s+t.amount,0);
                     const balD = incD - expD;
                     document.getElementById('today-income').innerText = incD.toLocaleString(); 
@@ -768,7 +734,7 @@
 
                     // Monthly stats
                     const monthlyTxs = allRelatedTxs.filter(t => {
-                         const d = t.timestamp?.toDate ? t.timestamp.toDate() : new Date(0);
+                         const d = getTxDate(t);
                          return d >= startMonth && d <= endMonth;
                     });
                     const mInc = monthlyTxs.filter(t=>t.type==='income').reduce((s,t)=>s+t.amount,0);
@@ -832,9 +798,9 @@
                         (t.category === '負債還款' || t.remarks.includes('償還'))
                     );
                     
-                    // 2. Filter by month
+                    // 2. Filter by month using helper
                     const monthlyRepaid = debtTxs.reduce((sum, t) => {
-                        const date = t.timestamp.toDate();
+                        const date = getTxDate(t);
                         if (date >= startMonth && date <= endMonth) {
                             return sum + t.amount;
                         }
@@ -911,12 +877,12 @@
                 if(State.chart) State.chart.destroy();
                 
                 const filteredTxs = allTxs.filter(t => { 
-                    const d = t.timestamp.toDate();
+                    const d = getTxDate(t);
                     const dateMatch = d >= start && d <= end;
                     const projMatch = selProj === 'all' || t.project === selProj;
                     const catMatch = selCat === 'all' || t.category === selCat;
                     return dateMatch && projMatch && catMatch;
-                }).sort((a,b) => (a.timestamp.toDate() || 0) - (b.timestamp.toDate() || 0)); // Newest first
+                }).sort((a,b) => (getTxDate(b) - getTxDate(a))); // Newest first
 
                 const map={}, total=filteredTxs.filter(t=>t.type==='expense').reduce((s,t)=>{
                     const cat = t.category || '未分類';
@@ -928,14 +894,16 @@
                 document.getElementById('report-stats').innerHTML = total > 0 ? Object.entries(map).sort((a,b)=>b[1]-a[1]).map(([k,v])=>`<li class="flex justify-between border-b border-gray-50 pb-1"><span>${k}</span><span class="font-bold">$${v.toLocaleString()} <span class="text-[10px] text-gray-400 font-normal">(${((v/total)*100).toFixed(1)}%)</span></span></li>`).join('') : '<li class="text-center text-gray-400 py-4">無支出數據</li>';
                 
                 // Modified Report Details to be Clickable
-                document.getElementById('report-details').innerHTML = filteredTxs.length ? filteredTxs.map(t => `
+                document.getElementById('report-details').innerHTML = filteredTxs.length ? filteredTxs.map(t => {
+                     const d = getTxDate(t);
+                     return `
                     <li class="flex justify-between items-center py-2 border-b border-gray-50 last:border-0 group cursor-pointer hover:bg-gray-50 p-1 rounded transition" onclick="openModal('transaction-modal', '${t.id}')">
                         <div class="flex-1 min-w-0 mr-2">
-                            <p class="text-xs text-gray-500 mb-0.5">${t.timestamp.toDate().toLocaleDateString()} <span class="font-medium text-gray-700">${t.category}</span></p>
+                            <p class="text-xs text-gray-500 mb-0.5">${d.toLocaleDateString()} <span class="font-medium text-gray-700">${t.category}</span></p>
                             ${t.remarks ? `<p class="text-[10px] text-gray-400 truncate">${t.remarks}</p>` : ''}
                         </div>
                         <span class="text-xs font-bold ${t.type==='expense'?'text-red-500':'text-green-600'} whitespace-nowrap">${t.type==='expense'?'-':'+'} ${t.amount.toLocaleString()}</span>
-                    </li>`).join('') : '<li class="text-center text-xs text-gray-400 py-2">無交易紀錄</li>';
+                    </li>`}).join('') : '<li class="text-center text-xs text-gray-400 py-2">無交易紀錄</li>';
             },
             // Modal Helpers
             openModal: (t, id, defaults = {}) => {
