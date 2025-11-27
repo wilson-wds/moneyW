@@ -330,7 +330,7 @@
             view: { invTab: 'active' }
         };
 
-        // 🛡️ Robust Date Parser
+        // 🛡️ Robust Date Parser - Fallback to Today if Invalid
         const getTxDate = (tx) => {
             if (!tx) return new Date();
             try {
@@ -340,13 +340,15 @@
                     const d = new Date(tx.date);
                     if (!isNaN(d.getTime())) return d;
                 }
+                // Handle edge case: legacy timestamp stored as object
                 if (tx.timestamp && tx.timestamp.seconds) return new Date(tx.timestamp.seconds * 1000);
-            } catch (e) { }
-            return new Date();
+            } catch (e) { console.warn("Date parse error", e); }
+            return new Date(); // Fallback to today to ensure data shows
         };
-        const toDateStr=(ts)=>{
-            try { if(ts && ts.toDate) return ts.toDate().toISOString().split('T')[0]; } catch(e){}
-            return new Date().toISOString().split('T')[0];
+
+        const toDateStr = (ts) => {
+            const d = getTxDate({timestamp: ts});
+            return d.toISOString().split('T')[0];
         };
 
         window.App = {
@@ -356,8 +358,8 @@
                 document.getElementById('app-container').classList.toggle('hidden', !u);
                 if(u) {
                     document.getElementById('user-info').innerText = u.isAnonymous ? '訪客' : u.displayName;
-                    App.switchTab('accounting', document.querySelector('#nav-accounting')); // Ensure View is loaded
-                    App.startListeners(u.uid);
+                    App.switchTab('accounting', document.querySelector('#nav-accounting')); // Ensure View is loaded FIRST
+                    App.startListeners(u.uid); // THEN fetch data
                 } else App.stopListeners();
             }),
             startListeners: (uid) => {
@@ -366,6 +368,7 @@
                     if(cb) cb(); 
                 }));
                 
+                // Separate safe callbacks to prevent one failure from stopping others
                 listen('transactions', 'transactions', () => { 
                     if(document.getElementById('tx-list')) App.renderTransactions(); 
                     if(document.getElementById('monthly-balance')) App.updateDashboard(); 
@@ -377,7 +380,7 @@
                 listen('investmentBudgets', 'investmentBudgets', () => { if(document.getElementById('inv-budget-list')) App.renderInvestments(); });
                 listen('debtBudgets', 'debtBudgets', () => { if(document.getElementById('debt-budget-list')) App.renderDebts(); });
                 
-                // Investment + Legacy Loader (With Migration info)
+                // Investment + Legacy Loader
                 State.listeners.push(onSnapshot(query(collection(db, `users/${uid}/investments`)), async (s) => {
                     State.data.investments = s.docs.map(d=>({id:d.id, ...d.data()}));
                     for (let inv of State.data.investments) {
@@ -387,18 +390,23 @@
                                 State.data.legacyTxs[inv.id] = subSnap.docs.map(d => {
                                     const data = d.data();
                                     let ts = data.timestamp || data.date;
+                                    // Try to convert if string or raw object
                                     if (typeof ts === 'string') {
                                         const pd = new Date(ts);
                                         if(!isNaN(pd.getTime())) ts = Timestamp.fromDate(pd);
                                         else ts = Timestamp.fromDate(new Date());
-                                    } else if (ts && !ts.toDate) { ts = Timestamp.fromDate(new Date()); }
+                                    } else if (ts && !ts.toDate) { 
+                                        // Handle if it's just a plain object with seconds
+                                        if(ts.seconds) ts = new Timestamp(ts.seconds, ts.nanoseconds);
+                                        else ts = Timestamp.fromDate(new Date()); 
+                                    }
                                     
                                     return { 
                                         id: d.id, ...data, 
                                         timestamp: ts, 
                                         remarks: data.remarks || data.remark, 
                                         isLegacy: true, 
-                                        investmentId: inv.id
+                                        legacyInvId: inv.id // Store parent ID for migration
                                     };
                                 });
                             } catch(e) { State.data.legacyTxs[inv.id] = []; }
@@ -422,7 +430,6 @@
                 if(tab === 'accounting') {
                     const today = new Date().toISOString().slice(0, 7);
                     document.getElementById('date-filter').value = today;
-                    // Only render if data exists, preventing empty flash if waiting for snapshot
                     if(State.data.transactions.length) { App.renderTransactions(); App.updateDashboard(); }
                 } else if(tab === 'investment') {
                     document.getElementById('inv-date-filter').value = new Date().toISOString().slice(0, 7);
@@ -435,7 +442,8 @@
                     const curYr = new Date().getFullYear();
                     for(let y=curYr-2; y<=curYr+1; y++) yrSel.innerHTML += `<option value="${y}" ${y===curYr?'selected':''}>${y}年</option>`;
                     document.getElementById('report-month-select').value = (new Date().getMonth()+1).toString();
-                    if(State.data.transactions.length) App.renderReports();
+                    // Always try to render reports, logic inside handles data
+                    App.renderReports();
                 } else if(tab === 'events') {
                     if(State.data.events.length) App.renderEvents();
                 }
@@ -452,7 +460,7 @@
                 App.renderInvestments();
             },
 
-            // Helper: Get Merged Transactions for Reports & Export
+            // Helper: Get Merged Transactions for Reports & Export & Editing
             getAllTransactions: () => {
                 let allTxs = [];
                 let linkedIds = new Set();
@@ -462,8 +470,8 @@
                     State.data.investments.forEach(inv => {
                         const sub = State.data.legacyTxs[inv.id] || [];
                         sub.forEach(t => {
-                            // Normalize timestamp safely
                             let tsObj = getTxDate(t);
+                            // Normalize to Firestore Timestamp
                             const finalTs = Timestamp.fromDate(tsObj);
 
                             allTxs.push({
@@ -473,19 +481,21 @@
                                 timestamp: finalTs,
                                 amount: parseFloat(t.amount) || 0,
                                 isLegacy: true,
-                                legacyInvId: inv.id // Pass parent ID for migration
+                                legacyInvId: inv.id // Ensure this is preserved
                             });
                             if(t.mainTransactionId) linkedIds.add(t.mainTransactionId);
                         });
                     });
                 }
 
-                // 2. Add Global Txs (excluding those linked to legacy)
-                State.data.transactions.forEach(t => {
-                    if (!linkedIds.has(t.id)) {
-                        allTxs.push(t);
-                    }
-                });
+                // 2. Add Global Txs
+                if (State.data.transactions) {
+                    State.data.transactions.forEach(t => {
+                        if (!linkedIds.has(t.id)) {
+                            allTxs.push(t);
+                        }
+                    });
+                }
 
                 return allTxs.sort((a,b) => (getTxDate(b) - getTxDate(a)));
             },
@@ -496,6 +506,7 @@
                 const f=e.target, uid=State.user.uid;
                 const id = f.id.value;
                 const legacyInvId = f.legacy_inv_id ? f.legacy_inv_id.value : null;
+                
                 const d = { 
                     type: f.type.value, 
                     amount: parseFloat(f.amount.value), 
@@ -505,14 +516,17 @@
                     project: f.project.value
                 };
 
-                if (legacyInvId && id) { // Migration
+                if (legacyInvId && id) { // Auto-Migration Logic
                     const batch = writeBatch(db);
+                    // 1. Create new record in main collection
                     const newRef = doc(collection(db, `users/${uid}/transactions`));
                     batch.set(newRef, d);
+                    // 2. Delete old record from sub-collection
                     const oldRef = doc(db, `users/${uid}/investments/${legacyInvId}/transactions`, id);
                     batch.delete(oldRef);
                     await batch.commit();
                 } else {
+                    // Standard save
                     f.id.value ? await updateDoc(doc(db, `users/${uid}/transactions`, f.id.value), d) : await addDoc(collection(db, `users/${uid}/transactions`), d);
                 }
                 App.closeModal();
@@ -522,7 +536,6 @@
                 const d = { name: f.name.value, initialValue: init, isArchived: f.isArchived.checked };
                 if(!f.id.value) { d.marketValue = init; d.createdAt = Timestamp.now(); }
                 else {
-                     // Handle rename logic
                      const oldInv = State.data.investments.find(i => i.id === f.id.value);
                      const oldName = oldInv ? oldInv.name : '';
                      if (oldName && oldName !== f.name.value) {
@@ -586,9 +599,13 @@
                     const subTxs = State.data.legacyTxs[id] || [];
                     const mainTxs = State.data.transactions.filter(t => t.project === item.name);
                     const linkedIds = new Set(subTxs.map(t => t.mainTransactionId).filter(Boolean));
+                    // Combine legacy and new
                     relatedTxs = [...subTxs, ...mainTxs.filter(t => !linkedIds.has(t.id))];
+                    
                     const btn = document.createElement('button'); btn.className = "w-full bg-blue-50 text-blue-600 py-2.5 rounded-xl font-bold text-xs mt-3 shadow-sm"; btn.innerText = "更新目前市值"; btn.onclick = () => App.updateMarketValue(id, item.marketValue); content.querySelector('.details-actions').appendChild(btn);
-                } else { relatedTxs = State.data.transactions.filter(t => t.project === item.name); }
+                } else {
+                    relatedTxs = State.data.transactions.filter(t => t.project === item.name);
+                }
                 
                 const addTxBtn = document.createElement('button'); addTxBtn.className = "w-full bg-primary text-white py-2.5 rounded-xl font-bold text-xs mt-2 shadow-lg shadow-primary/20 mb-2"; addTxBtn.innerText = "+ 新增交易"; addTxBtn.onclick = () => App.openModal('transaction-modal', null, { project: item.name, category: type === 'investment' ? '投資' : '負債還款' });
                 content.querySelector('.details-actions').insertBefore(addTxBtn, content.querySelector('.details-actions').firstChild);
