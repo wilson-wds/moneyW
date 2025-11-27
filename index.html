@@ -113,15 +113,15 @@
 
                 <!-- Tab Switcher -->
                 <div class="flex bg-gray-200 p-1 rounded-xl mb-3">
-                    <button type="button" class="tab-pill flex-1 py-1.5 rounded-lg text-xs font-bold text-gray-500 active transition" onclick="App.switchInvTab('active', this)">進行中</button>
-                    <button type="button" class="tab-pill flex-1 py-1.5 rounded-lg text-xs font-bold text-gray-500 transition" onclick="App.switchInvTab('archived', this)">已結案</button>
+                    <button class="tab-pill flex-1 py-1.5 rounded-lg text-xs font-bold text-gray-500 active transition" onclick="App.switchInvTab('active', this)">進行中</button>
+                    <button class="tab-pill flex-1 py-1.5 rounded-lg text-xs font-bold text-gray-500 transition" onclick="App.switchInvTab('archived', this)">已結案</button>
                 </div>
 
-                <div class="flex justify-between items-center px-1 mb-2"><span class="text-xs font-bold text-gray-500">投資帳戶 (點擊查看明細)</span><button type="button" onclick="openModal('investment-modal')" class="text-primary text-xs font-bold bg-primary/10 px-2 py-1 rounded hover:bg-primary/20 transition">+ 新增</button></div>
+                <div class="flex justify-between items-center px-1 mb-2"><span class="text-xs font-bold text-gray-500">投資帳戶 (點擊查看明細)</span><button onclick="openModal('investment-modal')" class="text-primary text-xs font-bold bg-primary/10 px-2 py-1 rounded hover:bg-primary/20 transition">+ 新增</button></div>
                 <div id="inv-list" class="grid gap-2"></div>
                 
                 <div class="mt-4 pt-4 border-t border-gray-200">
-                    <div class="flex justify-between items-center px-1 mb-2"><span class="text-xs font-bold text-gray-500">收入預算/目標</span><button type="button" onclick="openBudgetModal('investment')" class="text-secondary text-xs font-bold bg-secondary/10 px-2 py-1 rounded hover:bg-secondary/20 transition">+ 預算</button></div>
+                    <div class="flex justify-between items-center px-1 mb-2"><span class="text-xs font-bold text-gray-500">收入預算/目標</span><button onclick="openBudgetModal('investment')" class="text-secondary text-xs font-bold bg-secondary/10 px-2 py-1 rounded hover:bg-secondary/20 transition">+ 預算</button></div>
                     <ul id="inv-budget-list" class="space-y-2"></ul>
                 </div>
             </div>
@@ -135,10 +135,10 @@
                     </div>
                     <div class="w-full bg-gray-100 rounded-full h-2"><div id="debt-progress-bar" class="bg-warning h-2 rounded-full transition-all duration-500" style="width: 0%"></div></div>
                 </div>
-                <div class="flex justify-between items-center px-1"><span class="text-xs font-bold text-gray-500">負債項目 (點擊查看明細)</span><button type="button" onclick="openModal('debt-modal')" class="text-primary text-xs font-bold bg-primary/10 px-2 py-1 rounded hover:bg-primary/20 transition">+ 新增</button></div>
+                <div class="flex justify-between items-center px-1"><span class="text-xs font-bold text-gray-500">負債項目 (點擊查看明細)</span><button onclick="openModal('debt-modal')" class="text-primary text-xs font-bold bg-primary/10 px-2 py-1 rounded hover:bg-primary/20 transition">+ 新增</button></div>
                 <div id="debt-list" class="space-y-2"></div>
                 <div class="mt-4 pt-4 border-t border-gray-200">
-                    <div class="flex justify-between items-center px-1 mb-2"><span class="text-xs font-bold text-gray-500">還款計畫</span><button type="button" onclick="openBudgetModal('debt')" class="text-danger text-xs font-bold bg-danger/10 px-2 py-1 rounded hover:bg-danger/20 transition">+ 計畫</button></div>
+                    <div class="flex justify-between items-center px-1 mb-2"><span class="text-xs font-bold text-gray-500">還款計畫</span><button onclick="openBudgetModal('debt')" class="text-danger text-xs font-bold bg-danger/10 px-2 py-1 rounded hover:bg-danger/20 transition">+ 計畫</button></div>
                     <ul id="debt-budget-list" class="space-y-2"></ul>
                 </div>
             </div>
@@ -471,6 +471,13 @@
                 document.getElementById('modal-overlay').classList.remove('hidden'); document.getElementById('modal-overlay').classList.add('flex');
 
                 let relatedTxs = [];
+                // Safe sorting logic for legacy txs
+                const safeSort = (a, b) => {
+                    const da = a.timestamp ? a.timestamp.toDate() : (a.date ? new Date(a.date) : new Date(0));
+                    const db = b.timestamp ? b.timestamp.toDate() : (b.date ? new Date(b.date) : new Date(0));
+                    return db - da;
+                };
+
                 if (type === 'investment') {
                     const subTxs = State.data.legacyTxs[id] || [];
                     const mainTxs = State.data.transactions.filter(t => t.project === item.name);
@@ -494,42 +501,60 @@
                 addTxBtn.onclick = () => App.openModal('transaction-modal', null, { project: item.name, category: type === 'investment' ? '投資' : '負債還款' });
                 content.querySelector('.details-actions').insertBefore(addTxBtn, content.querySelector('.details-actions').firstChild);
 
-                relatedTxs.sort((a,b) => (b.timestamp?.toDate() || 0) - (a.timestamp?.toDate() || 0));
+                relatedTxs.sort(safeSort);
 
                 const listEl = content.querySelector('.details-list');
-                listEl.innerHTML = relatedTxs.length ? relatedTxs.map(t => `
+                listEl.innerHTML = relatedTxs.length ? relatedTxs.map(t => {
+                     // Safe date access
+                     const d = t.timestamp ? t.timestamp.toDate() : (t.date ? new Date(t.date) : new Date());
+                     return `
                     <li class="flex justify-between items-center py-3 px-3 rounded-xl mb-2 ${t.type==='expense' ? 'bg-red-50' : 'bg-green-50'}">
-                        <div><p class="text-[10px] text-gray-500 mb-0.5">${t.timestamp?.toDate().toLocaleDateString() || '無日期'}</p><p class="text-xs font-bold text-gray-700">${t.remarks || t.category}</p></div>
+                        <div><p class="text-[10px] text-gray-500 mb-0.5">${d.toLocaleDateString()}</p><p class="text-xs font-bold text-gray-700">${t.remarks || t.category}</p></div>
                         <div class="flex items-center gap-3"><span class="text-sm font-bold ${t.type==='expense'?'text-red-500':'text-green-600'}">${t.type==='expense'?'-':'+'} NT$ ${t.amount.toLocaleString()}</span>
                         <div class="flex gap-1">${!t.isSub ? `<button onclick="openModal('transaction-modal', '${t.id}')" type="button" class="text-gray-400 hover:text-blue-500 p-1"><i class="fa-solid fa-pen text-xs"></i></button><button onclick="App.deleteItem('transactions', '${t.id}')" type="button" class="text-gray-400 hover:text-red-500 p-1"><i class="fa-solid fa-xmark text-xs"></i></button>` : ''}</div></div>
-                    </li>`).join('') : '<li class="text-center text-xs text-gray-400 py-4">無相關紀錄</li>';
+                    </li>`}).join('') : '<li class="text-center text-xs text-gray-400 py-4">無相關紀錄</li>';
             },
 
             // Renderers
             renderEvents: () => {
                 const grouped = {};
-                const getEventDate = (e) => e.date && e.date.toDate ? e.date.toDate() : (e.date ? new Date(e.date) : new Date(0));
+                // 1. Prepare events list by extracting/parsing date first
+                const eventList = State.data.events.map(e => {
+                    let d;
+                    if (e.date && e.date.toDate) {
+                         d = e.date.toDate();
+                    } else if (e.date) {
+                         d = new Date(e.date);
+                    } else {
+                         // Fallback if no date exists
+                         d = new Date(0); 
+                    }
+                    return { ...e, _parsedDate: d };
+                });
 
-                State.data.events.sort((a,b) => getEventDate(b) - getEventDate(a)).forEach(e => {
-                    const d = getEventDate(e);
-                    if(isNaN(d.getTime())) return; // Skip invalid dates
-                    const key = d.toLocaleDateString('zh-TW', {year:'numeric', month:'long'});
-                    if(!grouped[key]) grouped[key] = [];
+                // 2. Sort safely
+                eventList.sort((a, b) => b._parsedDate - a._parsedDate);
+
+                // 3. Group
+                eventList.forEach(e => {
+                    if (isNaN(e._parsedDate.getTime()) || e._parsedDate.getTime() === 0) return; // Skip invalid
+                    const key = e._parsedDate.toLocaleDateString('zh-TW', {year:'numeric', month:'long'});
+                    if (!grouped[key]) grouped[key] = [];
                     grouped[key].push(e);
                 });
                 
-                document.getElementById('event-list').innerHTML = Object.keys(grouped).length ? Object.entries(grouped).map(([month, events]) => `
+                // 4. Render
+                const container = document.getElementById('event-list');
+                container.innerHTML = Object.keys(grouped).length ? Object.entries(grouped).map(([month, events]) => `
                     <div class="mb-6">
                         <h3 class="text-xs font-bold text-gray-400 mb-3 border-b border-gray-200 pb-1">${month}</h3>
                         <div class="space-y-4">
-                            ${events.map(e => {
-                                const d = e.date && e.date.toDate ? e.date.toDate() : (e.date ? new Date(e.date) : new Date());
-                                return `
+                            ${events.map(e => `
                                 <div class="relative pl-4 border-l-2 border-primary/30 pb-2 group">
                                     <div class="absolute -left-[5px] top-1.5 w-2.5 h-2.5 bg-primary rounded-full border-2 border-white shadow-sm"></div>
                                     <div class="flex justify-between items-start">
                                         <div>
-                                            <p class="text-[10px] font-bold text-primary mb-0.5">${d.toLocaleDateString('zh-TW', {day:'numeric', weekday:'short'})}</p>
+                                            <p class="text-[10px] font-bold text-primary mb-0.5">${e._parsedDate.toLocaleDateString('zh-TW', {day:'numeric', weekday:'short'})}</p>
                                             <h4 class="font-bold text-gray-800 text-sm">${e.title}</h4>
                                             <p class="text-xs text-gray-500 mt-1 leading-relaxed whitespace-pre-wrap">${e.description || ''}</p>
                                         </div>
@@ -539,7 +564,7 @@
                                         </div>
                                     </div>
                                 </div>
-                            `}).join('')}
+                            `).join('')}
                         </div>
                     </div>
                 `).join('') : '<div class="text-center py-10 text-gray-400 text-xs">尚無大事記</div>';
