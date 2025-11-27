@@ -102,6 +102,12 @@
 
             <!-- Investment -->
             <div id="view-investment" class="view-section hidden p-3 space-y-3 animate-fade">
+                <!-- Date Filter -->
+                <div class="flex justify-between items-center mb-3">
+                    <h3 class="text-sm font-bold text-gray-600">投資概況</h3>
+                    <input type="month" id="inv-date-filter" class="bg-white border border-gray-200 rounded-lg px-2 py-1 text-xs font-bold text-gray-600 focus:ring-0 cursor-pointer shadow-sm" onchange="App.renderInvestments()">
+                </div>
+
                 <div class="bg-gradient-to-br from-indigo-600 to-blue-700 rounded-2xl p-4 text-white shadow-lg card-shadow mb-4">
                     <p class="text-indigo-100 text-xs mb-1">總資產現值 (進行中)</p>
                     <h2 id="inv-total-val" class="text-3xl font-bold tracking-tight">--</h2>
@@ -128,6 +134,12 @@
 
             <!-- Debt -->
             <div id="view-debt" class="view-section hidden p-3 space-y-3 animate-fade">
+                <!-- Date Filter -->
+                <div class="flex justify-between items-center mb-3">
+                    <h3 class="text-sm font-bold text-gray-600">負債概況</h3>
+                    <input type="month" id="debt-date-filter" class="bg-white border border-gray-200 rounded-lg px-2 py-1 text-xs font-bold text-gray-600 focus:ring-0 cursor-pointer shadow-sm" onchange="App.renderDebts()">
+                </div>
+
                 <div class="bg-white p-4 rounded-2xl card-shadow border-t-4 border-warning">
                     <div class="flex justify-between items-end mb-2">
                         <div><p class="text-xs text-gray-500">剩餘總負債</p><p id="debt-total-remaining" class="text-2xl font-bold text-gray-800">--</p></div>
@@ -284,7 +296,7 @@
     <template id="tpl-event-form">
         <div class="flex justify-between items-center mb-4"><h3 class="text-lg font-bold text-gray-800">大事記</h3><button type="button" onclick="closeModal()" class="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center text-gray-500"><i class="fa-solid fa-xmark"></i></button></div>
         <form onsubmit="App.handleSaveEvent(event)" class="space-y-4">
-            <input type="hidden" name="id"> <!-- Fixed: Added hidden ID input for editing -->
+            <input type="hidden" name="id">
             <input type="date" name="date" class="w-full bg-gray-50 rounded-xl p-3 text-sm" required>
             <input type="text" name="title" class="w-full bg-gray-50 rounded-xl p-3 text-sm" placeholder="標題" required>
             <textarea name="desc" rows="3" class="w-full bg-gray-50 rounded-xl p-3 text-sm" placeholder="內容..."></textarea>
@@ -338,6 +350,8 @@
                         yearSel.innerHTML += `<option value="${y}" ${y===currentYear?'selected':''}>${y}年</option>`;
                     }
                     document.getElementById('report-month-select').value = (today.getMonth() + 1).toString();
+                    document.getElementById('inv-date-filter').value = today.toISOString().slice(0, 7);
+                    document.getElementById('debt-date-filter').value = today.toISOString().slice(0, 7);
                     
                     App.startListeners(u.uid);
                 } else App.stopListeners();
@@ -704,6 +718,12 @@
                 } else { document.getElementById('today-income').innerText = '-'; document.getElementById('today-expense').innerText = '-'; document.getElementById('today-balance').innerText = '-'; }
             },
             renderInvestments: () => {
+                // Get month filter
+                const monthFilterVal = document.getElementById('inv-date-filter').value;
+                const [yr, mn] = monthFilterVal ? monthFilterVal.split('-').map(Number) : [new Date().getFullYear(), new Date().getMonth() + 1];
+                const startMonth = new Date(yr, mn - 1, 1);
+                const endMonth = new Date(yr, mn, 0, 23, 59, 59);
+
                 const invs = State.data.investments.sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
                 const activeInvs = invs.filter(i => State.view.invTab === 'active' ? !i.isArchived : i.isArchived);
                 let tv=0, ti=0, tr=0;
@@ -715,17 +735,44 @@
                     const linkedMainIds = new Set(subTxs.map(t => t.mainTransactionId).filter(Boolean));
                     const uniqueMainTxs = mainTxs.filter(t => !linkedMainIds.has(t.id));
                     const allRelatedTxs = [...subTxs, ...uniqueMainTxs];
+                    
+                    // Lifetime stats
                     const inc = allRelatedTxs.filter(t=>t.type==='income').reduce((s,t)=>s+t.amount,0);
                     const exp = allRelatedTxs.filter(t=>t.type==='expense').reduce((s,t)=>s+t.amount,0);
                     const profit = inc - exp;
+
+                    // Monthly stats
+                    const monthlyTxs = allRelatedTxs.filter(t => {
+                         const d = t.timestamp?.toDate ? t.timestamp.toDate() : new Date(0);
+                         return d >= startMonth && d <= endMonth;
+                    });
+                    const mInc = monthlyTxs.filter(t=>t.type==='income').reduce((s,t)=>s+t.amount,0);
+                    const mExp = monthlyTxs.filter(t=>t.type==='expense').reduce((s,t)=>s+t.amount,0);
+                    const monthlyProfit = mInc - mExp;
+
                     if(State.view.invTab === 'active') { 
                         tv += i.marketValue||0; 
                         totalCost += parseFloat(exp)||0; 
                         tr += profit; 
                     }
+                    
+                    const monthProfitClass = monthlyProfit > 0 ? 'text-green-600' : (monthlyProfit < 0 ? 'text-red-500' : 'text-gray-400');
+                    const monthlyDisplay = monthlyProfit !== 0 ? `<span class="${monthProfitClass} text-[10px]">本月: ${monthlyProfit > 0 ? '+' : ''}${monthlyProfit.toLocaleString()}</span>` : '';
+
                     return `<div class="bg-white p-3 rounded-xl card-shadow flex justify-between items-center cursor-pointer" onclick="App.showDetails('investment', '${i.id}')">
-                        <div class="flex-1 min-w-0 mr-2"><h4 class="font-bold text-gray-800 text-sm whitespace-normal">${i.name}</h4><p class="text-[10px] font-normal text-gray-400">成本:${i.initialValue}</p></div>
-                        <div class="flex items-center gap-3 shrink-0"><div class="text-right"><p class="font-bold text-gray-800 text-sm">$${(i.marketValue||0).toLocaleString()}</p><p class="text-[10px] font-bold ${profit>=0?'text-green-500':'text-red-500'}">${profit>0?'+':''}${profit.toLocaleString()}</p></div><button onclick="event.stopPropagation();openModal('investment-modal','${i.id}')" type="button" class="text-gray-300 hover:text-blue-500"><i class="fa-solid fa-pen text-xs"></i></button></div></div>`
+                        <div class="flex-1 min-w-0 mr-2">
+                            <h4 class="font-bold text-gray-800 text-sm whitespace-normal">${i.name}</h4>
+                            <p class="text-[10px] font-normal text-gray-400">成本:${i.initialValue}</p>
+                        </div>
+                        <div class="flex flex-col items-end gap-1">
+                            <div class="text-right">
+                                <p class="font-bold text-gray-800 text-sm">$${(i.marketValue||0).toLocaleString()}</p>
+                                <p class="text-[10px] font-bold ${profit>=0?'text-green-500':'text-red-500'}">總: ${profit>0?'+':''}${profit.toLocaleString()}</p>
+                                ${monthlyDisplay}
+                            </div>
+                        </div>
+                        <button onclick="event.stopPropagation();openModal('investment-modal','${i.id}')" type="button" class="text-gray-300 hover:text-blue-500 ml-2"><i class="fa-solid fa-pen text-xs"></i></button>
+                    </div>`
                 }).join('') : '<div class="text-center text-gray-400 py-4 text-xs">無帳戶</div>';
                 
                 const roi = totalCost > 0 ? (tr / totalCost) * 100 : 0;
@@ -741,11 +788,42 @@
                 }).join('')||'<li class="text-xs text-gray-400 text-center py-2">無預算項目</li>';
             },
             renderDebts: () => {
+                // Get month filter
+                const monthFilterVal = document.getElementById('debt-date-filter').value;
+                const [yr, mn] = monthFilterVal ? monthFilterVal.split('-').map(Number) : [new Date().getFullYear(), new Date().getMonth() + 1];
+                const startMonth = new Date(yr, mn - 1, 1);
+                const endMonth = new Date(yr, mn, 0, 23, 59, 59);
+
                 let tr=0, to=0;
                 const debts = State.data.debts.sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
                 document.getElementById('debt-list').innerHTML = debts.map(d=>{
                     tr+=d.remainingAmount; to+=d.totalAmount; const p=Math.round(((d.totalAmount-d.remainingAmount)/d.totalAmount)*100);
-                    return `<div class="bg-white p-3 rounded-xl card-shadow cursor-pointer" onclick="App.showDetails('debt', '${d.id}')"><div class="flex justify-between mb-1"><span class="font-bold text-sm truncate max-w-[180px]">${d.name}</span><button onclick="event.stopPropagation();openModal('debt-modal','${d.id}')" type="button" class="text-gray-300 hover:text-blue-500"><i class="fa-solid fa-pen text-xs"></i></button></div><div class="flex justify-between text-xs text-gray-500 mb-1"><span>剩 $${d.remainingAmount}</span><span>${p}%</span></div><div class="w-full bg-gray-100 rounded-full h-1.5 mb-2"><div class="bg-primary h-1.5 rounded-full" style="width:${p}%"></div></div><div class="flex justify-end gap-2"><button onclick="event.stopPropagation();openRepayModal('${d.id}','${d.name}')" type="button" class="text-xs bg-green-50 text-green-600 px-2 py-0.5 rounded font-bold">還款</button><button onclick="event.stopPropagation();App.deleteItem('debts','${d.id}')" type="button" class="text-xs text-gray-300 px-1"><i class="fa-solid fa-trash"></i></button></div></div>`
+                    
+                    // Calculate monthly repayment
+                    // 1. Find transactions linked to this debt (project name match) and category is '負債還款'
+                    const debtTxs = State.data.transactions.filter(t => 
+                        t.project === d.name && 
+                        t.type === 'expense' && 
+                        (t.category === '負債還款' || t.remarks.includes('償還'))
+                    );
+                    
+                    // 2. Filter by month
+                    const monthlyRepaid = debtTxs.reduce((sum, t) => {
+                        const date = t.timestamp.toDate();
+                        if (date >= startMonth && date <= endMonth) {
+                            return sum + t.amount;
+                        }
+                        return sum;
+                    }, 0);
+
+                    const monthlyDisplay = monthlyRepaid > 0 ? `<span class="text-[10px] text-green-600 font-medium ml-2">本月已還: $${monthlyRepaid.toLocaleString()}</span>` : '';
+
+                    return `<div class="bg-white p-3 rounded-xl card-shadow cursor-pointer" onclick="App.showDetails('debt', '${d.id}')">
+                        <div class="flex justify-between mb-1"><span class="font-bold text-sm truncate max-w-[180px]">${d.name}</span><button onclick="event.stopPropagation();openModal('debt-modal','${d.id}')" type="button" class="text-gray-300 hover:text-blue-500"><i class="fa-solid fa-pen text-xs"></i></button></div>
+                        <div class="flex justify-between text-xs text-gray-500 mb-1"><span>剩 $${d.remainingAmount}</span>${monthlyDisplay}<span>${p}%</span></div>
+                        <div class="w-full bg-gray-100 rounded-full h-1.5 mb-2"><div class="bg-primary h-1.5 rounded-full" style="width:${p}%"></div></div>
+                        <div class="flex justify-end gap-2"><button onclick="event.stopPropagation();openRepayModal('${d.id}','${d.name}')" type="button" class="text-xs bg-green-50 text-green-600 px-2 py-0.5 rounded font-bold">還款</button><button onclick="event.stopPropagation();App.deleteItem('debts','${d.id}')" type="button" class="text-xs text-gray-300 px-1"><i class="fa-solid fa-trash"></i></button></div>
+                    </div>`
                 }).join('');
                 document.getElementById('debt-total-remaining').innerText = `$${tr.toLocaleString()}`; document.getElementById('debt-progress-bar').style.width = `${to>0?((to-tr)/to)*100:0}%`; document.getElementById('debt-progress-text').innerText = `${to>0?((to-tr)/to*100).toFixed(0):0}%`;
                 
@@ -813,7 +891,7 @@
                     const projMatch = selProj === 'all' || t.project === selProj;
                     const catMatch = selCat === 'all' || t.category === selCat;
                     return dateMatch && projMatch && catMatch;
-                }).sort((a,b) => (b.timestamp.toDate() || 0) - (a.timestamp.toDate() || 0)); // Newest first
+                }).sort((a,b) => (a.timestamp.toDate() || 0) - (b.timestamp.toDate() || 0)); // Newest first
 
                 const map={}, total=filteredTxs.filter(t=>t.type==='expense').reduce((s,t)=>{
                     const cat = t.category || '未分類';
