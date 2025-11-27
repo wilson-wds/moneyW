@@ -283,13 +283,7 @@
     
     <template id="tpl-event-form">
         <div class="flex justify-between items-center mb-4"><h3 class="text-lg font-bold text-gray-800">大事記</h3><button type="button" onclick="closeModal()" class="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center text-gray-500"><i class="fa-solid fa-xmark"></i></button></div>
-        <form onsubmit="App.handleSaveEvent(event)" class="space-y-4">
-            <input type="hidden" name="id">
-            <input type="date" name="date" class="w-full bg-gray-50 rounded-xl p-3 text-sm" required>
-            <input type="text" name="title" class="w-full bg-gray-50 rounded-xl p-3 text-sm" placeholder="標題" required>
-            <textarea name="desc" rows="3" class="w-full bg-gray-50 rounded-xl p-3 text-sm" placeholder="內容..."></textarea>
-            <div class="flex gap-2 text-sm pt-2"><button type="button" onclick="closeModal()" class="flex-1 bg-gray-100 py-3 rounded-xl font-bold text-gray-500">取消</button><button type="submit" class="w-full bg-dark text-white py-3 rounded-xl font-bold text-sm shadow-lg">紀錄</button></div>
-        </form>
+        <form onsubmit="App.handleSaveEvent(event)" class="space-y-4"><input type="date" name="date" class="w-full bg-gray-50 rounded-xl p-3 text-sm" required><input type="text" name="title" class="w-full bg-gray-50 rounded-xl p-3 text-sm" placeholder="標題" required><textarea name="desc" rows="3" class="w-full bg-gray-50 rounded-xl p-3 text-sm" placeholder="內容..."></textarea><div class="flex gap-2 text-sm pt-2"><button type="button" onclick="closeModal()" class="flex-1 bg-gray-100 py-3 rounded-xl font-bold text-gray-500">取消</button><button type="submit" class="w-full bg-dark text-white py-3 rounded-xl font-bold text-sm shadow-lg">紀錄</button></div></form>
     </template>
 
     <!-- Details Modal Template -->
@@ -880,16 +874,14 @@
                 document.getElementById('report-stats').innerHTML = total > 0 ? Object.entries(map).sort((a,b)=>b[1]-a[1]).map(([k,v])=>`<li class="flex justify-between border-b border-gray-50 pb-1"><span>${k}</span><span class="font-bold">$${v.toLocaleString()} <span class="text-[10px] text-gray-400 font-normal">(${((v/total)*100).toFixed(1)}%)</span></span></li>`).join('') : '<li class="text-center text-gray-400 py-4">無支出數據</li>';
                 
                 // Modified Report Details to be Clickable
-                document.getElementById('report-details').innerHTML = filteredTxs.length ? filteredTxs.map(t => {
-                     const d = getTxDate(t);
-                     return `
+                document.getElementById('report-details').innerHTML = filteredTxs.length ? filteredTxs.map(t => `
                     <li class="flex justify-between items-center py-2 border-b border-gray-50 last:border-0 group cursor-pointer hover:bg-gray-50 p-1 rounded transition" onclick="openModal('transaction-modal', '${t.id}')">
                         <div class="flex-1 min-w-0 mr-2">
-                            <p class="text-xs text-gray-500 mb-0.5">${d.toLocaleDateString()} <span class="font-medium text-gray-700">${t.category}</span></p>
+                            <p class="text-xs text-gray-500 mb-0.5">${getTxDate(t).toLocaleDateString()} <span class="font-medium text-gray-700">${t.category}</span></p>
                             ${t.remarks ? `<p class="text-[10px] text-gray-400 truncate">${t.remarks}</p>` : ''}
                         </div>
                         <span class="text-xs font-bold ${t.type==='expense'?'text-red-500':'text-green-600'} whitespace-nowrap">${t.type==='expense'?'-':'+'} ${t.amount.toLocaleString()}</span>
-                    </li>`}).join('') : '<li class="text-center text-xs text-gray-400 py-2">無交易紀錄</li>';
+                    </li>`).join('') : '<li class="text-center text-xs text-gray-400 py-2">無交易紀錄</li>';
             },
             // Modal Helpers
             openModal: (t, id, defaults = {}) => {
@@ -910,7 +902,9 @@
                         c.querySelector('[name=id]').value = id;
                         if(t==='transaction-modal') { 
                             c.querySelector('[name=amount]').value=item.amount; 
-                            c.querySelector('[name=date]').value=toDateStr(item.timestamp); 
+                            // Use getTxDate to safely format date for input
+                            const safeDate = getTxDate(item);
+                            c.querySelector('[name=date]').value=toDateStr({toDate:()=>safeDate});
                             c.querySelector('[name=category]').value=item.category; 
                             c.querySelector('[name=remarks]').value=item.remarks; 
                             c.querySelector('[name=project]').value=item.project || ''; // Populate project
@@ -918,7 +912,12 @@
                         }
                         else if(t==='investment-modal') { c.querySelector('[name=name]').value=item.name; c.querySelector('[name=initial]').value=item.initialValue; if(c.querySelector('[name=isArchived]')) c.querySelector('[name=isArchived]').checked = item.isArchived || false; }
                         else if(t==='debt-modal') { c.querySelector('[name=name]').value=item.name; c.querySelector('[name=total]').value=item.totalAmount; }
-                        else if(t==='event-modal') { c.querySelector('[name=title]').value=item.title; c.querySelector('[name=desc]').value=item.description; c.querySelector('[name=date]').value=toDateStr(item.date); }
+                        else if(t==='event-modal') { 
+                            c.querySelector('[name=title]').value=item.title; 
+                            c.querySelector('[name=desc]').value=item.description; 
+                            const safeDate = getTxDate(item);
+                            c.querySelector('[name=date]').value=toDateStr({toDate:()=>safeDate}); 
+                        }
                     }
                 } else if(t==='transaction-modal' || t==='event-modal') c.querySelector('[name=date]').value = new Date().toISOString().split('T')[0];
                 
@@ -969,7 +968,11 @@
         window.closeModal = () => document.getElementById('modal-overlay').classList.add('hidden');
         window.toggleTxType = (t) => { document.getElementById('tx-type').value=t; const e=document.getElementById('btn-expense'), i=document.getElementById('btn-income'); if(t==='expense'){e.classList.add('bg-white','shadow','text-danger');e.classList.remove('text-gray-500');i.classList.remove('bg-white','shadow','text-primary');i.classList.add('text-gray-500'); renderDatalist(document.getElementById('cat-list'), State.categories.expense);}else{i.classList.add('bg-white','shadow','text-primary');i.classList.remove('text-gray-500');e.classList.remove('bg-white','shadow','text-danger');e.classList.add('text-gray-500');renderDatalist(document.getElementById('cat-list'), State.categories.income);} };
         const renderDatalist=(e,i)=>e.innerHTML=i.map(v=>`<option value="${v}">`).join('');
-        const toDateStr=(ts)=>ts.toDate().toISOString().split('T')[0];
+        // Safe date string converter
+        const toDateStr=(ts)=>{
+            if(ts && ts.toDate) return ts.toDate().toISOString().split('T')[0];
+            return new Date().toISOString().split('T')[0];
+        };
         window.App = App; App.init();
     </script>
 </body>
