@@ -389,6 +389,18 @@
                 e.preventDefault(); const f=e.target, uid=State.user.uid, init=parseFloat(f.initial.value)||0;
                 const d = { name: f.name.value, initialValue: init, isArchived: f.isArchived.checked };
                 if(!f.id.value) { d.marketValue = init; d.createdAt = Timestamp.now(); }
+                else {
+                     // Handle rename logic
+                     const oldInv = State.data.investments.find(i => i.id === f.id.value);
+                     const oldName = oldInv ? oldInv.name : '';
+                     if (oldName && oldName !== f.name.value) {
+                        const q = query(collection(db, `users/${uid}/transactions`), where("project", "==", oldName));
+                        const snap = await getDocs(q);
+                        const batch = writeBatch(db);
+                        snap.forEach(doc => batch.update(doc.ref, { project: f.name.value }));
+                        await batch.commit();
+                     }
+                }
                 f.id.value ? await updateDoc(doc(db, `users/${uid}/investments`, f.id.value), d) : (await addDoc(collection(db, `users/${uid}/investments`), d) && init>0 && await addDoc(collection(db, `users/${uid}/transactions`), {type:'expense', amount:init, category:'投資', project:f.name.value, remarks:'初始投入', timestamp:Timestamp.now()}));
                 closeModal();
             },
@@ -524,11 +536,21 @@
                     if (e.date && e.date.toDate) {
                          d = e.date.toDate();
                     } else if (e.date) {
-                         d = new Date(e.date);
+                         // Handle string date or timestamp-like object
+                         if (typeof e.date === 'string') {
+                             d = new Date(e.date);
+                         } else if (e.date.seconds) { // Fallback for raw Firestore timestamp obj
+                             d = new Date(e.date.seconds * 1000);
+                         } else {
+                             d = new Date(e.date);
+                         }
                     } else {
-                         // Fallback if no date exists
                          d = new Date(0); 
                     }
+                    
+                    // Final validation check
+                    if (isNaN(d.getTime())) d = new Date(0);
+
                     return { ...e, _parsedDate: d };
                 });
 
@@ -537,8 +559,8 @@
 
                 // 3. Group
                 eventList.forEach(e => {
-                    if (isNaN(e._parsedDate.getTime()) || e._parsedDate.getTime() === 0) return; // Skip invalid
-                    const key = e._parsedDate.toLocaleDateString('zh-TW', {year:'numeric', month:'long'});
+                    if (e._parsedDate.getTime() === 0 && !e.title) return; // Skip completely empty/invalid
+                    const key = e._parsedDate.getTime() === 0 ? '未分類日期' : e._parsedDate.toLocaleDateString('zh-TW', {year:'numeric', month:'long'});
                     if (!grouped[key]) grouped[key] = [];
                     grouped[key].push(e);
                 });
@@ -554,7 +576,7 @@
                                     <div class="absolute -left-[5px] top-1.5 w-2.5 h-2.5 bg-primary rounded-full border-2 border-white shadow-sm"></div>
                                     <div class="flex justify-between items-start">
                                         <div>
-                                            <p class="text-[10px] font-bold text-primary mb-0.5">${e._parsedDate.toLocaleDateString('zh-TW', {day:'numeric', weekday:'short'})}</p>
+                                            <p class="text-[10px] font-bold text-primary mb-0.5">${e._parsedDate.getTime() === 0 ? '---' : e._parsedDate.toLocaleDateString('zh-TW', {day:'numeric', weekday:'short'})}</p>
                                             <h4 class="font-bold text-gray-800 text-sm">${e.title}</h4>
                                             <p class="text-xs text-gray-500 mt-1 leading-relaxed whitespace-pre-wrap">${e.description || ''}</p>
                                         </div>
