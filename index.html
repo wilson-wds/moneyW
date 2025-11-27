@@ -35,7 +35,6 @@
         }
         .hide-scrollbar::-webkit-scrollbar { display: none; }
         .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
-        .fab { box-shadow: 0 4px 15px rgba(79, 70, 229, 0.4); }
         .card-shadow { box-shadow: 0 2px 8px rgba(0,0,0,0.04); border: 1px solid rgba(0,0,0,0.02); }
         .animate-fade { animation: fadeIn 0.3s ease-in-out; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
@@ -62,7 +61,6 @@
 
     <!-- Main App Frame -->
     <div id="app-container" class="hidden app-frame">
-        <!-- Header -->
         <header class="bg-white px-4 py-3 flex justify-between items-center shadow-sm z-20 shrink-0">
             <h1 class="font-bold text-gray-800 flex items-center gap-2"><i class="fa-solid fa-chart-pie text-primary"></i> <span id="page-title">總覽</span></h1>
             <div class="flex items-center gap-3">
@@ -71,7 +69,6 @@
             </div>
         </header>
 
-        <!-- Content -->
         <main id="main-content" class="flex-1 overflow-y-auto hide-scrollbar relative bg-gray-50 pb-20">
             <div id="view-accounting" class="view-section animate-fade"></div>
             <div id="view-investment" class="view-section hidden p-3 space-y-3 animate-fade"></div>
@@ -80,20 +77,16 @@
             <div id="view-events" class="view-section hidden p-3 space-y-3 animate-fade"></div>
         </main>
 
-        <!-- Nav -->
         <nav class="bg-white border-t border-gray-100 px-2 py-2 flex justify-between items-center text-[10px] font-medium text-gray-400 z-50 shrink-0 pb-safe">
             <button id="nav-accounting" onclick="App.switchTab('accounting', this)" class="nav-btn active flex flex-col items-center gap-1 transition p-1 min-w-[3.5rem]"><i class="fa-solid fa-house text-lg"></i> 記帳</button>
             <button onclick="App.switchTab('investment', this)" class="nav-btn flex flex-col items-center gap-1 transition p-1 min-w-[3.5rem]"><i class="fa-solid fa-arrow-trend-up text-lg"></i> 投資</button>
             <button onclick="App.switchTab('debt', this)" class="nav-btn flex flex-col items-center gap-1 transition p-1 min-w-[3.5rem]"><i class="fa-solid fa-credit-card text-lg"></i> 負債</button>
-            <div class="relative -top-6 pointer-events-none mx-1">
-                <button onclick="App.openModal('transaction-modal')" class="fab w-12 h-12 bg-primary rounded-full text-white text-xl flex items-center justify-center transition hover:scale-105 active:scale-95 shadow-xl shadow-primary/30 pointer-events-auto"><i class="fa-solid fa-plus"></i></button>
-            </div>
+            <div class="relative -top-6 pointer-events-none mx-1"><button onclick="App.openModal('transaction-modal')" class="fab w-12 h-12 bg-primary rounded-full text-white text-xl flex items-center justify-center transition hover:scale-105 active:scale-95 shadow-xl shadow-primary/30 pointer-events-auto"><i class="fa-solid fa-plus"></i></button></div>
             <button onclick="App.switchTab('events', this)" class="nav-btn flex flex-col items-center gap-1 transition p-1 min-w-[3.5rem]"><i class="fa-solid fa-calendar-day text-lg"></i> 大事記</button>
             <button onclick="App.switchTab('reports', this)" class="nav-btn flex flex-col items-center gap-1 transition p-1 min-w-[3.5rem]"><i class="fa-solid fa-chart-simple text-lg"></i> 報表</button>
         </nav>
     </div>
 
-    <!-- Modal System -->
     <div id="modal-overlay" class="fixed inset-0 bg-black/40 z-50 hidden flex items-end sm:items-center justify-center animate-fade backdrop-blur-sm">
         <div id="modal-content" class="bg-white w-full max-w-[28rem] rounded-t-3xl sm:rounded-2xl p-6 shadow-2xl transform transition-transform duration-300 pb-10 sm:pb-6 max-h-[85vh] overflow-y-auto hide-scrollbar"></div>
     </div>
@@ -122,7 +115,6 @@
         <div class="px-3 pb-4"><ul id="tx-list" class="space-y-3"></ul></div>
     </template>
 
-    <!-- Template: Investment -->
     <template id="tpl-investment">
         <div class="flex justify-between items-center mb-3 px-1">
             <h3 class="text-sm font-bold text-gray-600">投資概況</h3>
@@ -141,7 +133,7 @@
             <button class="tab-pill flex-1 py-1.5 rounded-lg text-xs font-bold text-gray-500 transition" onclick="App.switchInvTab('archived', this)">已結案</button>
         </div>
         <div class="flex justify-between items-center px-1 mb-2">
-            <span class="text-xs font-bold text-gray-500">投資帳戶 (點擊查看明細)</span>
+            <span class="text-xs font-bold text-gray-500">投資帳戶</span>
             <button onclick="App.openModal('investment-modal')" class="text-primary text-xs font-bold bg-primary/10 px-2 py-1 rounded hover:bg-primary/20 transition">+ 新增</button>
         </div>
         <div id="inv-list" class="grid gap-2"></div>
@@ -151,7 +143,6 @@
         </div>
     </template>
 
-    <!-- Template: Debt -->
     <template id="tpl-debt">
         <div class="flex justify-between items-center mb-3 px-1">
             <h3 class="text-sm font-bold text-gray-600">負債概況</h3>
@@ -165,7 +156,7 @@
             <div class="w-full bg-gray-100 rounded-full h-2"><div id="debt-progress-bar" class="bg-warning h-2 rounded-full transition-all duration-500" style="width: 0%"></div></div>
         </div>
         <div class="flex justify-between items-center px-1 mb-2">
-            <span class="text-xs font-bold text-gray-500">負債項目 (點擊查看明細)</span>
+            <span class="text-xs font-bold text-gray-500">負債項目</span>
             <button onclick="App.openModal('debt-modal')" class="text-primary text-xs font-bold bg-primary/10 px-2 py-1 rounded hover:bg-primary/20 transition">+ 新增</button>
         </div>
         <div id="debt-list" class="space-y-2"></div>
@@ -175,7 +166,6 @@
         </div>
     </template>
 
-    <!-- Template: Reports -->
     <template id="tpl-reports">
         <div class="bg-white p-3 rounded-xl card-shadow mb-2 space-y-2">
             <div class="flex gap-2">
@@ -187,12 +177,8 @@
                 </select>
             </div>
             <div class="flex gap-2">
-                <select id="report-project" class="bg-gray-50 rounded-lg px-2 py-1.5 text-xs font-bold border-transparent focus:border-primary flex-1 min-w-0" onchange="App.renderReports()">
-                    <option value="all">全部專案</option>
-                </select>
-                <select id="report-category" class="bg-gray-50 rounded-lg px-2 py-1.5 text-xs font-bold border-transparent focus:border-primary flex-1 min-w-0" onchange="App.renderReports()">
-                    <option value="all">全部分類</option>
-                </select>
+                <select id="report-project" class="bg-gray-50 rounded-lg px-2 py-1.5 text-xs font-bold border-transparent focus:border-primary flex-1 min-w-0" onchange="App.renderReports()"></select>
+                <select id="report-category" class="bg-gray-50 rounded-lg px-2 py-1.5 text-xs font-bold border-transparent focus:border-primary flex-1 min-w-0" onchange="App.renderReports()"></select>
                 <button type="button" onclick="App.exportReport()" class="bg-gray-100 px-3 py-1.5 rounded-lg text-gray-500 hover:text-primary hover:bg-blue-50 transition flex-shrink-0"><i class="fa-solid fa-file-export"></i></button>
             </div>
         </div>
@@ -208,7 +194,6 @@
         </div>
     </template>
 
-    <!-- Template: Events -->
     <template id="tpl-events">
         <button type="button" onclick="App.openModal('event-modal')" class="w-full py-3 border-2 border-dashed border-gray-300 rounded-2xl text-gray-400 font-bold hover:bg-gray-50 hover:border-gray-400 transition mb-2 text-xs">+ 紀錄大事記</button>
         <div id="event-list" class="space-y-4 pl-2"></div>
@@ -224,9 +209,7 @@
             </div>
         </div>
         <form onsubmit="App.handleSaveTransaction(event)" class="space-y-4">
-            <input type="hidden" name="id">
-            <input type="hidden" name="project">
-            <input type="hidden" name="legacy_inv_id"> 
+            <input type="hidden" name="id"><input type="hidden" name="project"><input type="hidden" name="legacy_inv_id">
             <div class="flex bg-gray-100 p-1 rounded-xl">
                 <button type="button" class="type-btn flex-1 py-2 rounded-lg text-xs font-bold bg-white shadow text-danger transition" onclick="App.toggleTxType('expense')" id="btn-expense">支出</button>
                 <button type="button" class="type-btn flex-1 py-2 rounded-lg text-xs font-bold text-gray-500 transition" onclick="App.toggleTxType('income')" id="btn-income">收入</button>
@@ -239,42 +222,36 @@
             </div>
             <div><label class="text-[10px] font-bold text-gray-400 ml-1">專案 / 帳戶 (選填)</label><input type="text" name="project" class="w-full bg-gray-50 rounded-xl px-3 py-2.5 text-xs font-medium focus:bg-white focus:ring-1 focus:ring-primary transition" placeholder="例如: 台積電"></div>
             <div><label class="text-[10px] font-bold text-gray-400 ml-1">備註</label><input type="text" name="remarks" class="w-full bg-gray-50 rounded-xl px-3 py-2.5 text-xs font-medium focus:bg-white focus:ring-1 focus:ring-primary transition" placeholder="寫點什麼..."></div>
-            <div class="flex gap-2 pt-2"><button type="button" onclick="App.closeModal()" class="flex-1 bg-gray-100 py-3.5 rounded-xl font-bold text-gray-500 text-sm">取消</button><button type="submit" class="flex-1 bg-primary text-white font-bold py-3.5 rounded-xl shadow-lg shadow-primary/30 text-sm">儲存</button></div>
+            <button type="submit" class="w-full bg-primary text-white font-bold py-3.5 rounded-xl shadow-lg shadow-primary/30 text-sm mt-2">儲存</button>
         </form>
     </template>
 
-    <!-- Other Modals -->
     <template id="tpl-investment-modal">
         <div class="flex justify-between items-center mb-4"><h3 class="text-lg font-bold text-gray-800">投資帳戶</h3><button type="button" onclick="App.closeModal()" class="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center text-gray-500"><i class="fa-solid fa-xmark"></i></button></div>
         <form onsubmit="App.handleSaveInvestment(event)" class="space-y-4">
             <input type="hidden" name="id"><input type="text" name="name" class="w-full bg-gray-50 rounded-xl p-3 text-sm focus:bg-white border-transparent focus:border-primary transition" placeholder="名稱" required><input type="number" name="initial" class="w-full bg-gray-50 rounded-xl p-3 text-sm focus:bg-white border-transparent focus:border-primary transition" placeholder="初始成本">
             <div class="flex items-center gap-2 px-1"><input type="checkbox" name="isArchived" id="inv-archived" class="rounded text-primary focus:ring-primary"><label for="inv-archived" class="text-sm text-gray-600">已結案 (歸檔)</label></div>
-            <div class="flex gap-2 text-sm pt-2"><button type="button" onclick="App.closeModal()" class="flex-1 bg-gray-100 py-3 rounded-xl font-bold text-gray-500">取消</button><button type="submit" class="flex-1 bg-primary text-white py-3 rounded-xl font-bold shadow-lg shadow-primary/30">儲存</button></div>
+            <button type="submit" class="w-full bg-primary text-white font-bold py-3 rounded-xl shadow-lg text-sm">儲存</button>
         </form>
     </template>
     <template id="tpl-debt-modal">
         <div class="flex justify-between items-center mb-4"><h3 class="text-lg font-bold text-gray-800">負債項目</h3><button type="button" onclick="App.closeModal()" class="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center text-gray-500"><i class="fa-solid fa-xmark"></i></button></div>
-        <form onsubmit="App.handleSaveDebt(event)" class="space-y-4">
-            <input type="hidden" name="id"><input type="text" name="name" class="w-full bg-gray-50 rounded-xl p-3 text-sm" placeholder="名稱" required><input type="number" name="total" class="w-full bg-gray-50 rounded-xl p-3 text-sm" placeholder="總金額" required>
-            <div class="flex gap-2 text-sm pt-2"><button type="button" onclick="App.closeModal()" class="flex-1 bg-gray-100 py-3 rounded-xl font-bold text-gray-500">取消</button><button type="submit" class="flex-1 bg-warning text-white py-3 rounded-xl font-bold shadow-lg shadow-warning/30">儲存</button></div>
-        </form>
+        <form onsubmit="App.handleSaveDebt(event)" class="space-y-4"><input type="hidden" name="id"><input type="text" name="name" class="w-full bg-gray-50 rounded-xl p-3 text-sm" placeholder="名稱" required><input type="number" name="total" class="w-full bg-gray-50 rounded-xl p-3 text-sm" placeholder="總金額" required><button type="submit" class="w-full bg-warning text-white font-bold py-3 rounded-xl shadow-lg text-sm">儲存</button></form>
     </template>
     <template id="tpl-budget-form">
         <div class="flex justify-between items-center mb-4"><h3 class="text-lg font-bold text-gray-800" id="budget-modal-title">新增預算</h3><button type="button" onclick="App.closeModal()" class="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center text-gray-500"><i class="fa-solid fa-xmark"></i></button></div>
-        <form onsubmit="App.handleSaveBudget(event)" class="space-y-4">
-            <input type="hidden" name="id"><input type="hidden" name="context" id="budget-context"><select name="targetId" id="budget-target" class="w-full bg-gray-50 rounded-xl p-3 text-sm appearance-none" required></select><input type="number" name="amount" class="w-full bg-gray-50 rounded-xl p-3 text-sm" placeholder="金額" required><input type="date" name="date" class="w-full bg-gray-50 rounded-xl p-3 text-sm" required><input type="text" name="desc" class="w-full bg-gray-50 rounded-xl p-3 text-sm placeholder-blue-400 text-blue-600 font-medium" placeholder="說明" required>
-            <div class="flex gap-2 text-sm pt-2"><button type="button" onclick="App.closeModal()" class="flex-1 bg-gray-100 py-3 rounded-xl font-bold text-gray-500">取消</button><button type="submit" class="w-full bg-primary text-white py-3 rounded-xl font-bold shadow-lg shadow-primary/30 text-sm">設定</button></div>
-        </form>
+        <form onsubmit="App.handleSaveBudget(event)" class="space-y-4"><input type="hidden" name="id"><input type="hidden" name="context" id="budget-context"><select name="targetId" id="budget-target" class="w-full bg-gray-50 rounded-xl p-3 text-sm appearance-none" required></select><input type="number" name="amount" class="w-full bg-gray-50 rounded-xl p-3 text-sm" placeholder="金額" required><input type="date" name="date" class="w-full bg-gray-50 rounded-xl p-3 text-sm" required><input type="text" name="desc" class="w-full bg-gray-50 rounded-xl p-3 text-sm placeholder-blue-400 text-blue-600 font-medium" placeholder="說明" required><button type="submit" class="w-full bg-primary text-white py-3 rounded-xl font-bold shadow-lg shadow-primary/30 text-sm">設定</button></form>
     </template>
     <template id="tpl-repay-form">
         <div class="flex justify-between items-center mb-4"><h3 class="text-lg font-bold text-gray-800">還款</h3><button type="button" onclick="App.closeModal()" class="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center text-gray-500"><i class="fa-solid fa-xmark"></i></button></div>
         <p id="repay-debt-name" class="text-xs text-gray-500 mb-4"></p>
-        <form onsubmit="App.handleRepayDebt(event)" class="space-y-4"><input type="hidden" name="id" id="repay-id"><input type="number" name="amount" class="w-full text-3xl font-bold border-b py-2 focus:border-primary text-center focus:outline-none" placeholder="金額" required inputmode="decimal"><input type="date" name="date" class="w-full bg-gray-50 rounded-xl p-3 text-sm" required><div class="flex gap-2 text-sm pt-2"><button type="button" onclick="App.closeModal()" class="flex-1 bg-gray-100 py-3 rounded-xl font-bold text-gray-500">取消</button><button type="submit" class="w-full bg-green-500 text-white py-3 rounded-xl font-bold shadow-lg shadow-green-500/30">確認</button></div></form>
+        <form onsubmit="App.handleRepayDebt(event)" class="space-y-4"><input type="hidden" name="id" id="repay-id"><input type="number" name="amount" class="w-full text-3xl font-bold border-b py-2 focus:border-primary text-center focus:outline-none" placeholder="金額" required inputmode="decimal"><input type="date" name="date" class="w-full bg-gray-50 rounded-xl p-3 text-sm" required><button type="submit" class="w-full bg-green-500 text-white py-3 rounded-xl font-bold shadow-lg shadow-green-500/30">確認</button></form>
     </template>
-    <template id="tpl-event-form">
+    <template id="tpl-event-modal">
         <div class="flex justify-between items-center mb-4"><h3 class="text-lg font-bold text-gray-800">大事記</h3><button type="button" id="btn-delete-event" class="hidden w-8 h-8 rounded-full bg-red-50 text-red-500 flex items-center justify-center hover:bg-red-100 transition"><i class="fa-solid fa-trash-can"></i></button><button type="button" onclick="App.closeModal()" class="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center text-gray-500"><i class="fa-solid fa-xmark"></i></button></div>
-        <form onsubmit="App.handleSaveEvent(event)" class="space-y-4"><input type="hidden" name="id"><input type="date" name="date" class="w-full bg-gray-50 rounded-xl p-3 text-sm" required><input type="text" name="title" class="w-full bg-gray-50 rounded-xl p-3 text-sm" placeholder="標題" required><textarea name="desc" rows="3" class="w-full bg-gray-50 rounded-xl p-3 text-sm" placeholder="內容..."></textarea><div class="flex gap-2 text-sm pt-2"><button type="button" onclick="App.closeModal()" class="flex-1 bg-gray-100 py-3 rounded-xl font-bold text-gray-500">取消</button><button type="submit" class="w-full bg-dark text-white py-3 rounded-xl font-bold text-sm shadow-lg">紀錄</button></div></form>
+        <form onsubmit="App.handleSaveEvent(event)" class="space-y-4"><input type="hidden" name="id"><input type="date" name="date" class="w-full bg-gray-50 rounded-xl p-3 text-sm" required><input type="text" name="title" class="w-full bg-gray-50 rounded-xl p-3 text-sm" placeholder="標題" required><textarea name="desc" rows="3" class="w-full bg-gray-50 rounded-xl p-3 text-sm" placeholder="內容..."></textarea><button type="submit" class="w-full bg-dark text-white py-3 rounded-xl font-bold text-sm shadow-lg">紀錄</button></form>
     </template>
+
     <template id="tpl-details-modal">
         <div class="flex justify-between items-center mb-4"><h3 class="text-lg font-bold text-gray-800 details-title truncate pr-4"></h3><button type="button" onclick="App.closeModal()" class="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center text-gray-500 flex-shrink-0"><i class="fa-solid fa-xmark"></i></button></div>
         <div class="max-h-[60vh] overflow-y-auto hide-scrollbar"><div class="details-budget-section mb-4 hidden"><h4 class="text-xs font-bold text-gray-500 mb-2 border-b pb-1">預算 / 計畫</h4><ul class="details-budget-list space-y-1"></ul></div><div><h4 class="text-xs font-bold text-gray-500 mb-2 border-b pb-1">交易紀錄</h4><ul class="details-list space-y-2"><li class="text-center text-gray-400 py-4">載入中...</li></ul></div></div>
@@ -305,6 +282,7 @@
             return new Date(); // Fail-safe to today
         };
         const toDateStr = (ts) => getTxDate({timestamp:ts}).toISOString().split('T')[0];
+        const renderDatalist = (e, i) => { if(e) e.innerHTML = i.map(v => `<option value="${v}">`).join(''); };
 
         window.App = {
             init: () => onAuthStateChanged(auth, u => {
@@ -314,6 +292,7 @@
                 if(u) {
                     document.getElementById('user-info').innerText = u.isAnonymous ? '訪客' : u.displayName;
                     App.switchTab('accounting', document.querySelector('#nav-accounting'));
+                    // Crucial: Wait for DOM rendering before listeners
                     setTimeout(() => App.startListeners(u.uid), 100);
                 } else App.stopListeners();
             }),
@@ -328,9 +307,9 @@
                 listen('investmentBudgets', 'investmentBudgets');
                 listen('debtBudgets', 'debtBudgets');
                 
-                // Legacy Investment Loader
                 State.listeners.push(onSnapshot(query(collection(db, `users/${uid}/investments`)), async (s) => {
                     State.data.investments = s.docs.map(d=>({id:d.id, ...d.data()}));
+                    // Safe Legacy Loader
                     for (let inv of State.data.investments) {
                         if (!State.data.legacyTxs[inv.id]) {
                             try {
@@ -383,7 +362,6 @@
                 document.querySelectorAll('.nav-btn').forEach(e => e.classList.remove('active', 'text-primary'));
                 if(btn) btn.classList.add('active', 'text-primary');
                 document.getElementById('page-title').innerText = {accounting:'總覽', investment:'投資', debt:'負債', reports:'報表', events:'大事記'}[tab];
-                
                 App.refreshCurrentView();
             },
             
@@ -422,7 +400,7 @@
             handleSaveTransaction: async (e) => {
                 e.preventDefault(); const f=e.target, uid=State.user.uid, id=f.id.value, lid=f.legacy_inv_id.value;
                 const d = { type: f.type.value, amount: parseFloat(f.amount.value), category: f.category.value, remarks: f.remarks.value, timestamp: Timestamp.fromDate(new Date(f.date.value)), project: f.project.value };
-                if (lid && id) {
+                if (lid && id) { // Auto-Migration
                     const batch = writeBatch(db);
                     batch.set(doc(collection(db, `users/${uid}/transactions`)), d);
                     batch.delete(doc(db, `users/${uid}/investments/${lid}/transactions`, id));
@@ -432,12 +410,12 @@
                 }
                 App.closeModal();
             },
-            // Simplified Handlers
             handleSaveInvestment: async (e) => { e.preventDefault(); const f=e.target; const d={name:f.name.value, initialValue:parseFloat(f.initial.value)||0, isArchived:f.isArchived.checked}; if(!f.id.value){d.marketValue=d.initialValue;d.createdAt=Timestamp.now();} f.id.value?await updateDoc(doc(db,`users/${State.user.uid}/investments`,f.id.value),d):(await addDoc(collection(db,`users/${State.user.uid}/investments`),d) && d.initialValue>0 && await addDoc(collection(db,`users/${State.user.uid}/transactions`),{type:'expense',amount:d.initialValue,category:'投資',project:f.name.value,remarks:'初始投入',timestamp:Timestamp.now()})); App.closeModal(); },
             handleSaveDebt: async (e) => { e.preventDefault(); const f=e.target; const d={name:f.name.value, totalAmount:parseFloat(f.total.value)}; if(!f.id.value){d.remainingAmount=d.totalAmount;d.createdAt=Timestamp.now();} f.id.value?await updateDoc(doc(db,`users/${State.user.uid}/debts`,f.id.value),d):await addDoc(collection(db,`users/${State.user.uid}/debts`),d); App.closeModal(); },
             handleSaveBudget: async (e) => { e.preventDefault(); const f=e.target; const d={targetId:f.targetId.value,amount:parseFloat(f.amount.value),expectedDate:Timestamp.fromDate(new Date(f.date.value)),description:f.desc.value}; if(!f.id.value){d.isRealized=false;d.createdAt=Timestamp.now();} f.id.value?await updateDoc(doc(db,`users/${State.user.uid}/${f.context.value==='investment'?'investmentBudgets':'debtBudgets'}`,f.id.value),d):await addDoc(collection(db,`users/${State.user.uid}/${f.context.value==='investment'?'investmentBudgets':'debtBudgets'}`),d); App.closeModal(); },
             handleRepayDebt: async (e) => { e.preventDefault(); const f=e.target, amt=parseFloat(f.amount.value); const debt=State.data.debts.find(d=>d.id===f.id.value); const batch=writeBatch(db); batch.update(doc(db,`users/${State.user.uid}/debts`,f.id.value),{remainingAmount:increment(-amt)}); batch.set(doc(collection(db,`users/${State.user.uid}/transactions`)),{type:'expense',amount:amt,category:'負債還款',project:debt.name,remarks:`償還: ${debt.name}`,timestamp:Timestamp.fromDate(new Date(f.date.value))}); await batch.commit(); App.closeModal(); },
-            handleSaveEvent: async(e) => { e.preventDefault(); const f=e.target; const d={title:f.title.value, description:f.desc.value, date:Timestamp.fromDate(new Date(f.date.value))}; f.id.value?await updateDoc(doc(db,`users/${State.user.uid}/events`,f.id.value),d):await addDoc(collection(db,`users/${State.user.uid}/events`),d); App.closeModal(); },
+            handleSaveEvent: async(e) => { e.preventDefault(); const f=e.target, uid=State.user.uid; const d = { title:f.title.value, description:f.desc.value, date:Timestamp.fromDate(new Date(f.date.value)) }; f.id.value?await updateDoc(doc(db,`users/${uid}/events`,f.id.value),d):await addDoc(collection(db,`users/${uid}/events`),d); App.closeModal(); },
+            
             deleteTransaction: async (id, legacyInvId) => { if(!confirm('確定刪除?')) return; let path = `users/${State.user.uid}/transactions/${id}`; if (legacyInvId && legacyInvId !== 'undefined') path = `users/${State.user.uid}/investments/${legacyInvId}/transactions/${id}`; await deleteDoc(doc(db, path)); App.closeModal(); },
             deleteItem: async (c,id) => { if(confirm('刪除?')) await deleteDoc(doc(db, `users/${State.user.uid}/${c}`, id)); },
             updateMarketValue: async (id,old) => { const v=prompt("目前市值:",old); if(v&&!isNaN(v)) await updateDoc(doc(db, `users/${State.user.uid}/investments`, id), {marketValue:parseFloat(v)}); },
@@ -541,12 +519,13 @@
                 const c = document.getElementById('modal-content'); 
                 c.innerHTML = document.getElementById(`tpl-${t}`).innerHTML;
                 if(t==='transaction-modal') {
-                    document.getElementById('cat-list').innerHTML = State.categories.expense.map(v=>`<option value="${v}">`).join('');
+                    renderDatalist(c.querySelector('#cat-list'), State.categories.expense);
                     if(defaults.project) c.querySelector('[name=project]').value = defaults.project;
                     if(defaults.category) c.querySelector('[name=category]').value = defaults.category;
                 }
                 if(id) {
                     let item = State.data[t==='transaction-modal'?'transactions':t==='investment-modal'?'investments':t==='debt-modal'?'debts':t==='event-modal'?'events':[]].find(i=>i.id===id);
+                    // Fallback for legacy items in reports/details
                     if(!item && t==='transaction-modal') item = App.getAllTransactions().find(i=>i.id===id);
 
                     if(item) {
@@ -577,7 +556,6 @@
                 if(t==='transaction-modal' && id) {
                      const delBtn = c.querySelector('#btn-delete-tx');
                      delBtn.classList.remove('hidden');
-                     // Smart delete handling
                      let legacyInvId = undefined;
                      const item = App.getAllTransactions().find(i=>i.id===id);
                      if(item && item.legacyInvId) legacyInvId = item.legacyInvId;
