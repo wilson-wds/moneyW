@@ -215,7 +215,7 @@
         </div>
         <form onsubmit="App.handleSaveTransaction(event)" class="space-y-4">
             <input type="hidden" name="id">
-            <input type="hidden" name="project">
+            
             <div class="flex bg-gray-100 p-1 rounded-xl">
                 <button type="button" class="type-btn flex-1 py-2 rounded-lg text-xs font-bold bg-white shadow text-danger transition" onclick="toggleTxType('expense')" id="btn-expense">支出</button>
                 <button type="button" class="type-btn flex-1 py-2 rounded-lg text-xs font-bold text-gray-500 transition" onclick="toggleTxType('income')" id="btn-income">收入</button>
@@ -226,6 +226,9 @@
                 <div><label class="text-[10px] font-bold text-gray-400 ml-1">日期</label><input type="date" name="date" class="w-full bg-gray-50 rounded-xl px-3 py-2.5 text-xs font-medium focus:bg-white focus:ring-1 focus:ring-primary transition" required></div>
                 <div><label class="text-[10px] font-bold text-gray-400 ml-1">分類</label><input list="cat-list" name="category" class="w-full bg-gray-50 rounded-xl px-3 py-2.5 text-xs font-medium focus:bg-white focus:ring-1 focus:ring-primary transition" placeholder="選擇分類" required><datalist id="cat-list"></datalist></div>
             </div>
+            <!-- Added Project Field -->
+            <div><label class="text-[10px] font-bold text-gray-400 ml-1">專案 / 帳戶 (選填)</label><input type="text" name="project" class="w-full bg-gray-50 rounded-xl px-3 py-2.5 text-xs font-medium focus:bg-white focus:ring-1 focus:ring-primary transition" placeholder="例如: 台積電、學貸..."></div>
+            
             <div><label class="text-[10px] font-bold text-gray-400 ml-1">備註</label><input type="text" name="remarks" class="w-full bg-gray-50 rounded-xl px-3 py-2.5 text-xs font-medium focus:bg-white focus:ring-1 focus:ring-primary transition" placeholder="寫點什麼..."></div>
             <div class="flex gap-2 pt-2"><button type="button" onclick="closeModal()" class="flex-1 bg-gray-100 py-3.5 rounded-xl font-bold text-gray-500 text-sm">取消</button><button type="submit" class="flex-1 bg-primary text-white font-bold py-3.5 rounded-xl shadow-lg shadow-primary/30 text-sm">儲存</button></div>
         </form>
@@ -356,12 +359,27 @@
                     for (let inv of State.data.investments) {
                         if (!State.data.legacyTxs[inv.id]) {
                             const subSnap = await getDocs(collection(db, `users/${uid}/investments/${inv.id}/transactions`));
-                            State.data.legacyTxs[inv.id] = subSnap.docs.map(d => ({
-                                id: d.id, ...d.data(), 
-                                timestamp: d.data().timestamp || d.data().date, 
-                                remarks: d.data().remarks || d.data().remark, 
-                                isSub: true
-                            }));
+                            State.data.legacyTxs[inv.id] = subSnap.docs.map(d => {
+                                const data = d.data();
+                                // Safe timestamp normalization for legacy data
+                                let ts = data.timestamp || data.date;
+                                if (ts && !ts.toDate) { // If not a firestore timestamp object
+                                    // Try creating a date object
+                                    const dateObj = new Date(ts);
+                                    if (!isNaN(dateObj.getTime())) {
+                                        ts = Timestamp.fromDate(dateObj);
+                                    } else {
+                                        ts = Timestamp.fromDate(new Date(0)); // Fallback
+                                    }
+                                }
+                                
+                                return {
+                                    id: d.id, ...data, 
+                                    timestamp: ts,
+                                    remarks: data.remarks || data.remark, 
+                                    isSub: true
+                                };
+                            });
                         }
                     }
                     App.renderInvestments();
@@ -795,7 +813,7 @@
                     const projMatch = selProj === 'all' || t.project === selProj;
                     const catMatch = selCat === 'all' || t.category === selCat;
                     return dateMatch && projMatch && catMatch;
-                });
+                }).sort((a,b) => (b.timestamp.toDate() || 0) - (a.timestamp.toDate() || 0)); // Newest first
 
                 const map={}, total=filteredTxs.filter(t=>t.type==='expense').reduce((s,t)=>{
                     const cat = t.category || '未分類';
@@ -806,8 +824,9 @@
                 State.chart = new Chart(document.getElementById('expense-chart').getContext('2d'), { type: 'doughnut', data: { labels: Object.keys(map), datasets: [{ data: Object.values(map), backgroundColor: ['#4F46E5','#10B981','#F59E0B','#EF4444','#EC4899','#8B5CF6'], borderWidth:0 }] }, options: {responsive:true, maintainAspectRatio:false, plugins:{legend:{position:'right',labels:{font:{size:10},boxWidth:10}}}} });
                 document.getElementById('report-stats').innerHTML = total > 0 ? Object.entries(map).sort((a,b)=>b[1]-a[1]).map(([k,v])=>`<li class="flex justify-between border-b border-gray-50 pb-1"><span>${k}</span><span class="font-bold">$${v.toLocaleString()} <span class="text-[10px] text-gray-400 font-normal">(${((v/total)*100).toFixed(1)}%)</span></span></li>`).join('') : '<li class="text-center text-gray-400 py-4">無支出數據</li>';
                 
+                // Modified Report Details to be Clickable
                 document.getElementById('report-details').innerHTML = filteredTxs.length ? filteredTxs.map(t => `
-                    <li class="flex justify-between items-center py-2 border-b border-gray-50 last:border-0">
+                    <li class="flex justify-between items-center py-2 border-b border-gray-50 last:border-0 group cursor-pointer hover:bg-gray-50 p-1 rounded transition" onclick="openModal('transaction-modal', '${t.id}')">
                         <div class="flex-1 min-w-0 mr-2">
                             <p class="text-xs text-gray-500 mb-0.5">${t.timestamp.toDate().toLocaleDateString()} <span class="font-medium text-gray-700">${t.category}</span></p>
                             ${t.remarks ? `<p class="text-[10px] text-gray-400 truncate">${t.remarks}</p>` : ''}
@@ -822,10 +841,24 @@
                 if(defaults.project && c.querySelector('[name=project]')) c.querySelector('[name=project]').value = defaults.project;
                 if(defaults.category && c.querySelector('[name=category]')) c.querySelector('[name=category]').value = defaults.category;
                 if(id) {
-                    const item = State.data[t==='transaction-modal'?'transactions':t==='investment-modal'?'investments':t==='debt-modal'?'debts':t==='event-modal'?'events':[]].find(i=>i.id===id);
+                    // Try to find in transactions, but also check merged list for report edits
+                    let item = State.data[t==='transaction-modal'?'transactions':t==='investment-modal'?'investments':t==='debt-modal'?'debts':t==='event-modal'?'events':[]].find(i=>i.id===id);
+                    
+                    // Fallback: Search in ALL merged transactions if not found in global list (legacy handling)
+                    if (!item && t==='transaction-modal') {
+                        item = App.getAllTransactions().find(i => i.id === id);
+                    }
+
                     if(item) {
                         c.querySelector('[name=id]').value = id;
-                        if(t==='transaction-modal') { c.querySelector('[name=amount]').value=item.amount; c.querySelector('[name=date]').value=toDateStr(item.timestamp); c.querySelector('[name=category]').value=item.category; c.querySelector('[name=remarks]').value=item.remarks; toggleTxType(item.type); }
+                        if(t==='transaction-modal') { 
+                            c.querySelector('[name=amount]').value=item.amount; 
+                            c.querySelector('[name=date]').value=toDateStr(item.timestamp); 
+                            c.querySelector('[name=category]').value=item.category; 
+                            c.querySelector('[name=remarks]').value=item.remarks; 
+                            c.querySelector('[name=project]').value=item.project || ''; // Populate project
+                            toggleTxType(item.type); 
+                        }
                         else if(t==='investment-modal') { c.querySelector('[name=name]').value=item.name; c.querySelector('[name=initial]').value=item.initialValue; if(c.querySelector('[name=isArchived]')) c.querySelector('[name=isArchived]').checked = item.isArchived || false; }
                         else if(t==='debt-modal') { c.querySelector('[name=name]').value=item.name; c.querySelector('[name=total]').value=item.totalAmount; }
                         else if(t==='event-modal') { c.querySelector('[name=title]').value=item.title; c.querySelector('[name=desc]').value=item.description; c.querySelector('[name=date]').value=toDateStr(item.date); }
