@@ -408,7 +408,12 @@
                 batch.set(doc(collection(db, `users/${uid}/transactions`)), { type:'expense', amount:amt, category:'負債還款', project:debt.name, remarks:`償還: ${debt.name}`, timestamp:Timestamp.fromDate(new Date(f.date.value)) });
                 await batch.commit(); closeModal();
             },
-            handleAddEvent: async(e) => { e.preventDefault(); const f=e.target; await addDoc(collection(db, `users/${State.user.uid}/events`), {title:f.title.value, description:f.desc.value, date:Timestamp.fromDate(new Date(f.date.value))}); closeModal(); },
+            handleSaveEvent: async(e) => {
+                e.preventDefault(); const f=e.target, uid=State.user.uid;
+                const d = { title:f.title.value, description:f.desc.value, date:Timestamp.fromDate(new Date(f.date.value)) };
+                f.id.value ? await updateDoc(doc(db, `users/${uid}/events`, f.id.value), d) : await addDoc(collection(db, `users/${uid}/events`), d);
+                closeModal();
+            },
             
             // Actions
             deleteItem: async (c,id) => confirm('刪除?') && await deleteDoc(doc(db, `users/${State.user.uid}/${c}`, id)),
@@ -502,13 +507,15 @@
                     grouped[dateKey].list.push(t);
                     if (t.type === 'income') grouped[dateKey].income += t.amount; else grouped[dateKey].expense += t.amount;
                 });
-                document.getElementById('tx-list').innerHTML = Object.keys(grouped).length ? Object.entries(grouped).map(([date, data]) => `
-                    <div class="mb-4"><div class="flex justify-between items-center text-xs font-bold text-gray-400 mb-2 px-1 sticky top-0"><span>${date}</span><div class="flex gap-2"><span class="text-green-600/70">+${data.income}</span> <span class="text-red-500/70">-${data.expense}</span></div></div>
+                document.getElementById('tx-list').innerHTML = Object.keys(grouped).length ? Object.entries(grouped).map(([date, data]) => {
+                    const balance = data.income - data.expense;
+                    return `
+                    <div class="mb-4"><div class="flex justify-between items-center text-xs font-bold text-gray-400 mb-2 px-1 sticky top-0"><span>${date}</span><div class="flex gap-2 items-center"><span class="text-green-600/70 text-[10px]">+${data.income}</span> <span class="text-red-500/70 text-[10px]">-${data.expense}</span> <span class="text-blue-600/70 text-[10px] border-l pl-2 border-gray-300">=${balance}</span></div></div>
                     <div class="bg-white rounded-2xl shadow-sm card-shadow overflow-hidden">${data.list.map(t => `
                         <div class="flex justify-between items-center py-3 px-3 border-b border-gray-50 last:border-0 hover:bg-gray-50 cursor-pointer active:bg-gray-100 transition" onclick="openModal('transaction-modal', '${t.id}')">
                             <div class="flex items-center gap-3"><div class="bg-gray-100 w-9 h-9 rounded-full flex items-center justify-center text-gray-500 text-xs font-bold shrink-0">${t.category[0]}</div><div class="min-w-0"><p class="font-bold text-gray-800 text-xs truncate">${t.category}</p><p class="text-[10px] text-gray-400 truncate">${t.remarks || ''}</p></div></div>
                             <div class="text-right shrink-0"><p class="font-bold text-sm ${t.type==='expense'?'text-red-500':'text-green-600'}">${t.type==='expense'?'-':'+'} ${t.amount}</p></div>
-                        </div>`).join('')}</div></div>`).join('') : `<div class="text-center py-10"><div class="text-gray-300 text-4xl mb-2"><i class="fa-solid fa-receipt"></i></div><p class="text-gray-400 text-xs">本月尚無紀錄</p></div>`;
+                        </div>`).join('')}</div></div>`}).join('') : `<div class="text-center py-10"><div class="text-gray-300 text-4xl mb-2"><i class="fa-solid fa-receipt"></i></div><p class="text-gray-400 text-xs">本月尚無紀錄</p></div>`;
             },
             updateDashboard: () => {
                 const filterVal = document.getElementById('date-filter').value; const [yr, mn] = filterVal.split('-').map(Number);
@@ -579,15 +586,48 @@
                     return `<li class="flex justify-between items-center p-2 rounded-xl border card-shadow mb-1 ${boxClass}"><div class="text-xs"><span class="font-bold text-gray-700">${(State.data.debts.find(d=>d.id===b.targetId)?.name)||'未知'}</span>: <span class="text-blue-600 font-medium">${b.description}</span> <span class="text-danger">$${b.amount}</span><span class="text-[10px] ml-2 ${dateClass}">${b.expectedDate?.toDate().toLocaleDateString()||''}</span></div><div class="flex gap-2"><button onclick="App.realizeBudget('debt','${b.id}')" class="text-secondary hover:text-green-700 bg-green-50 w-6 h-6 rounded-full flex items-center justify-center"><i class="fa-solid fa-check"></i></button><button onclick="openBudgetModal('debt','${b.id}')" class="text-gray-300 hover:text-blue-500"><i class="fa-solid fa-pen"></i></button><button onclick="App.deleteItem('debtBudgets','${b.id}')" class="text-gray-300 hover:text-red-500"><i class="fa-solid fa-trash"></i></button></div></li>`;
                 }).join('')||'<li class="text-xs text-gray-400 text-center py-2">無計畫項目</li>';
             },
+            renderEvents: () => {
+                const grouped = {};
+                // Safe sort
+                State.data.events.sort((a,b) => {
+                    const da = a.date && a.date.toDate ? a.date.toDate() : new Date(0);
+                    const db = b.date && b.date.toDate ? b.date.toDate() : new Date(0);
+                    return db - da;
+                }).forEach(e => {
+                    if(!e.date || !e.date.toDate) return;
+                    const key = e.date.toDate().toLocaleDateString('zh-TW', {year:'numeric', month:'long'});
+                    if(!grouped[key]) grouped[key] = [];
+                    grouped[key].push(e);
+                });
+                
+                document.getElementById('event-list').innerHTML = Object.keys(grouped).length ? Object.entries(grouped).map(([month, events]) => `
+                    <div class="mb-6">
+                        <h3 class="text-xs font-bold text-gray-400 mb-3 border-b border-gray-200 pb-1">${month}</h3>
+                        <div class="space-y-4">
+                            ${events.map(e => `
+                                <div class="relative pl-4 border-l-2 border-primary/30 pb-2 group">
+                                    <div class="absolute -left-[5px] top-1.5 w-2.5 h-2.5 bg-primary rounded-full border-2 border-white shadow-sm"></div>
+                                    <div class="flex justify-between items-start">
+                                        <div>
+                                            <p class="text-[10px] font-bold text-primary mb-0.5">${e.date.toDate().toLocaleDateString('zh-TW', {day:'numeric', weekday:'short'})}</p>
+                                            <h4 class="font-bold text-gray-800 text-sm">${e.title}</h4>
+                                            <p class="text-xs text-gray-500 mt-1 leading-relaxed whitespace-pre-wrap">${e.description || ''}</p>
+                                        </div>
+                                        <div class="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                            <button onclick="openModal('event-modal','${e.id}')" class="text-gray-300 hover:text-blue-500"><i class="fa-solid fa-pen text-xs"></i></button>
+                                            <button onclick="App.deleteItem('events','${e.id}')" class="text-gray-300 hover:text-red-500"><i class="fa-solid fa-trash text-xs"></i></button>
+                                        </div>
+                                    </div>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                `).join('') : '<div class="text-center py-10 text-gray-400 text-xs">尚無大事記</div>';
+            },
             renderReports: () => {
                 const projSel = document.getElementById('report-project');
                 const currentProj = projSel.value;
                 const projects = [...new Set(State.data.transactions.map(t => t.project).filter(p => p))];
-                // Fix: Use a Map to ensure unique values if set logic is shaky, but Set is fine. 
-                // Crucial: Only update options if different count or first load to prevent reset loop?
-                // Actually, re-render is triggered by data change or filter change.
-                // Simple approach: Rebuild options but re-select current value if valid.
-                
                 // Keep "All" option
                 const projOpts = ['<option value="all">全部專案</option>', ...projects.map(p => `<option value="${p}">${p}</option>`)];
                 if (projSel.innerHTML !== projOpts.join('')) {
