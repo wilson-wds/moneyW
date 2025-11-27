@@ -318,6 +318,7 @@
                     document.getElementById('date-filter').value = today.toISOString().slice(0, 7);
                     const yearSel = document.getElementById('report-year');
                     const currentYear = today.getFullYear();
+                    yearSel.innerHTML = ''; // Clear existing options
                     for(let y = currentYear - 2; y <= currentYear + 1; y++) {
                         yearSel.innerHTML += `<option value="${y}" ${y===currentYear?'selected':''}>${y}年</option>`;
                     }
@@ -592,65 +593,52 @@
                     return `<li class="flex justify-between items-center p-2 rounded-xl border card-shadow mb-1 ${boxClass}"><div class="text-xs"><span class="font-bold text-gray-700">${(State.data.debts.find(d=>d.id===b.targetId)?.name)||'未知'}</span>: <span class="text-blue-600 font-medium">${b.description}</span> <span class="text-danger">$${b.amount}</span><span class="text-[10px] ml-2 ${dateClass}">${b.expectedDate?.toDate().toLocaleDateString()||''}</span></div><div class="flex gap-2"><button onclick="App.realizeBudget('debt','${b.id}')" class="text-secondary hover:text-green-700 bg-green-50 w-6 h-6 rounded-full flex items-center justify-center"><i class="fa-solid fa-check"></i></button><button onclick="openBudgetModal('debt','${b.id}')" class="text-gray-300 hover:text-blue-500"><i class="fa-solid fa-pen"></i></button><button onclick="App.deleteItem('debtBudgets','${b.id}')" class="text-gray-300 hover:text-red-500"><i class="fa-solid fa-trash"></i></button></div></li>`;
                 }).join('')||'<li class="text-xs text-gray-400 text-center py-2">無計畫項目</li>';
             },
-            renderEvents: () => {
-                const grouped = {};
-                // Safe sort
-                State.data.events.sort((a,b) => {
-                    const da = a.date && a.date.toDate ? a.date.toDate() : new Date(0);
-                    const db = b.date && b.date.toDate ? b.date.toDate() : new Date(0);
-                    return db - da;
-                }).forEach(e => {
-                    if(!e.date || !e.date.toDate) return;
-                    const key = e.date.toDate().toLocaleDateString('zh-TW', {year:'numeric', month:'long'});
-                    if(!grouped[key]) grouped[key] = [];
-                    grouped[key].push(e);
-                });
-                
-                document.getElementById('event-list').innerHTML = Object.keys(grouped).length ? Object.entries(grouped).map(([month, events]) => `
-                    <div class="mb-6">
-                        <h3 class="text-xs font-bold text-gray-400 mb-3 border-b border-gray-200 pb-1">${month}</h3>
-                        <div class="space-y-4">
-                            ${events.map(e => `
-                                <div class="relative pl-4 border-l-2 border-primary/30 pb-2 group">
-                                    <div class="absolute -left-[5px] top-1.5 w-2.5 h-2.5 bg-primary rounded-full border-2 border-white shadow-sm"></div>
-                                    <div class="flex justify-between items-start">
-                                        <div>
-                                            <p class="text-[10px] font-bold text-primary mb-0.5">${e.date.toDate().toLocaleDateString('zh-TW', {day:'numeric', weekday:'short'})}</p>
-                                            <h4 class="font-bold text-gray-800 text-sm">${e.title}</h4>
-                                            <p class="text-xs text-gray-500 mt-1 leading-relaxed whitespace-pre-wrap">${e.description || ''}</p>
-                                        </div>
-                                        <div class="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                            <button onclick="openModal('event-modal','${e.id}')" class="text-gray-300 hover:text-blue-500"><i class="fa-solid fa-pen text-xs"></i></button>
-                                            <button onclick="App.deleteItem('events','${e.id}')" class="text-gray-300 hover:text-red-500"><i class="fa-solid fa-trash text-xs"></i></button>
-                                        </div>
-                                    </div>
-                                </div>
-                            `).join('')}
-                        </div>
-                    </div>
-                `).join('') : '<div class="text-center py-10 text-gray-400 text-xs">尚無大事記</div>';
-            },
             renderReports: () => {
-                const projSel = document.getElementById('report-project').value;
-                const catSel = document.getElementById('report-category').value;
+                // 1. Populate Dropdowns
+                const projSel = document.getElementById('report-project');
+                const currentProj = projSel.value;
+                const projects = [...new Set(State.data.transactions.map(t => t.project).filter(p => p))];
+                const projOpts = ['<option value="all">全部專案</option>', ...projects.map(p => `<option value="${p}">${p}</option>`)];
+                if (projSel.innerHTML !== projOpts.join('')) {
+                    projSel.innerHTML = projOpts.join('');
+                    if (projects.includes(currentProj)) projSel.value = currentProj;
+                }
+
+                const catSel = document.getElementById('report-category');
+                const currentCat = catSel.value;
+                const categories = [...new Set(State.data.transactions.map(t => t.category).filter(c => c))];
+                const catOpts = ['<option value="all">全部分類</option>', ...categories.map(c => `<option value="${c}">${c}</option>`)];
+                if (catSel.innerHTML !== catOpts.join('')) {
+                    catSel.innerHTML = catOpts.join('');
+                    if (categories.includes(currentCat)) catSel.value = currentCat;
+                }
+
+                // 2. Get Filter Values
+                const selProj = projSel.value;
+                const selCat = catSel.value;
                 const yr = parseInt(document.getElementById('report-year').value);
                 const mnVal = document.getElementById('report-month-select').value;
+                
+                // 3. Time Range Logic
                 let start, end;
-                if(mnVal === 'all') { start = new Date(yr, 0, 1); end = new Date(yr, 11, 31, 23, 59, 59); }
-                else { const mn = parseInt(mnVal); start = new Date(yr, mn - 1, 1); end = new Date(yr, mn, 0, 23, 59, 59); }
-                
-                if(State.chart) State.chart.destroy();
-                
-                const selectedProj = projSel;
-                const selectedCat = catSel;
+                if (mnVal === 'all') { 
+                    start = new Date(yr, 0, 1); 
+                    end = new Date(yr, 11, 31, 23, 59, 59); 
+                } else { 
+                    const mn = parseInt(mnVal); 
+                    start = new Date(yr, mn - 1, 1); 
+                    end = new Date(yr, mn, 0, 23, 59, 59); 
+                }
 
+                // 4. Filter Transactions
+                if(State.chart) State.chart.destroy();
                 const txs = State.data.transactions.filter(t => { 
                     const d = t.timestamp.toDate(); 
                     const dateMatch = d >= start && d <= end;
-                    const projMatch = selectedProj === 'all' || t.project === selectedProj;
-                    const catMatch = selectedCat === 'all' || t.category === selectedCat;
+                    const projMatch = selProj === 'all' || t.project === selProj;
+                    const catMatch = selCat === 'all' || t.category === selCat;
                     return dateMatch && projMatch && catMatch;
-                }).sort((a,b)=>b.timestamp-a.timestamp);
+                }).sort((a,b) => a.timestamp - b.timestamp);
 
                 const map={}, total=txs.filter(t=>t.type==='expense').reduce((s,t)=>{map[t.category]=(map[t.category]||0)+t.amount;return s+t.amount},0);
                 State.chart = new Chart(document.getElementById('expense-chart').getContext('2d'), { type: 'doughnut', data: { labels: Object.keys(map), datasets: [{ data: Object.values(map), backgroundColor: ['#4F46E5','#10B981','#F59E0B','#EF4444','#EC4899','#8B5CF6'], borderWidth:0 }] }, options: {responsive:true, maintainAspectRatio:false, plugins:{legend:{position:'right',labels:{font:{size:10},boxWidth:10}}}} });
