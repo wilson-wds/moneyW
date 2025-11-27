@@ -380,7 +380,7 @@
                 listen('investmentBudgets', 'investmentBudgets', () => { if(document.getElementById('inv-budget-list')) App.renderInvestments(); });
                 listen('debtBudgets', 'debtBudgets', () => { if(document.getElementById('debt-budget-list')) App.renderDebts(); });
                 
-                // Investment + Legacy Loader
+                // Investment + Legacy Loader (With Migration info)
                 State.listeners.push(onSnapshot(query(collection(db, `users/${uid}/investments`)), async (s) => {
                     State.data.investments = s.docs.map(d=>({id:d.id, ...d.data()}));
                     for (let inv of State.data.investments) {
@@ -430,6 +430,7 @@
                 if(tab === 'accounting') {
                     const today = new Date().toISOString().slice(0, 7);
                     document.getElementById('date-filter').value = today;
+                    // Only render if data exists, preventing empty flash if waiting for snapshot
                     if(State.data.transactions.length) { App.renderTransactions(); App.updateDashboard(); }
                 } else if(tab === 'investment') {
                     document.getElementById('inv-date-filter').value = new Date().toISOString().slice(0, 7);
@@ -470,8 +471,8 @@
                     State.data.investments.forEach(inv => {
                         const sub = State.data.legacyTxs[inv.id] || [];
                         sub.forEach(t => {
+                            // Normalize timestamp safely
                             let tsObj = getTxDate(t);
-                            // Normalize to Firestore Timestamp
                             const finalTs = Timestamp.fromDate(tsObj);
 
                             allTxs.push({
@@ -488,14 +489,12 @@
                     });
                 }
 
-                // 2. Add Global Txs
-                if (State.data.transactions) {
-                    State.data.transactions.forEach(t => {
-                        if (!linkedIds.has(t.id)) {
-                            allTxs.push(t);
-                        }
-                    });
-                }
+                // 2. Add Global Txs (excluding those linked to legacy)
+                State.data.transactions.forEach(t => {
+                    if (!linkedIds.has(t.id)) {
+                        allTxs.push(t);
+                    }
+                });
 
                 return allTxs.sort((a,b) => (getTxDate(b) - getTxDate(a)));
             },
@@ -536,6 +535,7 @@
                 const d = { name: f.name.value, initialValue: init, isArchived: f.isArchived.checked };
                 if(!f.id.value) { d.marketValue = init; d.createdAt = Timestamp.now(); }
                 else {
+                     // Handle rename logic
                      const oldInv = State.data.investments.find(i => i.id === f.id.value);
                      const oldName = oldInv ? oldInv.name : '';
                      if (oldName && oldName !== f.name.value) {
