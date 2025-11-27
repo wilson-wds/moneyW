@@ -497,6 +497,44 @@
             },
 
             // Renderers
+            renderEvents: () => {
+                const grouped = {};
+                const getEventDate = (e) => e.date && e.date.toDate ? e.date.toDate() : (e.date ? new Date(e.date) : new Date(0));
+
+                State.data.events.sort((a,b) => getEventDate(b) - getEventDate(a)).forEach(e => {
+                    const d = getEventDate(e);
+                    if(isNaN(d.getTime())) return; // Skip invalid dates
+                    const key = d.toLocaleDateString('zh-TW', {year:'numeric', month:'long'});
+                    if(!grouped[key]) grouped[key] = [];
+                    grouped[key].push(e);
+                });
+                
+                document.getElementById('event-list').innerHTML = Object.keys(grouped).length ? Object.entries(grouped).map(([month, events]) => `
+                    <div class="mb-6">
+                        <h3 class="text-xs font-bold text-gray-400 mb-3 border-b border-gray-200 pb-1">${month}</h3>
+                        <div class="space-y-4">
+                            ${events.map(e => {
+                                const d = e.date && e.date.toDate ? e.date.toDate() : (e.date ? new Date(e.date) : new Date());
+                                return `
+                                <div class="relative pl-4 border-l-2 border-primary/30 pb-2 group">
+                                    <div class="absolute -left-[5px] top-1.5 w-2.5 h-2.5 bg-primary rounded-full border-2 border-white shadow-sm"></div>
+                                    <div class="flex justify-between items-start">
+                                        <div>
+                                            <p class="text-[10px] font-bold text-primary mb-0.5">${d.toLocaleDateString('zh-TW', {day:'numeric', weekday:'short'})}</p>
+                                            <h4 class="font-bold text-gray-800 text-sm">${e.title}</h4>
+                                            <p class="text-xs text-gray-500 mt-1 leading-relaxed whitespace-pre-wrap">${e.description || ''}</p>
+                                        </div>
+                                        <div class="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                            <button onclick="openModal('event-modal','${e.id}')" class="text-gray-300 hover:text-blue-500"><i class="fa-solid fa-pen text-xs"></i></button>
+                                            <button onclick="App.deleteItem('events','${e.id}')" class="text-gray-300 hover:text-red-500"><i class="fa-solid fa-trash text-xs"></i></button>
+                                        </div>
+                                    </div>
+                                </div>
+                            `}).join('')}
+                        </div>
+                    </div>
+                `).join('') : '<div class="text-center py-10 text-gray-400 text-xs">尚無大事記</div>';
+            },
             renderTransactions: () => {
                 const filterVal = document.getElementById('date-filter').value; const [yr, mn] = filterVal.split('-').map(Number);
                 const start = new Date(yr, mn - 1, 1), end = new Date(yr, mn, 0, 23, 59, 59);
