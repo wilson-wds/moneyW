@@ -631,25 +631,8 @@
                 `).join('') : '<div class="text-center py-10 text-gray-400 text-xs">尚無大事記</div>';
             },
             renderReports: () => {
-                const projSel = document.getElementById('report-project');
-                const currentProj = projSel.value;
-                const projects = [...new Set(State.data.transactions.map(t => t.project).filter(p => p))];
-                // Keep "All" option
-                const projOpts = ['<option value="all">全部專案</option>', ...projects.map(p => `<option value="${p}">${p}</option>`)];
-                if (projSel.innerHTML !== projOpts.join('')) {
-                     projSel.innerHTML = projOpts.join('');
-                     if(projects.includes(currentProj)) projSel.value = currentProj;
-                }
-
-                const catSel = document.getElementById('report-category');
-                const currentCat = catSel.value;
-                const categories = [...new Set(State.data.transactions.map(t => t.category).filter(c => c))];
-                const catOpts = ['<option value="all">全部分類</option>', ...categories.map(c => `<option value="${c}">${c}</option>`)];
-                if (catSel.innerHTML !== catOpts.join('')) {
-                    catSel.innerHTML = catOpts.join('');
-                    if(categories.includes(currentCat)) catSel.value = currentCat;
-                }
-
+                const projSel = document.getElementById('report-project').value;
+                const catSel = document.getElementById('report-category').value;
                 const yr = parseInt(document.getElementById('report-year').value);
                 const mnVal = document.getElementById('report-month-select').value;
                 let start, end;
@@ -658,8 +641,8 @@
                 
                 if(State.chart) State.chart.destroy();
                 
-                const selectedProj = projSel.value;
-                const selectedCat = catSel.value;
+                const selectedProj = projSel;
+                const selectedCat = catSel;
 
                 const txs = State.data.transactions.filter(t => { 
                     const d = t.timestamp.toDate(); 
@@ -672,7 +655,16 @@
                 const map={}, total=txs.filter(t=>t.type==='expense').reduce((s,t)=>{map[t.category]=(map[t.category]||0)+t.amount;return s+t.amount},0);
                 State.chart = new Chart(document.getElementById('expense-chart').getContext('2d'), { type: 'doughnut', data: { labels: Object.keys(map), datasets: [{ data: Object.values(map), backgroundColor: ['#4F46E5','#10B981','#F59E0B','#EF4444','#EC4899','#8B5CF6'], borderWidth:0 }] }, options: {responsive:true, maintainAspectRatio:false, plugins:{legend:{position:'right',labels:{font:{size:10},boxWidth:10}}}} });
                 document.getElementById('report-stats').innerHTML = total > 0 ? Object.entries(map).sort((a,b)=>b[1]-a[1]).map(([k,v])=>`<li class="flex justify-between border-b border-gray-50 pb-1"><span>${k}</span><span class="font-bold">$${v.toLocaleString()} <span class="text-[10px] text-gray-400 font-normal">(${((v/total)*100).toFixed(1)}%)</span></span></li>`).join('') : '<li class="text-center text-gray-400 py-4">無支出數據</li>';
-                document.getElementById('report-details').innerHTML = txs.length ? txs.map(t => `<li class="flex justify-between py-1 border-b border-gray-50 last:border-0"><span class="text-xs text-gray-500">${t.timestamp.toDate().toLocaleDateString()} ${t.category}</span><span class="text-xs font-bold ${t.type==='expense'?'text-red-500':'text-green-600'}">${t.type==='expense'?'-':'+'} ${t.amount}</span></li>`).join('') : '<li class="text-center text-xs text-gray-400 py-2">無交易紀錄</li>';
+                
+                // Modified Report Details
+                document.getElementById('report-details').innerHTML = txs.length ? txs.map(t => `
+                    <li class="flex justify-between items-center py-2 border-b border-gray-50 last:border-0">
+                        <div class="flex-1 min-w-0 mr-2">
+                            <p class="text-xs text-gray-500 mb-0.5">${t.timestamp.toDate().toLocaleDateString()} <span class="font-medium text-gray-700">${t.category}</span></p>
+                            ${t.remarks ? `<p class="text-[10px] text-gray-400 truncate">${t.remarks}</p>` : ''}
+                        </div>
+                        <span class="text-xs font-bold ${t.type==='expense'?'text-red-500':'text-green-600'} whitespace-nowrap">${t.type==='expense'?'-':'+'} ${t.amount.toLocaleString()}</span>
+                    </li>`).join('') : '<li class="text-center text-xs text-gray-400 py-2">無交易紀錄</li>';
             },
             // Modal Helpers
             openModal: (t, id, defaults = {}) => {
