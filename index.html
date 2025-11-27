@@ -262,7 +262,7 @@
             <select name="targetId" id="budget-target" class="w-full bg-gray-50 rounded-xl p-3 text-sm appearance-none" required></select>
             <input type="number" name="amount" class="w-full bg-gray-50 rounded-xl p-3 text-sm" placeholder="金額" required>
             <input type="date" name="date" class="w-full bg-gray-50 rounded-xl p-3 text-sm" required>
-            <input type="text" name="desc" class="w-full bg-gray-50 rounded-xl p-3 text-sm" placeholder="說明 (如: 預計賣出/還款)" required>
+            <input type="text" name="desc" class="w-full bg-gray-50 rounded-xl p-3 text-sm placeholder-blue-400 text-blue-600 font-medium" placeholder="說明 (如: 預計賣出/還款)" required>
             <div class="flex gap-2 text-sm pt-2"><button type="button" onclick="closeModal()" class="flex-1 bg-gray-100 py-3 rounded-xl font-bold text-gray-500">取消</button><button type="submit" class="w-full bg-primary text-white py-3 rounded-xl font-bold shadow-lg shadow-primary/30 text-sm">設定</button></div>
         </form>
     </template>
@@ -350,31 +350,16 @@
                     for (let inv of State.data.investments) {
                         if (!State.data.legacyTxs[inv.id]) {
                             const subSnap = await getDocs(collection(db, `users/${uid}/investments/${inv.id}/transactions`));
-                            State.data.legacyTxs[inv.id] = subSnap.docs.map(d => {
-                                const data = d.data();
-                                // Safe timestamp normalization for legacy data
-                                let ts = data.timestamp || data.date;
-                                if (ts && !ts.toDate) { // If not a firestore timestamp object
-                                    // Try creating a date object
-                                    const dateObj = new Date(ts);
-                                    if (!isNaN(dateObj.getTime())) {
-                                        ts = Timestamp.fromDate(dateObj);
-                                    } else {
-                                        ts = Timestamp.fromDate(new Date(0)); // Fallback
-                                    }
-                                }
-                                
-                                return {
-                                    id: d.id, ...data, 
-                                    timestamp: ts,
-                                    remarks: data.remarks || data.remark, 
-                                    isSub: true
-                                };
-                            });
+                            State.data.legacyTxs[inv.id] = subSnap.docs.map(d => ({
+                                id: d.id, ...d.data(), 
+                                timestamp: d.data().timestamp || d.data().date, 
+                                remarks: d.data().remarks || d.data().remark, 
+                                isSub: true
+                            }));
                         }
                     }
                     App.renderInvestments();
-                    App.renderReports(); // Update reports with legacy data
+                    App.renderReports();
                 }));
             },
             stopListeners: () => { State.listeners.forEach(u=>u()); State.listeners=[]; },
@@ -385,6 +370,46 @@
                 document.querySelectorAll('.tab-pill').forEach(e => e.classList.remove('active', 'bg-gray-600', 'text-white'));
                 btn.classList.add('active');
                 App.renderInvestments();
+            },
+
+            // Helper: Get Merged Transactions for Reports & Export
+            getAllTransactions: () => {
+                let allTxs = [];
+                let linkedIds = new Set();
+
+                // 1. Gather Legacy/Subcollection Txs
+                if (State.data.investments && State.data.legacyTxs) {
+                    State.data.investments.forEach(inv => {
+                        const sub = State.data.legacyTxs[inv.id] || [];
+                        sub.forEach(t => {
+                            // Normalize timestamp safely
+                            let tsObj;
+                            const d = t.timestamp || t.date;
+                            if(d && d.toDate) tsObj = d;
+                            else if(d) tsObj = Timestamp.fromDate(new Date(d));
+                            else tsObj = Timestamp.fromDate(new Date(0));
+
+                            allTxs.push({
+                                ...t,
+                                project: inv.name, // Ensure project name matches current investment name
+                                category: t.category || (t.type === 'income' ? '投資收入' : '投資支出'),
+                                timestamp: tsObj,
+                                amount: parseFloat(t.amount) || 0,
+                                isLegacy: true
+                            });
+                            if(t.mainTransactionId) linkedIds.add(t.mainTransactionId);
+                        });
+                    });
+                }
+
+                // 2. Add Global Txs (excluding those linked to legacy)
+                State.data.transactions.forEach(t => {
+                    if (!linkedIds.has(t.id)) {
+                        allTxs.push(t);
+                    }
+                });
+
+                return allTxs.sort((a,b) => (b.timestamp.toDate() - a.timestamp.toDate()));
             },
 
             // Handlers
@@ -480,30 +505,18 @@
                 if(mnVal === 'all') { start = new Date(yr, 0, 1); end = new Date(yr, 11, 31, 23, 59, 59); }
                 else { const mn = parseInt(mnVal); start = new Date(yr, mn - 1, 1); end = new Date(yr, mn, 0, 23, 59, 59); }
                 
-                // Merge logic here too for export
-                let legacyList = [];
-                let linkedIds = new Set();
-                State.data.investments.forEach(inv => {
-                    const sub = State.data.legacyTxs[inv.id] || [];
-                    sub.forEach(t => {
-                        t.project = inv.name; 
-                        t.category = t.category || (t.type === 'income' ? '投資收入' : '投資支出');
-                        if(t.mainTransactionId) linkedIds.add(t.mainTransactionId);
-                        legacyList.push(t);
-                    });
-                });
-                const globalList = State.data.transactions.filter(t => !linkedIds.has(t.id));
-                const allTxs = [...globalList, ...legacyList];
+                // Use unified data source
+                const allTxs = App.getAllTransactions();
 
                 const txs = allTxs.filter(t => { 
-                    const d = t.timestamp?.toDate ? t.timestamp.toDate() : new Date(0); 
+                    const d = t.timestamp.toDate(); 
                     const dateMatch = d >= start && d <= end;
                     const projMatch = projSel === 'all' || t.project === projSel;
                     const catMatch = catSel === 'all' || t.category === catSel;
                     return dateMatch && projMatch && catMatch;
-                }).sort((a,b) => (a.timestamp?.toDate() || 0) - (b.timestamp?.toDate() || 0));
+                }).sort((a,b) => (a.timestamp.toDate() || 0) - (b.timestamp.toDate() || 0));
 
-                const csvContent = "日期,分類,專案/帳戶,備註,類型,金額\n" + txs.map(t => `${t.timestamp?.toDate().toLocaleDateString()},${t.category},${t.project||''},${t.remarks||''},${t.type==='income'?'收入':'支出'},${t.amount}`).join("\n");
+                const csvContent = "日期,分類,專案/帳戶,備註,類型,金額\n" + txs.map(t => `${t.timestamp.toDate().toLocaleDateString()},${t.category},${t.project||''},${t.remarks||''},${t.type==='income'?'收入':'支出'},${t.amount}`).join("\n");
                 const blob = new Blob(["\uFEFF"+csvContent], { type: 'text/csv;charset=utf-8;' });
                 const link = document.createElement("a"); link.href = URL.createObjectURL(blob); link.download = `report_${yr}_${mnVal}.csv`; link.click();
             },
@@ -722,34 +735,32 @@
                 }).join('')||'<li class="text-xs text-gray-400 text-center py-2">無計畫項目</li>';
             },
             renderReports: () => {
+                // 0. Use Unified Transaction Source
+                const allTxs = App.getAllTransactions();
+
                 // 1. Populate Dropdowns
                 const projSel = document.getElementById('report-project');
                 const currentProj = projSel.value;
-                // Combined Projects: Global + Legacy
-                let allLegacyProjects = [];
-                State.data.investments.forEach(inv => {
-                     const sub = State.data.legacyTxs[inv.id] || [];
-                     if(sub.length) allLegacyProjects.push(inv.name);
-                });
-
-                const projects = [...new Set([
-                    ...State.data.transactions.map(t => t.project).filter(p => p),
-                    ...allLegacyProjects
-                ])];
                 
-                const projOpts = ['<option value="all">全部專案</option>', ...projects.map(p => `<option value="${p}">${p}</option>`)];
+                const distinctProjects = [...new Set(allTxs.map(t => t.project).filter(p => p))].sort();
+                const projOpts = ['<option value="all">全部專案</option>', ...distinctProjects.map(p => `<option value="${p}">${p}</option>`)];
+                
                 if (projSel.innerHTML !== projOpts.join('')) {
                     projSel.innerHTML = projOpts.join('');
-                    if (projects.includes(currentProj)) projSel.value = currentProj;
+                    if (distinctProjects.includes(currentProj) || currentProj === 'all') {
+                         projSel.value = currentProj;
+                    }
                 }
 
                 const catSel = document.getElementById('report-category');
                 const currentCat = catSel.value;
-                const categories = [...new Set(State.data.transactions.map(t => t.category).filter(c => c))];
-                const catOpts = ['<option value="all">全部分類</option>', ...categories.map(c => `<option value="${c}">${c}</option>`)];
-                if (catSel.innerHTML !== catOpts.join('')) {
+                const distinctCategories = [...new Set(allTxs.map(t => t.category).filter(c => c))].sort();
+                const catOpts = ['<option value="all">全部分類</option>', ...distinctCategories.map(c => `<option value="${c}">${c}</option>`)];
+                 if (catSel.innerHTML !== catOpts.join('')) {
                     catSel.innerHTML = catOpts.join('');
-                    if (categories.includes(currentCat)) catSel.value = currentCat;
+                    if (distinctCategories.includes(currentCat) || currentCat === 'all') {
+                         catSel.value = currentCat;
+                    }
                 }
 
                 // 2. Get Filter Values
@@ -769,38 +780,30 @@
                     end = new Date(yr, mn, 0, 23, 59, 59); 
                 }
 
-                // 4. Gather & Merge Transactions
-                let legacyList = [];
-                let linkedIds = new Set();
-                State.data.investments.forEach(inv => {
-                    const sub = State.data.legacyTxs[inv.id] || [];
-                    sub.forEach(t => {
-                        t.project = inv.name; 
-                        t.category = t.category || (t.type === 'income' ? '投資收入' : '投資支出');
-                        if(t.mainTransactionId) linkedIds.add(t.mainTransactionId);
-                        legacyList.push(t);
-                    });
-                });
-                const globalList = State.data.transactions.filter(t => !linkedIds.has(t.id));
-                const allTxs = [...globalList, ...legacyList];
-
-                // 5. Filter for Report
-                const txs = allTxs.filter(t => { 
-                    const d = t.timestamp?.toDate ? t.timestamp.toDate() : new Date(0); 
+                // 4. Filter Transactions
+                if(State.chart) State.chart.destroy();
+                
+                const filteredTxs = allTxs.filter(t => { 
+                    const d = t.timestamp.toDate();
                     const dateMatch = d >= start && d <= end;
                     const projMatch = selProj === 'all' || t.project === selProj;
                     const catMatch = selCat === 'all' || t.category === selCat;
                     return dateMatch && projMatch && catMatch;
-                }).sort((a,b) => (a.timestamp?.toDate() || 0) - (b.timestamp?.toDate() || 0));
+                });
 
-                const map={}, total=txs.filter(t=>t.type==='expense').reduce((s,t)=>{map[t.category]=(map[t.category]||0)+t.amount;return s+t.amount},0);
+                const map={}, total=filteredTxs.filter(t=>t.type==='expense').reduce((s,t)=>{
+                    const cat = t.category || '未分類';
+                    map[cat]=(map[cat]||0)+t.amount;
+                    return s+t.amount
+                },0);
+                
                 State.chart = new Chart(document.getElementById('expense-chart').getContext('2d'), { type: 'doughnut', data: { labels: Object.keys(map), datasets: [{ data: Object.values(map), backgroundColor: ['#4F46E5','#10B981','#F59E0B','#EF4444','#EC4899','#8B5CF6'], borderWidth:0 }] }, options: {responsive:true, maintainAspectRatio:false, plugins:{legend:{position:'right',labels:{font:{size:10},boxWidth:10}}}} });
                 document.getElementById('report-stats').innerHTML = total > 0 ? Object.entries(map).sort((a,b)=>b[1]-a[1]).map(([k,v])=>`<li class="flex justify-between border-b border-gray-50 pb-1"><span>${k}</span><span class="font-bold">$${v.toLocaleString()} <span class="text-[10px] text-gray-400 font-normal">(${((v/total)*100).toFixed(1)}%)</span></span></li>`).join('') : '<li class="text-center text-gray-400 py-4">無支出數據</li>';
                 
-                document.getElementById('report-details').innerHTML = txs.length ? txs.map(t => `
+                document.getElementById('report-details').innerHTML = filteredTxs.length ? filteredTxs.map(t => `
                     <li class="flex justify-between items-center py-2 border-b border-gray-50 last:border-0">
                         <div class="flex-1 min-w-0 mr-2">
-                            <p class="text-xs text-gray-500 mb-0.5">${t.timestamp?.toDate().toLocaleDateString()} <span class="font-medium text-gray-700">${t.category}</span></p>
+                            <p class="text-xs text-gray-500 mb-0.5">${t.timestamp.toDate().toLocaleDateString()} <span class="font-medium text-gray-700">${t.category}</span></p>
                             ${t.remarks ? `<p class="text-[10px] text-gray-400 truncate">${t.remarks}</p>` : ''}
                         </div>
                         <span class="text-xs font-bold ${t.type==='expense'?'text-red-500':'text-green-600'} whitespace-nowrap">${t.type==='expense'?'-':'+'} ${t.amount.toLocaleString()}</span>
@@ -823,6 +826,7 @@
                     }
                 } else if(t==='transaction-modal' || t==='event-modal') c.querySelector('[name=date]').value = new Date().toISOString().split('T')[0];
                 
+                // --- ADDED LOGIC FOR DELETE BUTTON ---
                 if (t === 'transaction-modal') {
                     const delBtn = c.querySelector('#btn-delete-tx');
                     if (id) {
@@ -837,6 +841,7 @@
                         delBtn.classList.add('hidden');
                     }
                 }
+                // -------------------------------------
 
                 document.getElementById('modal-overlay').classList.remove('hidden'); document.getElementById('modal-overlay').classList.add('flex');
             }
