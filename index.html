@@ -221,7 +221,6 @@
         </div>
         <form onsubmit="App.handleSaveTransaction(event)" class="space-y-4">
             <input type="hidden" name="id">
-            <input type="hidden" name="project">
             <input type="hidden" name="legacy_inv_id"> 
             <div class="flex bg-gray-100 p-1 rounded-xl">
                 <button type="button" class="type-btn flex-1 py-2 rounded-lg text-xs font-bold bg-white shadow text-danger transition" onclick="App.toggleTxType('expense')" id="btn-expense">支出</button>
@@ -235,7 +234,7 @@
             </div>
             <div><label class="text-[10px] font-bold text-gray-400 ml-1">專案 / 帳戶 (選填)</label><input type="text" name="project" class="w-full bg-gray-50 rounded-xl px-3 py-2.5 text-xs font-medium focus:bg-white focus:ring-1 focus:ring-primary transition" placeholder="例如: 台積電"></div>
             <div><label class="text-[10px] font-bold text-gray-400 ml-1">備註</label><input type="text" name="remarks" class="w-full bg-gray-50 rounded-xl px-3 py-2.5 text-xs font-medium focus:bg-white focus:ring-1 focus:ring-primary transition" placeholder="寫點什麼..."></div>
-            <button type="submit" class="w-full bg-primary text-white font-bold py-3.5 rounded-xl shadow-lg shadow-primary/30 text-sm mt-2">儲存</button>
+            <div class="flex gap-2 pt-2"><button type="button" onclick="App.closeModal()" class="flex-1 bg-gray-100 py-3.5 rounded-xl font-bold text-gray-500 text-sm">取消</button><button type="submit" class="flex-1 bg-primary text-white font-bold py-3.5 rounded-xl shadow-lg shadow-primary/30 text-sm">儲存</button></div>
         </form>
     </template>
 
@@ -266,7 +265,7 @@
     </template>
     <template id="tpl-details-modal">
         <div class="flex justify-between items-center mb-4"><h3 class="text-lg font-bold text-gray-800 details-title truncate pr-4"></h3><button type="button" onclick="App.closeModal()" class="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center text-gray-500 flex-shrink-0"><i class="fa-solid fa-xmark"></i></button></div>
-        <div class="max-h-[60vh] overflow-y-auto hide-scrollbar"><div class="details-budget-section mb-4 hidden"><h4 class="text-xs font-bold text-gray-500 mb-2 border-b pb-1">預算 / 計畫</h4><ul class="details-budget-list space-y-1"></ul></div><div><h4 class="text-xs font-bold text-gray-500 mb-2 border-b pb-1">交易紀錄</h4><ul class="details-list space-y-2"><li class="text-center text-gray-400 py-4">載入中...</li></ul></div></div>
+        <div class="max-h-[60vh] overflow-y-auto hide-scrollbar"><ul class="details-list space-y-2"><li class="text-center text-gray-400 py-4">載入中...</li></ul></div>
         <div class="details-actions mt-4 pt-2 border-t border-gray-100 flex flex-col gap-2"></div>
     </template>
 
@@ -304,7 +303,6 @@
                 if(u) {
                     document.getElementById('user-info').innerText = u.isAnonymous ? '訪客' : u.displayName;
                     App.switchTab('accounting', document.querySelector('#nav-accounting'));
-                    // Crucial: Wait for DOM rendering before listeners
                     setTimeout(() => App.startListeners(u.uid), 100);
                 } else App.stopListeners();
             }),
@@ -321,7 +319,6 @@
                 
                 State.listeners.push(onSnapshot(query(collection(db, `users/${uid}/investments`)), async (s) => {
                     State.data.investments = s.docs.map(d=>({id:d.id, ...d.data()}));
-                    // Safe Legacy Loader
                     for (let inv of State.data.investments) {
                         if (!State.data.legacyTxs[inv.id]) {
                             try {
@@ -375,7 +372,6 @@
                 if(btn) btn.classList.add('active', 'text-primary');
                 document.getElementById('page-title').innerText = {accounting:'總覽', investment:'投資', debt:'負債', reports:'報表', events:'大事記'}[tab];
                 
-                // Render initial state immediately if data exists
                 App.refreshCurrentView();
             },
             
@@ -387,8 +383,15 @@
                         const sub = State.data.legacyTxs[inv.id] || [];
                         sub.forEach(t => {
                             let tsObj = getTxDate(t);
-                            const finalTs = Timestamp.fromDate(tsObj);
-                            allTxs.push({ ...t, project: inv.name, category: t.category || (t.type === 'income' ? '投資收入' : '投資支出'), timestamp: finalTs, amount: parseFloat(t.amount) || 0, isLegacy: true, legacyInvId: inv.id });
+                            allTxs.push({ 
+                                ...t, 
+                                project: inv.name, 
+                                category: t.category || (t.type === 'income' ? '投資收入' : '投資支出'), 
+                                timestamp: Timestamp.fromDate(tsObj), 
+                                amount: parseFloat(t.amount) || 0, 
+                                isLegacy: true,
+                                legacyInvId: inv.id 
+                            });
                             if(t.mainTransactionId) linkedIds.add(t.mainTransactionId);
                         });
                     });
@@ -430,7 +433,6 @@
             realizeBudget: async(ctx, id) => { if(!confirm("執行預算?"))return; const col=ctx==='investment'?'investmentBudgets':'debtBudgets'; const b=State.data[col].find(i=>i.id===id); const acc=(ctx==='investment'?State.data.investments:State.data.debts).find(a=>a.id===b.targetId); const batch=writeBatch(db); batch.update(doc(db,`users/${State.user.uid}/${col}`,id),{isRealized:true}); batch.set(doc(collection(db,`users/${State.user.uid}/transactions`)),{type:ctx==='investment'?'income':'expense',amount:b.amount,category:ctx==='investment'?'投資':'負債還款',project:acc.name,remarks:`預算執行: ${b.description}`,timestamp:Timestamp.now()}); if(ctx!=='investment') batch.update(doc(db,`users/${State.user.uid}/debts`,acc.id),{remainingAmount:increment(-b.amount)}); await batch.commit(); },
             exportReport: () => { if(!confirm("匯出?"))return; const csv="Date,Category,Project,Note,Type,Amount\n"+App.getAllTransactions().map(t=>`${toDateStr(t.timestamp)},${t.category},${t.project||''},${t.remarks||''},${t.type},${t.amount}`).join("\n"); const l=document.createElement("a"); l.href=URL.createObjectURL(new Blob(["\uFEFF"+csv],{type:'text/csv'})); l.download="report.csv"; l.click(); },
 
-            // Renderers
             renderTransactions: () => {
                 if(!document.getElementById('tx-list')) return;
                 const val = document.getElementById('date-filter').value; const [y, m] = val.split('-').map(Number);
@@ -623,28 +625,19 @@
                 content.querySelector('.details-title').innerText = item.name;
                 document.getElementById('modal-overlay').classList.remove('hidden'); document.getElementById('modal-overlay').classList.add('flex');
 
-                const budgetCol = type === 'investment' ? 'investmentBudgets' : 'debtBudgets';
-                const budgets = State.data[budgetCol].filter(b => b.targetId === id && !b.isRealized).sort((a,b)=>(a.expectedDate?.seconds||0)-(b.expectedDate?.seconds||0));
-                if(budgets.length) {
-                    content.querySelector('.details-budget-section').classList.remove('hidden');
-                    content.querySelector('.details-budget-list').innerHTML = budgets.map(b => {
-                        const overdue = b.expectedDate?.toDate() < new Date().setHours(0,0,0,0);
-                        return `<li class="flex justify-between items-center p-2 rounded-xl ${overdue?'bg-red-50 border-red-200':'bg-white border border-gray-100'}"><div class="text-xs"><span class="font-bold text-gray-700">${b.description}</span><span class="${type==='investment'?'text-secondary':'text-danger'}"> $${b.amount.toLocaleString()}</span><span class="text-[10px] ml-2 ${overdue?'text-red-500 font-bold':'text-gray-400'}">${toDateStr(getTxDate({timestamp:b.expectedDate}))}</span></div><div class="flex gap-1"><button onclick="App.realizeBudget('${type}','${b.id}')" class="text-green-600"><i class="fa-solid fa-check"></i></button><button onclick="App.openBudgetModal('${type}','${b.id}')" class="text-blue-500"><i class="fa-solid fa-pen"></i></button><button onclick="App.deleteItem('${budgetCol}','${b.id}')" class="text-red-500"><i class="fa-solid fa-trash"></i></button></div></li>`;
-                    }).join('');
-                } else { budgetSection.classList.add('hidden'); }
-
-                let txs = State.data.transactions.filter(t => t.project === item.name);
+                let relatedTxs = [];
                 if (type === 'investment') {
-                    const sub = State.data.legacyTxs[id] || [];
-                    const linked = new Set(sub.map(t => t.mainTransactionId).filter(Boolean));
-                    txs = [...sub, ...txs.filter(t => !linked.has(t.id))];
+                    const subTxs = State.data.legacyTxs[id] || [];
+                    const mainTxs = State.data.transactions.filter(t => t.project === item.name);
+                    const linkedIds = new Set(subTxs.map(t => t.mainTransactionId).filter(Boolean));
+                    relatedTxs = [...subTxs, ...mainTxs.filter(t => !linkedIds.has(t.id))];
                     const btn = document.createElement('button'); btn.className="w-full bg-blue-50 text-blue-600 py-2.5 rounded-xl font-bold text-xs mt-3 shadow-sm"; btn.innerText="更新目前市值"; btn.onclick=()=>App.updateMarketValue(id,item.marketValue); content.querySelector('.details-actions').appendChild(btn);
                 } else { relatedTxs = State.data.transactions.filter(t => t.project === item.name); }
                 
                 const addTxBtn = document.createElement('button'); addTxBtn.className="w-full bg-primary text-white py-2.5 rounded-xl font-bold text-xs mt-2 shadow-lg mb-2"; addTxBtn.innerText="+ 新增交易"; addTxBtn.onclick=()=>App.openModal('transaction-modal',null,{project:item.name, category:type==='investment'?'投資':'負債還款'});
                 content.querySelector('.details-actions').insertBefore(addTxBtn, content.querySelector('.details-actions').firstChild);
 
-                content.querySelector('.details-list').innerHTML = txs.sort((a,b)=>getTxDate(b)-getTxDate(a)).map(t => `<li class="flex justify-between items-center py-3 px-3 rounded-xl mb-2 ${t.type==='expense'?'bg-red-50':'bg-green-50'}"><div><p class="text-[10px] text-gray-500 mb-0.5">${getTxDate(t).toLocaleDateString()}</p><p class="text-xs font-bold text-gray-700">${t.remarks||t.category}</p></div><div class="flex items-center gap-3"><span class="text-sm font-bold ${t.type==='expense'?'text-red-500':'text-green-600'}">${t.type==='expense'?'-':'+'} NT$ ${parseFloat(t.amount).toLocaleString()}</span><div class="flex gap-1"><button onclick="App.openModal('transaction-modal', '${t.id}')" class="text-gray-400 hover:text-blue-500 p-1"><i class="fa-solid fa-pen text-xs"></i></button><button onclick="App.deleteTransaction('${t.id}', '${t.legacyInvId}')" class="text-gray-400 hover:text-red-500 p-1"><i class="fa-solid fa-xmark text-xs"></i></button></div></div></li>`).join('') || '<li class="text-center text-xs text-gray-400 py-4">無相關紀錄</li>';
+                content.querySelector('.details-list').innerHTML = relatedTxs.sort((a,b)=>getTxDate(b)-getTxDate(a)).map(t => `<li class="flex justify-between items-center py-3 px-3 rounded-xl mb-2 ${t.type==='expense'?'bg-red-50':'bg-green-50'}"><div><p class="text-[10px] text-gray-500 mb-0.5">${getTxDate(t).toLocaleDateString()}</p><p class="text-xs font-bold text-gray-700">${t.remarks||t.category}</p></div><div class="flex items-center gap-3"><span class="text-sm font-bold ${t.type==='expense'?'text-red-500':'text-green-600'}">${t.type==='expense'?'-':'+'} ${parseFloat(t.amount).toLocaleString()}</span><div class="flex gap-1"><button onclick="App.openModal('transaction-modal', '${t.id}')" class="text-gray-400 hover:text-blue-500 p-1"><i class="fa-solid fa-pen text-xs"></i></button><button onclick="App.deleteTransaction('${t.id}', '${t.legacyInvId}')" class="text-gray-400 hover:text-red-500 p-1"><i class="fa-solid fa-xmark text-xs"></i></button></div></div></li>`).join('') || '<li class="text-center text-xs text-gray-400 py-4">無相關紀錄</li>';
             },
             toggleTxType: (t) => { document.getElementById('tx-type').value=t; const e=document.getElementById('btn-expense'), i=document.getElementById('btn-income'); if(t==='expense'){e.classList.add('bg-white','shadow','text-danger');e.classList.remove('text-gray-500');i.classList.remove('bg-white','shadow','text-primary');i.classList.add('text-gray-500'); renderDatalist(document.getElementById('cat-list'), State.categories.expense);}else{i.classList.add('bg-white','shadow','text-primary');i.classList.remove('text-gray-500');e.classList.remove('bg-white','shadow','text-danger');e.classList.add('text-gray-500');renderDatalist(document.getElementById('cat-list'), State.categories.income);} }
         };
