@@ -350,15 +350,31 @@
                     for (let inv of State.data.investments) {
                         if (!State.data.legacyTxs[inv.id]) {
                             const subSnap = await getDocs(collection(db, `users/${uid}/investments/${inv.id}/transactions`));
-                            State.data.legacyTxs[inv.id] = subSnap.docs.map(d => ({
-                                id: d.id, ...d.data(), 
-                                timestamp: d.data().timestamp || d.data().date, 
-                                remarks: d.data().remarks || d.data().remark, 
-                                isSub: true
-                            }));
+                            State.data.legacyTxs[inv.id] = subSnap.docs.map(d => {
+                                const data = d.data();
+                                // Safe timestamp normalization for legacy data
+                                let ts = data.timestamp || data.date;
+                                if (ts && !ts.toDate) { // If not a firestore timestamp object
+                                    // Try creating a date object
+                                    const dateObj = new Date(ts);
+                                    if (!isNaN(dateObj.getTime())) {
+                                        ts = Timestamp.fromDate(dateObj);
+                                    } else {
+                                        ts = Timestamp.fromDate(new Date(0)); // Fallback
+                                    }
+                                }
+                                
+                                return {
+                                    id: d.id, ...data, 
+                                    timestamp: ts,
+                                    remarks: data.remarks || data.remark, 
+                                    isSub: true
+                                };
+                            });
                         }
                     }
                     App.renderInvestments();
+                    App.renderReports(); // Update reports with legacy data
                 }));
             },
             stopListeners: () => { State.listeners.forEach(u=>u()); State.listeners=[]; },
@@ -463,13 +479,31 @@
                 let start, end;
                 if(mnVal === 'all') { start = new Date(yr, 0, 1); end = new Date(yr, 11, 31, 23, 59, 59); }
                 else { const mn = parseInt(mnVal); start = new Date(yr, mn - 1, 1); end = new Date(yr, mn, 0, 23, 59, 59); }
-                const txs = State.data.transactions.filter(t => { 
-                    const d = t.timestamp.toDate(); 
-                    return d >= start && d <= end && 
-                           (projSel === 'all' || t.project === projSel) &&
-                           (catSel === 'all' || t.category === catSel);
-                }).sort((a,b)=>a.timestamp-b.timestamp);
-                const csvContent = "日期,分類,專案/帳戶,備註,類型,金額\n" + txs.map(t => `${t.timestamp.toDate().toLocaleDateString()},${t.category},${t.project||''},${t.remarks||''},${t.type==='income'?'收入':'支出'},${t.amount}`).join("\n");
+                
+                // Merge logic here too for export
+                let legacyList = [];
+                let linkedIds = new Set();
+                State.data.investments.forEach(inv => {
+                    const sub = State.data.legacyTxs[inv.id] || [];
+                    sub.forEach(t => {
+                        t.project = inv.name; 
+                        t.category = t.category || (t.type === 'income' ? '投資收入' : '投資支出');
+                        if(t.mainTransactionId) linkedIds.add(t.mainTransactionId);
+                        legacyList.push(t);
+                    });
+                });
+                const globalList = State.data.transactions.filter(t => !linkedIds.has(t.id));
+                const allTxs = [...globalList, ...legacyList];
+
+                const txs = allTxs.filter(t => { 
+                    const d = t.timestamp?.toDate ? t.timestamp.toDate() : new Date(0); 
+                    const dateMatch = d >= start && d <= end;
+                    const projMatch = projSel === 'all' || t.project === projSel;
+                    const catMatch = catSel === 'all' || t.category === catSel;
+                    return dateMatch && projMatch && catMatch;
+                }).sort((a,b) => (a.timestamp?.toDate() || 0) - (b.timestamp?.toDate() || 0));
+
+                const csvContent = "日期,分類,專案/帳戶,備註,類型,金額\n" + txs.map(t => `${t.timestamp?.toDate().toLocaleDateString()},${t.category},${t.project||''},${t.remarks||''},${t.type==='income'?'收入':'支出'},${t.amount}`).join("\n");
                 const blob = new Blob(["\uFEFF"+csvContent], { type: 'text/csv;charset=utf-8;' });
                 const link = document.createElement("a"); link.href = URL.createObjectURL(blob); link.download = `report_${yr}_${mnVal}.csv`; link.click();
             },
@@ -688,10 +722,21 @@
                 }).join('')||'<li class="text-xs text-gray-400 text-center py-2">無計畫項目</li>';
             },
             renderReports: () => {
+                // 1. Populate Dropdowns
                 const projSel = document.getElementById('report-project');
                 const currentProj = projSel.value;
-                const projects = [...new Set(State.data.transactions.map(t => t.project).filter(p => p))];
-                // Keep "All" option
+                // Combined Projects: Global + Legacy
+                let allLegacyProjects = [];
+                State.data.investments.forEach(inv => {
+                     const sub = State.data.legacyTxs[inv.id] || [];
+                     if(sub.length) allLegacyProjects.push(inv.name);
+                });
+
+                const projects = [...new Set([
+                    ...State.data.transactions.map(t => t.project).filter(p => p),
+                    ...allLegacyProjects
+                ])];
+                
                 const projOpts = ['<option value="all">全部專案</option>', ...projects.map(p => `<option value="${p}">${p}</option>`)];
                 if (projSel.innerHTML !== projOpts.join('')) {
                     projSel.innerHTML = projOpts.join('');
@@ -707,34 +752,55 @@
                     if (categories.includes(currentCat)) catSel.value = currentCat;
                 }
 
+                // 2. Get Filter Values
+                const selProj = projSel.value;
+                const selCat = catSel.value;
                 const yr = parseInt(document.getElementById('report-year').value);
                 const mnVal = document.getElementById('report-month-select').value;
+                
+                // 3. Time Range Logic
                 let start, end;
-                if(mnVal === 'all') { start = new Date(yr, 0, 1); end = new Date(yr, 11, 31, 23, 59, 59); }
-                else { const mn = parseInt(mnVal); start = new Date(yr, mn - 1, 1); end = new Date(yr, mn, 0, 23, 59, 59); }
-                
-                if(State.chart) State.chart.destroy();
-                
-                const selectedProj = projSel.value;
-                const selectedCat = catSel.value;
+                if (mnVal === 'all') { 
+                    start = new Date(yr, 0, 1); 
+                    end = new Date(yr, 11, 31, 23, 59, 59); 
+                } else { 
+                    const mn = parseInt(mnVal); 
+                    start = new Date(yr, mn - 1, 1); 
+                    end = new Date(yr, mn, 0, 23, 59, 59); 
+                }
 
-                const txs = State.data.transactions.filter(t => { 
-                    const d = t.timestamp.toDate(); 
+                // 4. Gather & Merge Transactions
+                let legacyList = [];
+                let linkedIds = new Set();
+                State.data.investments.forEach(inv => {
+                    const sub = State.data.legacyTxs[inv.id] || [];
+                    sub.forEach(t => {
+                        t.project = inv.name; 
+                        t.category = t.category || (t.type === 'income' ? '投資收入' : '投資支出');
+                        if(t.mainTransactionId) linkedIds.add(t.mainTransactionId);
+                        legacyList.push(t);
+                    });
+                });
+                const globalList = State.data.transactions.filter(t => !linkedIds.has(t.id));
+                const allTxs = [...globalList, ...legacyList];
+
+                // 5. Filter for Report
+                const txs = allTxs.filter(t => { 
+                    const d = t.timestamp?.toDate ? t.timestamp.toDate() : new Date(0); 
                     const dateMatch = d >= start && d <= end;
-                    const projMatch = selectedProj === 'all' || t.project === selectedProj;
-                    const catMatch = selectedCat === 'all' || t.category === selectedCat;
+                    const projMatch = selProj === 'all' || t.project === selProj;
+                    const catMatch = selCat === 'all' || t.category === selCat;
                     return dateMatch && projMatch && catMatch;
-                }).sort((a,b) => a.timestamp - b.timestamp);
+                }).sort((a,b) => (a.timestamp?.toDate() || 0) - (b.timestamp?.toDate() || 0));
 
                 const map={}, total=txs.filter(t=>t.type==='expense').reduce((s,t)=>{map[t.category]=(map[t.category]||0)+t.amount;return s+t.amount},0);
                 State.chart = new Chart(document.getElementById('expense-chart').getContext('2d'), { type: 'doughnut', data: { labels: Object.keys(map), datasets: [{ data: Object.values(map), backgroundColor: ['#4F46E5','#10B981','#F59E0B','#EF4444','#EC4899','#8B5CF6'], borderWidth:0 }] }, options: {responsive:true, maintainAspectRatio:false, plugins:{legend:{position:'right',labels:{font:{size:10},boxWidth:10}}}} });
                 document.getElementById('report-stats').innerHTML = total > 0 ? Object.entries(map).sort((a,b)=>b[1]-a[1]).map(([k,v])=>`<li class="flex justify-between border-b border-gray-50 pb-1"><span>${k}</span><span class="font-bold">$${v.toLocaleString()} <span class="text-[10px] text-gray-400 font-normal">(${((v/total)*100).toFixed(1)}%)</span></span></li>`).join('') : '<li class="text-center text-gray-400 py-4">無支出數據</li>';
                 
-                // Modified Report Details
                 document.getElementById('report-details').innerHTML = txs.length ? txs.map(t => `
                     <li class="flex justify-between items-center py-2 border-b border-gray-50 last:border-0">
                         <div class="flex-1 min-w-0 mr-2">
-                            <p class="text-xs text-gray-500 mb-0.5">${t.timestamp.toDate().toLocaleDateString()} <span class="font-medium text-gray-700">${t.category}</span></p>
+                            <p class="text-xs text-gray-500 mb-0.5">${t.timestamp?.toDate().toLocaleDateString()} <span class="font-medium text-gray-700">${t.category}</span></p>
                             ${t.remarks ? `<p class="text-[10px] text-gray-400 truncate">${t.remarks}</p>` : ''}
                         </div>
                         <span class="text-xs font-bold ${t.type==='expense'?'text-red-500':'text-green-600'} whitespace-nowrap">${t.type==='expense'?'-':'+'} ${t.amount.toLocaleString()}</span>
@@ -757,7 +823,6 @@
                     }
                 } else if(t==='transaction-modal' || t==='event-modal') c.querySelector('[name=date]').value = new Date().toISOString().split('T')[0];
                 
-                // --- ADDED LOGIC FOR DELETE BUTTON ---
                 if (t === 'transaction-modal') {
                     const delBtn = c.querySelector('#btn-delete-tx');
                     if (id) {
@@ -772,7 +837,6 @@
                         delBtn.classList.add('hidden');
                     }
                 }
-                // -------------------------------------
 
                 document.getElementById('modal-overlay').classList.remove('hidden'); document.getElementById('modal-overlay').classList.add('flex');
             }
