@@ -220,7 +220,9 @@
             </div>
         </div>
         <form onsubmit="App.handleSaveTransaction(event)" class="space-y-4">
-            <input type="hidden" name="id"><input type="hidden" name="legacy_inv_id">
+            <input type="hidden" name="id">
+            <input type="hidden" name="project">
+            <input type="hidden" name="legacy_inv_id"> 
             <div class="flex bg-gray-100 p-1 rounded-xl">
                 <button type="button" class="type-btn flex-1 py-2 rounded-lg text-xs font-bold bg-white shadow text-danger transition" onclick="App.toggleTxType('expense')" id="btn-expense">支出</button>
                 <button type="button" class="type-btn flex-1 py-2 rounded-lg text-xs font-bold text-gray-500 transition" onclick="App.toggleTxType('income')" id="btn-income">收入</button>
@@ -231,7 +233,7 @@
                 <div><label class="text-[10px] font-bold text-gray-400 ml-1">日期</label><input type="date" name="date" class="w-full bg-gray-50 rounded-xl px-3 py-2.5 text-xs font-medium focus:bg-white focus:ring-1 focus:ring-primary transition" required></div>
                 <div><label class="text-[10px] font-bold text-gray-400 ml-1">分類</label><input list="cat-list" name="category" class="w-full bg-gray-50 rounded-xl px-3 py-2.5 text-xs font-medium focus:bg-white focus:ring-1 focus:ring-primary transition" placeholder="選擇分類" required><datalist id="cat-list"></datalist></div>
             </div>
-            <div><label class="text-[10px] font-bold text-gray-400 ml-1">專案 / 帳戶 (選填)</label><input type="text" name="project" class="w-full bg-gray-50 rounded-xl px-3 py-2.5 text-xs font-medium focus:bg-white focus:ring-1 focus:ring-primary transition" placeholder="例如: 台積電、學貸..."></div>
+            <div><label class="text-[10px] font-bold text-gray-400 ml-1">專案 / 帳戶 (選填)</label><input type="text" name="project" class="w-full bg-gray-50 rounded-xl px-3 py-2.5 text-xs font-medium focus:bg-white focus:ring-1 focus:ring-primary transition" placeholder="例如: 台積電"></div>
             <div><label class="text-[10px] font-bold text-gray-400 ml-1">備註</label><input type="text" name="remarks" class="w-full bg-gray-50 rounded-xl px-3 py-2.5 text-xs font-medium focus:bg-white focus:ring-1 focus:ring-primary transition" placeholder="寫點什麼..."></div>
             <button type="submit" class="w-full bg-primary text-white font-bold py-3.5 rounded-xl shadow-lg shadow-primary/30 text-sm mt-2">儲存</button>
         </form>
@@ -319,6 +321,7 @@
                 
                 State.listeners.push(onSnapshot(query(collection(db, `users/${uid}/investments`)), async (s) => {
                     State.data.investments = s.docs.map(d=>({id:d.id, ...d.data()}));
+                    // Safe Legacy Loader
                     for (let inv of State.data.investments) {
                         if (!State.data.legacyTxs[inv.id]) {
                             try {
@@ -371,6 +374,8 @@
                 document.querySelectorAll('.nav-btn').forEach(e => e.classList.remove('active', 'text-primary'));
                 if(btn) btn.classList.add('active', 'text-primary');
                 document.getElementById('page-title').innerText = {accounting:'總覽', investment:'投資', debt:'負債', reports:'報表', events:'大事記'}[tab];
+                
+                // Render initial state immediately if data exists
                 App.refreshCurrentView();
             },
             
@@ -382,15 +387,8 @@
                         const sub = State.data.legacyTxs[inv.id] || [];
                         sub.forEach(t => {
                             let tsObj = getTxDate(t);
-                            allTxs.push({ 
-                                ...t, 
-                                project: inv.name, 
-                                category: t.category || (t.type === 'income' ? '投資收入' : '投資支出'), 
-                                timestamp: Timestamp.fromDate(tsObj), 
-                                amount: parseFloat(t.amount) || 0, 
-                                isLegacy: true,
-                                legacyInvId: inv.id 
-                            });
+                            const finalTs = Timestamp.fromDate(tsObj);
+                            allTxs.push({ ...t, project: inv.name, category: t.category || (t.type === 'income' ? '投資收入' : '投資支出'), timestamp: finalTs, amount: parseFloat(t.amount) || 0, isLegacy: true, legacyInvId: inv.id });
                             if(t.mainTransactionId) linkedIds.add(t.mainTransactionId);
                         });
                     });
@@ -409,7 +407,7 @@
             handleSaveTransaction: async (e) => {
                 e.preventDefault(); const f=e.target, uid=State.user.uid, id=f.id.value, lid=f.legacy_inv_id.value;
                 const d = { type: f.type.value, amount: parseFloat(f.amount.value), category: f.category.value, remarks: f.remarks.value, timestamp: Timestamp.fromDate(new Date(f.date.value)), project: f.project.value };
-                if (lid && id) { // Auto-Migration
+                if (lid && id) {
                     const batch = writeBatch(db);
                     batch.set(doc(collection(db, `users/${uid}/transactions`)), d);
                     batch.delete(doc(db, `users/${uid}/investments/${lid}/transactions`, id));
@@ -419,11 +417,12 @@
                 }
                 App.closeModal();
             },
+            // Simplified Handlers
             handleSaveInvestment: async (e) => { e.preventDefault(); const f=e.target; const d={name:f.name.value, initialValue:parseFloat(f.initial.value)||0, isArchived:f.isArchived.checked}; if(!f.id.value){d.marketValue=d.initialValue;d.createdAt=Timestamp.now();} f.id.value?await updateDoc(doc(db,`users/${State.user.uid}/investments`,f.id.value),d):(await addDoc(collection(db,`users/${State.user.uid}/investments`),d) && d.initialValue>0 && await addDoc(collection(db,`users/${State.user.uid}/transactions`),{type:'expense',amount:d.initialValue,category:'投資',project:f.name.value,remarks:'初始投入',timestamp:Timestamp.now()})); App.closeModal(); },
             handleSaveDebt: async (e) => { e.preventDefault(); const f=e.target, uid=State.user.uid; const d={name:f.name.value, totalAmount:parseFloat(f.total.value)}; if(!f.id.value){d.remainingAmount=d.totalAmount;d.createdAt=Timestamp.now();} f.id.value?await updateDoc(doc(db,`users/${uid}/debts`,f.id.value),d):await addDoc(collection(db,`users/${uid}/debts`),d); App.closeModal(); },
             handleSaveBudget: async (e) => { e.preventDefault(); const f=e.target, uid=State.user.uid, ctx=f.context.value; const col = ctx === 'investment' ? 'investmentBudgets' : 'debtBudgets'; const d = { targetId: f.targetId.value,amount:parseFloat(f.amount.value),expectedDate:Timestamp.fromDate(new Date(f.date.value)),description:f.desc.value}; if(!f.id.value){d.isRealized=false;d.createdAt=Timestamp.now();} f.id.value?await updateDoc(doc(db,`users/${State.user.uid}/${f.context.value==='investment'?'investmentBudgets':'debtBudgets'}`,f.id.value),d):await addDoc(collection(db,`users/${State.user.uid}/${f.context.value==='investment'?'investmentBudgets':'debtBudgets'}`),d); App.closeModal(); },
-            handleRepayDebt: async (e) => { e.preventDefault(); const f=e.target, amt=parseFloat(f.amount.value), uid=State.user.uid; const debt=State.data.debts.find(d=>d.id===f.id.value); const batch=writeBatch(db); batch.update(doc(db,`users/${State.user.uid}/debts`,f.id.value),{remainingAmount:increment(-amt)}); batch.set(doc(collection(db,`users/${State.user.uid}/transactions`)),{type:'expense',amount:amt,category:'負債還款',project:debt.name,remarks:`償還: ${debt.name}`,timestamp:Timestamp.fromDate(new Date(f.date.value))}); await batch.commit(); App.closeModal(); },
-            handleSaveEvent: async(e) => { e.preventDefault(); const f=e.target, uid=State.user.uid; const d = { title:f.title.value, description:f.desc.value, date:Timestamp.fromDate(new Date(f.date.value)) }; f.id.value?await updateDoc(doc(db,`users/${uid}/events`,f.id.value),d):await addDoc(collection(db,`users/${uid}/events`),d); App.closeModal(); },
+            handleRepayDebt: async (e) => { e.preventDefault(); const f=e.target, amt=parseFloat(f.amount.value); const debt=State.data.debts.find(d=>d.id===f.id.value); const batch=writeBatch(db); batch.update(doc(db,`users/${State.user.uid}/debts`,f.id.value),{remainingAmount:increment(-amt)}); batch.set(doc(collection(db,`users/${State.user.uid}/transactions`)),{type:'expense',amount:amt,category:'負債還款',project:debt.name,remarks:`償還: ${debt.name}`,timestamp:Timestamp.fromDate(new Date(f.date.value))}); await batch.commit(); App.closeModal(); },
+            handleSaveEvent: async(e) => { e.preventDefault(); const f=e.target, uid=State.user.uid; const d = { title:f.title.value, description:f.desc.value, date:Timestamp.fromDate(new Date(f.date.value)) }; f.id.value?await updateDoc(doc(db,`users/${State.user.uid}/events`,f.id.value),d):await addDoc(collection(db,`users/${State.user.uid}/events`),d); App.closeModal(); },
             
             deleteTransaction: async (id, legacyInvId) => { if(!confirm('確定刪除?')) return; let path = `users/${State.user.uid}/transactions/${id}`; if (legacyInvId && legacyInvId !== 'undefined') path = `users/${State.user.uid}/investments/${legacyInvId}/transactions/${id}`; await deleteDoc(doc(db, path)); App.closeModal(); },
             deleteItem: async (c,id) => { if(confirm('刪除?')) await deleteDoc(doc(db, `users/${State.user.uid}/${c}`, id)); },
@@ -431,6 +430,7 @@
             realizeBudget: async(ctx, id) => { if(!confirm("執行預算?"))return; const col=ctx==='investment'?'investmentBudgets':'debtBudgets'; const b=State.data[col].find(i=>i.id===id); const acc=(ctx==='investment'?State.data.investments:State.data.debts).find(a=>a.id===b.targetId); const batch=writeBatch(db); batch.update(doc(db,`users/${State.user.uid}/${col}`,id),{isRealized:true}); batch.set(doc(collection(db,`users/${State.user.uid}/transactions`)),{type:ctx==='investment'?'income':'expense',amount:b.amount,category:ctx==='investment'?'投資':'負債還款',project:acc.name,remarks:`預算執行: ${b.description}`,timestamp:Timestamp.now()}); if(ctx!=='investment') batch.update(doc(db,`users/${State.user.uid}/debts`,acc.id),{remainingAmount:increment(-b.amount)}); await batch.commit(); },
             exportReport: () => { if(!confirm("匯出?"))return; const csv="Date,Category,Project,Note,Type,Amount\n"+App.getAllTransactions().map(t=>`${toDateStr(t.timestamp)},${t.category},${t.project||''},${t.remarks||''},${t.type},${t.amount}`).join("\n"); const l=document.createElement("a"); l.href=URL.createObjectURL(new Blob(["\uFEFF"+csv],{type:'text/csv'})); l.download="report.csv"; l.click(); },
 
+            // Renderers
             renderTransactions: () => {
                 if(!document.getElementById('tx-list')) return;
                 const val = document.getElementById('date-filter').value; const [y, m] = val.split('-').map(Number);
@@ -512,9 +512,31 @@
                 if(mnVal==='all') { start=new Date(yr,0,1); end=new Date(yr,11,31,23,59,59); } else { const m=parseInt(mnVal); start=new Date(yr,m-1,1); end=new Date(yr,m,0,23,59,59); }
                 const filtered = allTxs.filter(t => { const d = getTxDate(t); return d>=start && d<=end && (pSel.value==='all'||t.project===pSel.value) && (cSel.value==='all'||t.category===cSel.value); }).sort((a,b)=>getTxDate(b)-getTxDate(a));
                 if(State.chart) State.chart.destroy();
-                const map={}, total=filtered.filter(t=>t.type==='expense').reduce((s,t)=>{const c=t.category||'未分類'; map[c]=(map[c]||0)+parseFloat(t.amount); return s+parseFloat(t.amount)},0);
-                State.chart = new Chart(document.getElementById('expense-chart').getContext('2d'), { type: 'doughnut', data: { labels: Object.keys(map), datasets: [{ data: Object.values(map), backgroundColor: ['#4F46E5','#10B981','#F59E0B','#EF4444','#EC4899','#8B5CF6'], borderWidth:0 }] }, options: {responsive:true, maintainAspectRatio:false, plugins:{legend:{position:'right',labels:{font:{size:10},boxWidth:10}}}} });
-                document.getElementById('report-stats').innerHTML = total>0 ? Object.entries(map).sort((a,b)=>b[1]-a[1]).map(([k,v])=>`<li class="flex justify-between border-b border-gray-50 pb-1"><span>${k}</span><span class="font-bold">$${v.toLocaleString()} <span class="text-[10px] text-gray-400">(${((v/total)*100).toFixed(1)}%)</span></span></li>`).join('') : '<li class="text-center text-gray-400 py-4">無支出數據</li>';
+                
+                // Calculate Stats
+                const expMap={}, incMap={};
+                let expTotal=0, incTotal=0;
+                filtered.forEach(t => {
+                    const amt = parseFloat(t.amount)||0;
+                    const c = t.category || '未分類';
+                    if (t.type === 'expense') { expMap[c] = (expMap[c]||0) + amt; expTotal += amt; } 
+                    else { incMap[c] = (incMap[c]||0) + amt; incTotal += amt; }
+                });
+
+                State.chart = new Chart(document.getElementById('expense-chart').getContext('2d'), { type: 'doughnut', data: { labels: Object.keys(expMap), datasets: [{ data: Object.values(expMap), backgroundColor: ['#EF4444','#F59E0B','#10B981','#3B82F6','#6366F1','#8B5CF6','#EC4899','#6B7280'], borderWidth:0 }] }, options: {responsive:true, maintainAspectRatio:false, plugins:{legend:{position:'right',labels:{font:{size:10},boxWidth:10}}}} });
+                
+                let statsHtml = '';
+                if (incTotal > 0) {
+                    statsHtml += `<li class="text-xs font-bold text-green-600 mb-2 border-b border-gray-100 pb-1 mt-2">收入統計 (總計: $${incTotal.toLocaleString()})</li>`;
+                    statsHtml += Object.entries(incMap).sort((a,b)=>b[1]-a[1]).map(([k,v])=>`<li class="flex justify-between border-b border-gray-50 pb-1 last:border-0"><span>${k}</span><span class="font-bold text-green-600">$${v.toLocaleString()} <span class="text-[10px] text-gray-400 font-normal">(${((v/incTotal)*100).toFixed(1)}%)</span></span></li>`).join('');
+                }
+                if (expTotal > 0) {
+                    statsHtml += `<li class="text-xs font-bold text-red-500 mb-2 border-b border-gray-100 pb-1 mt-4">支出統計 (總計: $${expTotal.toLocaleString()})</li>`;
+                    statsHtml += Object.entries(expMap).sort((a,b)=>b[1]-a[1]).map(([k,v])=>`<li class="flex justify-between border-b border-gray-50 pb-1 last:border-0"><span>${k}</span><span class="font-bold text-red-500">$${v.toLocaleString()} <span class="text-[10px] text-gray-400 font-normal">(${((v/expTotal)*100).toFixed(1)}%)</span></span></li>`).join('');
+                }
+                if (incTotal === 0 && expTotal === 0) statsHtml = '<li class="text-center text-gray-400 py-4">無數據</li>';
+
+                document.getElementById('report-stats').innerHTML = statsHtml;
                 document.getElementById('report-details').innerHTML = filtered.length ? filtered.map(t => `<li class="flex justify-between items-center py-2 border-b border-gray-50 last:border-0 group cursor-pointer hover:bg-gray-50 p-1 rounded transition" onclick="App.openModal('transaction-modal', '${t.id}')"><div class="flex-1 min-w-0 mr-2"><p class="text-xs text-gray-500 mb-0.5">${getTxDate(t).toLocaleDateString()} <span class="font-medium text-gray-700">${t.category}</span></p><p class="text-[10px] text-gray-400 truncate">${t.remarks||''}</p></div><div class="flex items-center gap-2"><span class="text-xs font-bold ${t.type==='expense'?'text-red-500':'text-green-600'} whitespace-nowrap">${t.type==='expense'?'-':'+'} ${parseFloat(t.amount).toLocaleString()}</span><div class="flex gap-1"><button type="button" class="text-gray-400 hover:text-blue-500 z-10 relative" onclick="event.stopPropagation();App.openModal('transaction-modal','${t.id}')"><i class="fa-solid fa-pen text-xs"></i></button><button type="button" class="text-gray-400 hover:text-red-500 z-10 relative" onclick="event.stopPropagation();App.deleteTransaction('${t.id}', '${t.legacyInvId}')"><i class="fa-solid fa-trash-can text-xs"></i></button></div></div></li>`).join('') : '<li class="text-center text-xs text-gray-400 py-2">無交易紀錄</li>';
             },
             renderEvents: () => {
