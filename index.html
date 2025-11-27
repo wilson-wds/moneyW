@@ -145,19 +145,24 @@
 
             <!-- Reports -->
             <div id="view-reports" class="view-section hidden p-3 space-y-3 animate-fade">
-                <div class="bg-white p-3 rounded-xl card-shadow flex gap-2 items-center mb-2">
-                    <div class="flex-1 flex gap-1">
-                        <select id="report-year" class="bg-gray-50 rounded-lg px-2 py-1.5 text-xs font-bold border-transparent focus:border-primary w-1/2" onchange="App.renderReports()"></select>
-                        <select id="report-month-select" class="bg-gray-50 rounded-lg px-2 py-1.5 text-xs font-bold border-transparent focus:border-primary w-1/2" onchange="App.renderReports()">
+                <div class="bg-white p-3 rounded-xl card-shadow mb-2 space-y-2">
+                    <div class="flex gap-2">
+                        <select id="report-year" class="bg-gray-50 rounded-lg px-2 py-1.5 text-xs font-bold border-transparent focus:border-primary flex-1" onchange="App.renderReports()"></select>
+                        <select id="report-month-select" class="bg-gray-50 rounded-lg px-2 py-1.5 text-xs font-bold border-transparent focus:border-primary flex-1" onchange="App.renderReports()">
                             <option value="all">全年度</option>
                             <option value="1">1月</option><option value="2">2月</option><option value="3">3月</option><option value="4">4月</option><option value="5">5月</option><option value="6">6月</option>
                             <option value="7">7月</option><option value="8">8月</option><option value="9">9月</option><option value="10">10月</option><option value="11">11月</option><option value="12">12月</option>
                         </select>
                     </div>
-                    <select id="report-project" class="w-24 bg-gray-50 rounded-lg px-2 py-1.5 text-xs font-bold border-transparent focus:border-primary" onchange="App.renderReports()">
-                        <option value="all">全部專案</option>
-                    </select>
-                    <button onclick="App.exportReport()" class="bg-gray-100 p-2 rounded-lg text-gray-500 hover:text-primary hover:bg-blue-50 transition"><i class="fa-solid fa-file-export"></i></button>
+                    <div class="flex gap-2">
+                        <select id="report-project" class="bg-gray-50 rounded-lg px-2 py-1.5 text-xs font-bold border-transparent focus:border-primary flex-1" onchange="App.renderReports()">
+                            <option value="all">全部專案</option>
+                        </select>
+                        <select id="report-category" class="bg-gray-50 rounded-lg px-2 py-1.5 text-xs font-bold border-transparent focus:border-primary flex-1" onchange="App.renderReports()">
+                            <option value="all">全部分類</option>
+                        </select>
+                        <button onclick="App.exportReport()" class="bg-gray-100 px-3 py-1.5 rounded-lg text-gray-500 hover:text-primary hover:bg-blue-50 transition"><i class="fa-solid fa-file-export"></i></button>
+                    </div>
                 </div>
 
                 <div class="bg-white p-4 rounded-2xl card-shadow">
@@ -403,12 +408,7 @@
                 batch.set(doc(collection(db, `users/${uid}/transactions`)), { type:'expense', amount:amt, category:'負債還款', project:debt.name, remarks:`償還: ${debt.name}`, timestamp:Timestamp.fromDate(new Date(f.date.value)) });
                 await batch.commit(); closeModal();
             },
-            handleSaveEvent: async(e) => {
-                e.preventDefault(); const f=e.target, uid=State.user.uid;
-                const d = { title:f.title.value, description:f.desc.value, date:Timestamp.fromDate(new Date(f.date.value)) };
-                f.id.value ? await updateDoc(doc(db, `users/${uid}/events`, f.id.value), d) : await addDoc(collection(db, `users/${uid}/events`), d);
-                closeModal();
-            },
+            handleAddEvent: async(e) => { e.preventDefault(); const f=e.target; await addDoc(collection(db, `users/${State.user.uid}/events`), {title:f.title.value, description:f.desc.value, date:Timestamp.fromDate(new Date(f.date.value))}); closeModal(); },
             
             // Actions
             deleteItem: async (c,id) => confirm('刪除?') && await deleteDoc(doc(db, `users/${State.user.uid}/${c}`, id)),
@@ -432,6 +432,7 @@
             },
             exportReport: () => {
                 const projSel = document.getElementById('report-project').value;
+                const catSel = document.getElementById('report-category').value;
                 const yr = parseInt(document.getElementById('report-year').value);
                 const mnVal = document.getElementById('report-month-select').value;
                 let start, end;
@@ -439,7 +440,9 @@
                 else { const mn = parseInt(mnVal); start = new Date(yr, mn - 1, 1); end = new Date(yr, mn, 0, 23, 59, 59); }
                 const txs = State.data.transactions.filter(t => { 
                     const d = t.timestamp.toDate(); 
-                    return d >= start && d <= end && (projSel === 'all' || t.project === projSel);
+                    return d >= start && d <= end && 
+                           (projSel === 'all' || t.project === projSel) &&
+                           (catSel === 'all' || t.category === catSel);
                 }).sort((a,b)=>a.timestamp-b.timestamp);
                 const csvContent = "日期,分類,專案/帳戶,備註,類型,金額\n" + txs.map(t => `${t.timestamp.toDate().toLocaleDateString()},${t.category},${t.project||''},${t.remarks||''},${t.type==='income'?'收入':'支出'},${t.amount}`).join("\n");
                 const blob = new Blob(["\uFEFF"+csvContent], { type: 'text/csv;charset=utf-8;' });
@@ -555,7 +558,7 @@
                     const isOverdue = b.expectedDate && b.expectedDate.toDate() < todayZero;
                     const dateClass = isOverdue ? 'text-red-500 font-bold' : 'text-gray-400';
                     const boxClass = isOverdue ? 'bg-red-50 border-red-200' : 'bg-white border-gray-100';
-                    return `<li class="flex justify-between items-center p-2 rounded-xl border card-shadow mb-1 ${boxClass}"><div class="text-xs"><span class="font-bold text-gray-700">${(invs.find(i=>i.id===b.targetId)?.name)||'未知'}</span>: ${b.description} <span class="text-secondary">$${b.amount}</span><span class="text-[10px] ml-2 ${dateClass}">${b.expectedDate?.toDate().toLocaleDateString()||''}</span></div><div class="flex gap-2"><button onclick="App.realizeBudget('investment','${b.id}')" class="text-secondary hover:text-green-700 bg-green-50 w-6 h-6 rounded-full flex items-center justify-center"><i class="fa-solid fa-check"></i></button><button onclick="openBudgetModal('investment','${b.id}')" class="text-gray-300 hover:text-blue-500"><i class="fa-solid fa-pen"></i></button><button onclick="App.deleteItem('investmentBudgets','${b.id}')" class="text-gray-300 hover:text-red-500"><i class="fa-solid fa-trash"></i></button></div></li>`;
+                    return `<li class="flex justify-between items-center p-2 rounded-xl border card-shadow mb-1 ${boxClass}"><div class="text-xs"><span class="font-bold text-gray-700">${(invs.find(i=>i.id===b.targetId)?.name)||'未知'}</span>: <span class="text-blue-600 font-medium">${b.description}</span> <span class="text-secondary">$${b.amount}</span><span class="text-[10px] ml-2 ${dateClass}">${b.expectedDate?.toDate().toLocaleDateString()||''}</span></div><div class="flex gap-2"><button onclick="App.realizeBudget('investment','${b.id}')" class="text-secondary hover:text-green-700 bg-green-50 w-6 h-6 rounded-full flex items-center justify-center"><i class="fa-solid fa-check"></i></button><button onclick="openBudgetModal('investment','${b.id}')" class="text-gray-300 hover:text-blue-500"><i class="fa-solid fa-pen"></i></button><button onclick="App.deleteItem('investmentBudgets','${b.id}')" class="text-gray-300 hover:text-red-500"><i class="fa-solid fa-trash"></i></button></div></li>`;
                 }).join('')||'<li class="text-xs text-gray-400 text-center py-2">無預算項目</li>';
             },
             renderDebts: () => {
@@ -573,43 +576,34 @@
                     const isOverdue = b.expectedDate && b.expectedDate.toDate() < todayZero;
                     const dateClass = isOverdue ? 'text-red-500 font-bold' : 'text-gray-400';
                     const boxClass = isOverdue ? 'bg-red-50 border-red-200' : 'bg-white border-gray-100';
-                    return `<li class="flex justify-between items-center p-2 rounded-xl border card-shadow mb-1 ${boxClass}"><div class="text-xs"><span class="font-bold text-gray-700">${(State.data.debts.find(d=>d.id===b.targetId)?.name)||'未知'}</span>: ${b.description} <span class="text-danger">$${b.amount}</span><span class="text-[10px] ml-2 ${dateClass}">${b.expectedDate?.toDate().toLocaleDateString()||''}</span></div><div class="flex gap-2"><button onclick="App.realizeBudget('debt','${b.id}')" class="text-secondary hover:text-green-700 bg-green-50 w-6 h-6 rounded-full flex items-center justify-center"><i class="fa-solid fa-check"></i></button><button onclick="openBudgetModal('debt','${b.id}')" class="text-gray-300 hover:text-blue-500"><i class="fa-solid fa-pen"></i></button><button onclick="App.deleteItem('debtBudgets','${b.id}')" class="text-gray-300 hover:text-red-500"><i class="fa-solid fa-trash"></i></button></div></li>`;
+                    return `<li class="flex justify-between items-center p-2 rounded-xl border card-shadow mb-1 ${boxClass}"><div class="text-xs"><span class="font-bold text-gray-700">${(State.data.debts.find(d=>d.id===b.targetId)?.name)||'未知'}</span>: <span class="text-blue-600 font-medium">${b.description}</span> <span class="text-danger">$${b.amount}</span><span class="text-[10px] ml-2 ${dateClass}">${b.expectedDate?.toDate().toLocaleDateString()||''}</span></div><div class="flex gap-2"><button onclick="App.realizeBudget('debt','${b.id}')" class="text-secondary hover:text-green-700 bg-green-50 w-6 h-6 rounded-full flex items-center justify-center"><i class="fa-solid fa-check"></i></button><button onclick="openBudgetModal('debt','${b.id}')" class="text-gray-300 hover:text-blue-500"><i class="fa-solid fa-pen"></i></button><button onclick="App.deleteItem('debtBudgets','${b.id}')" class="text-gray-300 hover:text-red-500"><i class="fa-solid fa-trash"></i></button></div></li>`;
                 }).join('')||'<li class="text-xs text-gray-400 text-center py-2">無計畫項目</li>';
             },
-            renderEvents: () => {
-                const grouped = {};
-                State.data.events.sort((a,b)=>b.date-a.date).forEach(e => {
-                    const key = e.date.toDate().toLocaleDateString('zh-TW', {year:'numeric', month:'long'});
-                    if(!grouped[key]) grouped[key] = [];
-                    grouped[key].push(e);
-                });
-                
-                document.getElementById('event-list').innerHTML = Object.keys(grouped).length ? Object.entries(grouped).map(([month, events]) => `
-                    <div class="mb-6">
-                        <h3 class="text-xs font-bold text-gray-400 mb-3 border-b border-gray-200 pb-1">${month}</h3>
-                        <div class="space-y-4">
-                            ${events.map(e => `
-                                <div class="relative pl-4 border-l-2 border-primary/30 pb-2 group">
-                                    <div class="absolute -left-[5px] top-1.5 w-2.5 h-2.5 bg-primary rounded-full border-2 border-white shadow-sm"></div>
-                                    <div class="flex justify-between items-start">
-                                        <div>
-                                            <p class="text-[10px] font-bold text-primary mb-0.5">${e.date.toDate().toLocaleDateString('zh-TW', {day:'numeric', weekday:'short'})}</p>
-                                            <h4 class="font-bold text-gray-800 text-sm">${e.title}</h4>
-                                            <p class="text-xs text-gray-500 mt-1 leading-relaxed whitespace-pre-wrap">${e.description}</p>
-                                        </div>
-                                        <div class="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                            <button onclick="openModal('event-modal','${e.id}')" class="text-gray-300 hover:text-blue-500"><i class="fa-solid fa-pen text-xs"></i></button>
-                                            <button onclick="App.deleteItem('events','${e.id}')" class="text-gray-300 hover:text-red-500"><i class="fa-solid fa-trash text-xs"></i></button>
-                                        </div>
-                                    </div>
-                                </div>
-                            `).join('')}
-                        </div>
-                    </div>
-                `).join('') : '<div class="text-center py-10 text-gray-400 text-xs">尚無大事記</div>';
-            },
             renderReports: () => {
-                const projSel = document.getElementById('report-project').value;
+                const projSel = document.getElementById('report-project');
+                const currentProj = projSel.value;
+                const projects = [...new Set(State.data.transactions.map(t => t.project).filter(p => p))];
+                // Fix: Use a Map to ensure unique values if set logic is shaky, but Set is fine. 
+                // Crucial: Only update options if different count or first load to prevent reset loop?
+                // Actually, re-render is triggered by data change or filter change.
+                // Simple approach: Rebuild options but re-select current value if valid.
+                
+                // Keep "All" option
+                const projOpts = ['<option value="all">全部專案</option>', ...projects.map(p => `<option value="${p}">${p}</option>`)];
+                if (projSel.innerHTML !== projOpts.join('')) {
+                     projSel.innerHTML = projOpts.join('');
+                     if(projects.includes(currentProj)) projSel.value = currentProj;
+                }
+
+                const catSel = document.getElementById('report-category');
+                const currentCat = catSel.value;
+                const categories = [...new Set(State.data.transactions.map(t => t.category).filter(c => c))];
+                const catOpts = ['<option value="all">全部分類</option>', ...categories.map(c => `<option value="${c}">${c}</option>`)];
+                if (catSel.innerHTML !== catOpts.join('')) {
+                    catSel.innerHTML = catOpts.join('');
+                    if(categories.includes(currentCat)) catSel.value = currentCat;
+                }
+
                 const yr = parseInt(document.getElementById('report-year').value);
                 const mnVal = document.getElementById('report-month-select').value;
                 let start, end;
@@ -617,10 +611,17 @@
                 else { const mn = parseInt(mnVal); start = new Date(yr, mn - 1, 1); end = new Date(yr, mn, 0, 23, 59, 59); }
                 
                 if(State.chart) State.chart.destroy();
+                
+                const selectedProj = projSel.value;
+                const selectedCat = catSel.value;
+
                 const txs = State.data.transactions.filter(t => { 
                     const d = t.timestamp.toDate(); 
-                    return d >= start && d <= end && (projSel === 'all' || t.project === projSel);
-                }).sort((a,b)=>a.timestamp-b.timestamp); // Old to new
+                    const dateMatch = d >= start && d <= end;
+                    const projMatch = selectedProj === 'all' || t.project === selectedProj;
+                    const catMatch = selectedCat === 'all' || t.category === selectedCat;
+                    return dateMatch && projMatch && catMatch;
+                }).sort((a,b)=>b.timestamp-a.timestamp);
 
                 const map={}, total=txs.filter(t=>t.type==='expense').reduce((s,t)=>{map[t.category]=(map[t.category]||0)+t.amount;return s+t.amount},0);
                 State.chart = new Chart(document.getElementById('expense-chart').getContext('2d'), { type: 'doughnut', data: { labels: Object.keys(map), datasets: [{ data: Object.values(map), backgroundColor: ['#4F46E5','#10B981','#F59E0B','#EF4444','#EC4899','#8B5CF6'], borderWidth:0 }] }, options: {responsive:true, maintainAspectRatio:false, plugins:{legend:{position:'right',labels:{font:{size:10},boxWidth:10}}}} });
@@ -634,10 +635,7 @@
                 if(defaults.project && c.querySelector('[name=project]')) c.querySelector('[name=project]').value = defaults.project;
                 if(defaults.category && c.querySelector('[name=category]')) c.querySelector('[name=category]').value = defaults.category;
                 if(id) {
-                    let item;
-                    if (t==='event-modal') item = State.data.events.find(i=>i.id===id);
-                    else item = State.data[t==='transaction-modal'?'transactions':t==='investment-modal'?'investments':'debts'].find(i=>i.id===id);
-                    
+                    const item = State.data[t==='transaction-modal'?'transactions':t==='investment-modal'?'investments':t==='debt-modal'?'debts':t==='event-modal'?'events':[]].find(i=>i.id===id);
                     if(item) {
                         c.querySelector('[name=id]').value = id;
                         if(t==='transaction-modal') { c.querySelector('[name=amount]').value=item.amount; c.querySelector('[name=date]').value=toDateStr(item.timestamp); c.querySelector('[name=category]').value=item.category; c.querySelector('[name=remarks]').value=item.remarks; toggleTxType(item.type); }
