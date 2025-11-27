@@ -193,7 +193,6 @@
                 <button type="button" onclick="App.exportReport()" class="bg-gray-100 px-3 py-1.5 rounded-lg text-gray-500 hover:text-primary hover:bg-blue-50 transition flex-shrink-0"><i class="fa-solid fa-file-export"></i></button>
             </div>
         </div>
-
         <div class="bg-white p-4 rounded-2xl card-shadow">
             <h3 class="font-bold mb-4 text-center text-xs text-gray-500 uppercase tracking-wider">支出分佈</h3>
             <div class="h-56 relative"><canvas id="expense-chart"></canvas></div>
@@ -224,7 +223,6 @@
             <input type="hidden" name="id">
             <input type="hidden" name="project">
             <input type="hidden" name="legacy_inv_id"> <!-- For migration -->
-            
             <div class="flex bg-gray-100 p-1 rounded-xl">
                 <button type="button" class="type-btn flex-1 py-2 rounded-lg text-xs font-bold bg-white shadow text-danger transition" onclick="App.toggleTxType('expense')" id="btn-expense">支出</button>
                 <button type="button" class="type-btn flex-1 py-2 rounded-lg text-xs font-bold text-gray-500 transition" onclick="App.toggleTxType('income')" id="btn-income">收入</button>
@@ -332,7 +330,7 @@
             view: { invTab: 'active' }
         };
 
-        // Robust Date Parser
+        // 🛡️ Robust Date Parser
         const getTxDate = (tx) => {
             if (!tx) return new Date();
             try {
@@ -420,7 +418,7 @@
                 target.classList.remove('hidden');
                 target.innerHTML = document.getElementById(`tpl-${tab}`).innerHTML; 
 
-                // Initial Setup
+                // Init Tab Specifics
                 if(tab === 'accounting') {
                     const today = new Date().toISOString().slice(0, 7);
                     document.getElementById('date-filter').value = today;
@@ -454,21 +452,26 @@
                 App.renderInvestments();
             },
 
+            // Helper: Get Merged Transactions for Reports & Export
             getAllTransactions: () => {
                 let allTxs = [];
                 let linkedIds = new Set();
+
+                // 1. Gather Legacy/Subcollection Txs
                 if (State.data.investments && State.data.legacyTxs) {
                     State.data.investments.forEach(inv => {
                         const sub = State.data.legacyTxs[inv.id] || [];
                         sub.forEach(t => {
+                            // Normalize timestamp safely
                             let tsObj = getTxDate(t);
                             const finalTs = Timestamp.fromDate(tsObj);
-                            allTxs.push({ 
-                                ...t, 
+
+                            allTxs.push({
+                                ...t,
                                 project: inv.name, 
-                                category: t.category || (t.type === 'income' ? '投資收入' : '投資支出'), 
-                                timestamp: finalTs, 
-                                amount: parseFloat(t.amount) || 0, 
+                                category: t.category || (t.type === 'income' ? '投資收入' : '投資支出'),
+                                timestamp: finalTs,
+                                amount: parseFloat(t.amount) || 0,
                                 isLegacy: true,
                                 legacyInvId: inv.id // Pass parent ID for migration
                             });
@@ -476,11 +479,14 @@
                         });
                     });
                 }
-                if (State.data.transactions) {
-                    State.data.transactions.forEach(t => {
-                        if (!linkedIds.has(t.id)) allTxs.push(t);
-                    });
-                }
+
+                // 2. Add Global Txs (excluding those linked to legacy)
+                State.data.transactions.forEach(t => {
+                    if (!linkedIds.has(t.id)) {
+                        allTxs.push(t);
+                    }
+                });
+
                 return allTxs.sort((a,b) => (getTxDate(b) - getTxDate(a)));
             },
 
@@ -490,7 +496,14 @@
                 const f=e.target, uid=State.user.uid;
                 const id = f.id.value;
                 const legacyInvId = f.legacy_inv_id ? f.legacy_inv_id.value : null;
-                const d = { type: f.type.value, amount: parseFloat(f.amount.value), category: f.category.value, remarks: f.remarks.value, timestamp: Timestamp.fromDate(new Date(f.date.value)), project: f.project.value };
+                const d = { 
+                    type: f.type.value, 
+                    amount: parseFloat(f.amount.value), 
+                    category: f.category.value, 
+                    remarks: f.remarks.value, 
+                    timestamp: Timestamp.fromDate(new Date(f.date.value)),
+                    project: f.project.value
+                };
 
                 if (legacyInvId && id) { // Migration
                     const batch = writeBatch(db);
@@ -509,6 +522,7 @@
                 const d = { name: f.name.value, initialValue: init, isArchived: f.isArchived.checked };
                 if(!f.id.value) { d.marketValue = init; d.createdAt = Timestamp.now(); }
                 else {
+                     // Handle rename logic
                      const oldInv = State.data.investments.find(i => i.id === f.id.value);
                      const oldName = oldInv ? oldInv.name : '';
                      if (oldName && oldName !== f.name.value) {
@@ -531,11 +545,12 @@
             updateMarketValue: async (id,old) => { const v=prompt("目前市值:",old); if(v&&!isNaN(v)) await updateDoc(doc(db, `users/${State.user.uid}/investments`, id), {marketValue:parseFloat(v)}); },
             realizeBudget: async(ctx, id) => {
                 const isInv = ctx === 'investment'; const col = isInv ? 'investmentBudgets' : 'debtBudgets'; const budget = State.data[col].find(b => b.id === id); if(!budget) return;
-                const accountList = isInv ? State.data.investments : State.data.debts; const account = accountList.find(a => a.id === budget.targetId); if(!account) { alert('請先編輯預算選擇帳戶'); return; }
-                if(!confirm(`確定執行預算？`)) return;
+                const accountList = isInv ? State.data.investments : State.data.debts; const account = accountList.find(a => a.id === budget.targetId); if(!account) { alert('無法歸戶：找不到對應的帳戶。請先編輯此預算並選擇正確的帳戶。'); return; }
+                if(!confirm(`確定要執行此${isInv?'收入':'還款'}預算嗎？將會自動產生交易紀錄。`)) return;
                 const batch = writeBatch(db); const now = Timestamp.now();
                 batch.update(doc(db, `users/${State.user.uid}/${col}`, id), { isRealized: true });
-                batch.set(doc(collection(db, `users/${State.user.uid}/transactions`)), { type: isInv ? 'income' : 'expense', amount: budget.amount, category: isInv ? '投資' : '負債還款', project: account.name, remarks: `${isInv ? '預算實現' : '還款計畫'}: ${budget.description}`, timestamp: now });
+                const txRef = doc(collection(db, `users/${State.user.uid}/transactions`));
+                batch.set(txRef, { type: isInv ? 'income' : 'expense', amount: budget.amount, category: isInv ? '投資' : '負債還款', project: account.name, remarks: `${isInv ? '預算實現' : '還款計畫執行'}: ${budget.description}`, timestamp: now });
                 if(!isInv) batch.update(doc(db, `users/${State.user.uid}/debts`, account.id), { remainingAmount: increment(-budget.amount) });
                 await batch.commit();
             },
