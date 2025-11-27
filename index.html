@@ -93,7 +93,7 @@
                         <div class="flex gap-2 text-xs items-center">
                             <span class="text-green-600 font-medium">收:<span id="today-income">0</span></span>
                             <span class="text-red-500 font-medium">支:<span id="today-expense">0</span></span>
-                            <span class="text-blue-600 font-medium border-l pl-2 border-gray-200">餘:<span id="today-balance">0</span></span>
+                            <span class="text-blue-600 font-medium border-l pl-2 border-gray-200" id="today-balance-container">餘:<span id="today-balance">0</span></span>
                         </div>
                     </div>
                 </div>
@@ -509,8 +509,9 @@
                 });
                 document.getElementById('tx-list').innerHTML = Object.keys(grouped).length ? Object.entries(grouped).map(([date, data]) => {
                     const balance = data.income - data.expense;
+                    const balClass = balance < 0 ? 'text-red-500' : 'text-blue-600/70';
                     return `
-                    <div class="mb-4"><div class="flex justify-between items-center text-xs font-bold text-gray-400 mb-2 px-1 sticky top-0"><span>${date}</span><div class="flex gap-2 items-center"><span class="text-green-600/70 text-[10px]">+${data.income}</span> <span class="text-red-500/70 text-[10px]">-${data.expense}</span> <span class="text-blue-600/70 text-[10px] border-l pl-2 border-gray-300">=${balance}</span></div></div>
+                    <div class="mb-4"><div class="flex justify-between items-center text-xs font-bold text-gray-400 mb-2 px-1 sticky top-0"><span>${date}</span><div class="flex gap-2 items-center"><span class="text-green-600/70 text-[10px]">+${data.income}</span> <span class="text-red-500/70 text-[10px]">-${data.expense}</span> <span class="${balClass} text-[10px] border-l pl-2 border-gray-300">=${balance}</span></div></div>
                     <div class="bg-white rounded-2xl shadow-sm card-shadow overflow-hidden">${data.list.map(t => `
                         <div class="flex justify-between items-center py-3 px-3 border-b border-gray-50 last:border-0 hover:bg-gray-50 cursor-pointer active:bg-gray-100 transition" onclick="openModal('transaction-modal', '${t.id}')">
                             <div class="flex items-center gap-3"><div class="bg-gray-100 w-9 h-9 rounded-full flex items-center justify-center text-gray-500 text-xs font-bold shrink-0">${t.category[0]}</div><div class="min-w-0"><p class="font-bold text-gray-800 text-xs truncate">${t.category}</p><p class="text-[10px] text-gray-400 truncate">${t.remarks || ''}</p></div></div>
@@ -528,7 +529,12 @@
                     const startDay = new Date(today.getFullYear(), today.getMonth(), today.getDate()), endDay = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 1);
                     const txsDay = State.data.transactions.filter(t => { const d = t.timestamp.toDate(); return d >= startDay && d < endDay; });
                     const incD = txsDay.filter(t=>t.type==='income').reduce((s,t)=>s+t.amount,0), expD = txsDay.filter(t=>t.type==='expense').reduce((s,t)=>s+t.amount,0);
-                    document.getElementById('today-income').innerText = incD.toLocaleString(); document.getElementById('today-expense').innerText = expD.toLocaleString(); document.getElementById('today-balance').innerText = (incD-expD).toLocaleString();
+                    const balD = incD - expD;
+                    document.getElementById('today-income').innerText = incD.toLocaleString(); 
+                    document.getElementById('today-expense').innerText = expD.toLocaleString();
+                    const balEl = document.getElementById('today-balance');
+                    balEl.innerText = balD.toLocaleString();
+                    if(balEl.parentElement) { balEl.parentElement.className = `${balD < 0 ? 'text-red-500' : 'text-blue-600'} font-medium border-l pl-2 border-gray-200`; }
                 } else { document.getElementById('today-income').innerText = '-'; document.getElementById('today-expense').innerText = '-'; document.getElementById('today-balance').innerText = '-'; }
             },
             renderInvestments: () => {
