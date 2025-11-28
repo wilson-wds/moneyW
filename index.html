@@ -270,8 +270,6 @@
             <button type="submit" class="w-full bg-primary text-white font-bold py-3 rounded-xl shadow-lg text-sm">儲存</button>
         </form>
     </template>
-    
-    <!-- Updated Debt Modal with Manual Balance Correction -->
     <template id="tpl-debt-modal">
         <div class="flex justify-between items-center mb-4"><h3 class="text-lg font-bold text-gray-800">負債項目</h3><button type="button" onclick="App.closeModal()" class="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center text-gray-500"><i class="fa-solid fa-xmark"></i></button></div>
         <form onsubmit="App.handleSaveDebt(event)" class="space-y-4">
@@ -279,13 +277,11 @@
             <div><label class="text-[10px] font-bold text-gray-400 ml-1">名稱</label><input type="text" name="name" class="w-full bg-gray-50 rounded-xl p-3 text-sm" placeholder="名稱" required></div>
             <div class="grid grid-cols-2 gap-3">
                 <div><label class="text-[10px] font-bold text-gray-400 ml-1">總金額</label><input type="number" name="total" class="w-full bg-gray-50 rounded-xl p-3 text-sm" placeholder="總金額" required></div>
-                <!-- Added field for manual correction -->
                 <div><label class="text-[10px] font-bold text-gray-400 ml-1">剩餘金額 (手動校正)</label><input type="number" name="remaining" class="w-full bg-gray-50 rounded-xl p-3 text-sm border border-gray-200" placeholder="剩餘金額"></div>
             </div>
             <button type="submit" class="w-full bg-warning text-white font-bold py-3 rounded-xl shadow-lg text-sm">儲存</button>
         </form>
     </template>
-
     <template id="tpl-budget-form">
         <div class="flex justify-between items-center mb-4"><h3 class="text-lg font-bold text-gray-800" id="budget-modal-title">新增預算</h3><button type="button" onclick="App.closeModal()" class="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center text-gray-500"><i class="fa-solid fa-xmark"></i></button></div>
         <form onsubmit="App.handleSaveBudget(event)" class="space-y-4"><input type="hidden" name="id"><input type="hidden" name="context" id="budget-context"><select name="targetId" id="budget-target" class="w-full bg-gray-50 rounded-xl p-3 text-sm appearance-none" required></select><input type="number" name="amount" class="w-full bg-gray-50 rounded-xl p-3 text-sm" placeholder="金額" required><input type="date" name="date" class="w-full bg-gray-50 rounded-xl p-3 text-sm" required><input type="text" name="desc" class="w-full bg-gray-50 rounded-xl p-3 text-sm placeholder-blue-400 text-blue-600 font-medium" placeholder="說明" required><button type="submit" class="w-full bg-primary text-white py-3 rounded-xl font-bold shadow-lg shadow-primary/30 text-sm">設定</button></form>
@@ -328,8 +324,8 @@
             } catch (e) {}
             return new Date();
         };
-
-        // FIX: Use local date components string construction
+        
+        // FIX: Use local date components for formatting
         const toDateStr = (dateObj) => {
             const d = (dateObj instanceof Date) ? dateObj : getTxDate({timestamp: dateObj});
             const year = d.getFullYear();
@@ -477,12 +473,30 @@
                     }
                 } else {
                     if(id) {
+                         // UPDATED: Check for Debt updates on Edit
+                         const oldTx = State.data.transactions.find(t => t.id === id);
+                         if (oldTx && oldTx.type === 'expense' && oldTx.project) {
+                              // Reverse old debt logic
+                              const oldDebt = State.data.debts.find(db => db.name === oldTx.project);
+                              if (oldDebt) {
+                                   batch.update(doc(db, `users/${uid}/debts`, oldDebt.id), { remainingAmount: increment(oldTx.amount) });
+                              }
+                         }
+                         
                          batch.update(doc(db, `users/${uid}/transactions`, id), d);
+
+                         // Apply new debt logic
+                         if (type === 'expense' && project) {
+                             const newDebt = State.data.debts.find(db => db.name === project);
+                             if (newDebt) {
+                                  batch.update(doc(db, `users/${uid}/debts`, newDebt.id), { remainingAmount: increment(-amount) });
+                             }
+                         }
+
                     } else {
                          const newRef = doc(collection(db, `users/${uid}/transactions`));
                          batch.set(newRef, d);
                          
-                         // Auto Debt Reduction - Fixed with "Remaining Amount" edit in debt modal
                          if (type === 'expense' && project) {
                              const debt = State.data.debts.find(db => db.name === project);
                              if (debt) {
@@ -497,7 +511,6 @@
             },
             handleSaveInvestment: async (e) => { e.preventDefault(); const f=e.target; const d={name:f.name.value, initialValue:parseFloat(f.initial.value)||0, isArchived:f.isArchived.checked}; if(!f.id.value){d.marketValue=d.initialValue;d.createdAt=Timestamp.now();} f.id.value?await updateDoc(doc(db,`users/${State.user.uid}/investments`,f.id.value),d):(await addDoc(collection(db,`users/${State.user.uid}/investments`),d) && d.initialValue>0 && await addDoc(collection(db,`users/${State.user.uid}/transactions`),{type:'expense',amount:d.initialValue,category:'投資',project:f.name.value,remarks:'初始投入',timestamp:Timestamp.now()})); App.closeModal(); },
             
-            // MODIFIED: Allow Manual Correction of Remaining Amount
             handleSaveDebt: async (e) => { 
                 e.preventDefault(); 
                 const f=e.target, uid=State.user.uid; 
@@ -560,7 +573,6 @@
             realizeBudget: async(ctx, id) => { if(!confirm("執行預算?"))return; const col=ctx==='investment'?'investmentBudgets':'debtBudgets'; const b=State.data[col].find(i=>i.id===id); const acc=(ctx==='investment'?State.data.investments:State.data.debts).find(a=>a.id===b.targetId); const batch=writeBatch(db); batch.update(doc(db,`users/${State.user.uid}/${col}`,id),{isRealized:true}); batch.set(doc(collection(db,`users/${State.user.uid}/transactions`)),{type:ctx==='investment'?'income':'expense',amount:b.amount,category:ctx==='investment'?'投資':'負債還款',project:acc.name,remarks:`預算執行: ${b.description}`,timestamp:Timestamp.now()}); if(ctx!=='investment') batch.update(doc(db,`users/${State.user.uid}/debts`,acc.id),{remainingAmount:increment(-b.amount)}); await batch.commit(); },
             exportReport: () => { if(!confirm("匯出?"))return; const csv="Date,Category,Project,Note,Type,Amount\n"+App.getAllTransactions().map(t=>`${toDateStr(t.timestamp)},${t.category},${t.project||''},${t.remarks||''},${t.type},${t.amount}`).join("\n"); const l=document.createElement("a"); l.href=URL.createObjectURL(new Blob(["\uFEFF"+csv],{type:'text/csv'})); l.download="report.csv"; l.click(); },
 
-            // CATEGORY SELECTION LOGIC
             openCategorySelector: () => {
                 const type = document.getElementById('tx-type').value;
                 const allTxs = App.getAllTransactions();
