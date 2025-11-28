@@ -296,7 +296,7 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, signInAnonymously, onAuthStateChanged, GoogleAuthProvider, signInWithPopup, signOut } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, collection, addDoc, query, onSnapshot, doc, deleteDoc, updateDoc, increment, Timestamp, writeBatch, where, orderBy, getDocs } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getFirestore, collection, addDoc, query, onSnapshot, doc, deleteDoc, updateDoc, increment, Timestamp, writeBatch, where, orderBy, getDocs, getDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         const app = initializeApp({ apiKey: "AIzaSyAqFHm6Bn35m8xauc50ZvNNy_rxIZzCMTE", authDomain: "moneyw-f8105.firebaseapp.com", projectId: "moneyw-f8105", storageBucket: "moneyw-f8105.appspot.com", messagingSenderId: "155586195799", appId: "1:155586195799:web:302184fbf613f032a88e12" });
         const auth = getAuth(app); const db = getFirestore(app);
@@ -317,7 +317,7 @@
             return new Date();
         };
 
-        // FIX: Use local date components string construction
+        // FIX: Use local date components string construction to avoid timezone shift
         const toDateStr = (dateObj) => {
             const d = (dateObj instanceof Date) ? dateObj : getTxDate({timestamp: dateObj});
             const year = d.getFullYear();
@@ -358,8 +358,14 @@
                                 State.data.legacyTxs[inv.id] = subSnap.docs.map(d => {
                                     const data = d.data();
                                     let ts = data.timestamp || data.date;
-                                    if (!ts || (!ts.toDate && isNaN(new Date(ts).getTime()))) ts = Timestamp.now();
-                                    else if (typeof ts === 'string') ts = Timestamp.fromDate(new Date(ts));
+                                    if (typeof ts === 'string') {
+                                        const pd = new Date(ts);
+                                        if(!isNaN(pd.getTime())) ts = Timestamp.fromDate(pd);
+                                        else ts = Timestamp.fromDate(new Date());
+                                    } else if (ts && !ts.toDate) { 
+                                        if(ts.seconds) ts = new Timestamp(ts.seconds, ts.nanoseconds);
+                                        else ts = Timestamp.fromDate(new Date()); 
+                                    }
                                     return { id: d.id, ...data, timestamp: ts, remarks: data.remarks || data.remark, isLegacy: true, legacyInvId: inv.id };
                                 });
                             } catch(e) { State.data.legacyTxs[inv.id] = []; }
@@ -464,7 +470,7 @@
                          const newRef = doc(collection(db, `users/${uid}/transactions`));
                          batch.set(newRef, d);
                          
-                         // New Logic: Update Debt Balance automatically on new Expense transaction
+                         // Auto Debt Reduction
                          if (type === 'expense' && project) {
                              const debt = State.data.debts.find(db => db.name === project);
                              if (debt) {
@@ -484,7 +490,42 @@
             handleRepayDebt: async (e) => { e.preventDefault(); const f=e.target, amt=parseFloat(f.amount.value), uid=State.user.uid; const debt=State.data.debts.find(d=>d.id===f.id.value); const batch=writeBatch(db); batch.update(doc(db,`users/${uid}/debts`,f.id.value),{remainingAmount:increment(-amt)}); batch.set(doc(collection(db,`users/${uid}/transactions`)),{type:'expense',amount:amt,category:'負債還款',project:debt.name,remarks:`償還: ${debt.name}`,timestamp:Timestamp.fromDate(new Date(f.date.value))}); await batch.commit(); App.closeModal(); },
             handleSaveEvent: async(e) => { e.preventDefault(); const f=e.target, uid=State.user.uid; const d = { title:f.title.value, description:f.desc.value, date:Timestamp.fromDate(new Date(f.date.value)) }; f.id.value?await updateDoc(doc(db,`users/${uid}/events`,f.id.value),d):await addDoc(collection(db,`users/${uid}/events`),d); App.closeModal(); },
             
-            deleteTransaction: async (id, legacyInvId) => { if(!confirm('確定刪除?')) return; let path = `users/${State.user.uid}/transactions/${id}`; if (legacyInvId && legacyInvId !== 'undefined') path = `users/${State.user.uid}/investments/${legacyInvId}/transactions/${id}`; await deleteDoc(doc(db, path)); App.closeModal(); },
+            deleteTransaction: async (id, legacyInvId) => {
+                if (!confirm('確定刪除?')) return;
+                const uid = State.user.uid;
+                let path = `users/${uid}/transactions/${id}`;
+                let isLegacy = false;
+
+                if (legacyInvId && legacyInvId !== 'undefined') {
+                    path = `users/${uid}/investments/${legacyInvId}/transactions/${id}`;
+                    isLegacy = true;
+                }
+
+                const docRef = doc(db, path);
+                try {
+                    const docSnap = await getDoc(docRef);
+                    if (!docSnap.exists()) { alert("找不到該筆資料"); return; }
+                    const txData = docSnap.data();
+                    const batch = writeBatch(db);
+
+                    // Reverse Debt Repayment
+                    if (!isLegacy && txData.type === 'expense' && txData.project) {
+                         const debt = State.data.debts.find(d => d.name === txData.project);
+                         if (debt) {
+                             const debtRef = doc(db, `users/${uid}/debts`, debt.id);
+                             batch.update(debtRef, { remainingAmount: increment(txData.amount) });
+                         }
+                    }
+
+                    batch.delete(docRef);
+                    await batch.commit();
+
+                    if (isLegacy && State.data.legacyTxs[legacyInvId]) {
+                         State.data.legacyTxs[legacyInvId] = State.data.legacyTxs[legacyInvId].filter(t => t.id !== id);
+                    }
+                    App.closeModal();
+                } catch (e) { console.error(e); alert("刪除失敗"); }
+            },
             deleteItem: async (c,id) => { if(confirm('刪除?')) await deleteDoc(doc(db, `users/${State.user.uid}/${c}`, id)); },
             updateMarketValue: async (id,old) => { const v=prompt("目前市值:",old); if(v&&!isNaN(v)) await updateDoc(doc(db, `users/${State.user.uid}/investments`, id), {marketValue:parseFloat(v)}); },
             realizeBudget: async(ctx, id) => { if(!confirm("執行預算?"))return; const col=ctx==='investment'?'investmentBudgets':'debtBudgets'; const b=State.data[col].find(i=>i.id===id); const acc=(ctx==='investment'?State.data.investments:State.data.debts).find(a=>a.id===b.targetId); const batch=writeBatch(db); batch.update(doc(db,`users/${State.user.uid}/${col}`,id),{isRealized:true}); batch.set(doc(collection(db,`users/${State.user.uid}/transactions`)),{type:ctx==='investment'?'income':'expense',amount:b.amount,category:ctx==='investment'?'投資':'負債還款',project:acc.name,remarks:`預算執行: ${b.description}`,timestamp:Timestamp.now()}); if(ctx!=='investment') batch.update(doc(db,`users/${State.user.uid}/debts`,acc.id),{remainingAmount:increment(-b.amount)}); await batch.commit(); },
