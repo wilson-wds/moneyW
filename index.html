@@ -90,8 +90,14 @@
         </nav>
     </div>
 
+    <!-- Main Modal System -->
     <div id="modal-overlay" class="fixed inset-0 bg-black/40 z-50 hidden flex items-end sm:items-center justify-center animate-fade backdrop-blur-sm">
         <div id="modal-content" class="bg-white w-full max-w-[28rem] rounded-t-3xl sm:rounded-2xl p-6 shadow-2xl transform transition-transform duration-300 pb-10 sm:pb-6 max-h-[85vh] overflow-y-auto hide-scrollbar"></div>
+    </div>
+    
+    <!-- Sub Modal System (For Category Selection) -->
+    <div id="sub-modal-overlay" class="fixed inset-0 bg-black/40 z-[60] hidden flex items-end sm:items-center justify-center animate-fade backdrop-blur-sm">
+        <div id="sub-modal-content" class="bg-white w-full max-w-[28rem] rounded-t-3xl sm:rounded-2xl p-6 shadow-2xl transform transition-transform duration-300 pb-10 sm:pb-6 max-h-[50vh] overflow-y-auto hide-scrollbar"></div>
     </div>
 
     <!-- Templates -->
@@ -118,6 +124,7 @@
         <div class="px-3 pb-4"><ul id="tx-list" class="space-y-3"></ul></div>
     </template>
 
+    <!-- Template: Investment -->
     <template id="tpl-investment">
         <div class="flex justify-between items-center mb-3 px-1">
             <div class="flex items-center gap-2">
@@ -149,6 +156,7 @@
         </div>
     </template>
 
+    <!-- Template: Debt -->
     <template id="tpl-debt">
         <div class="flex justify-between items-center mb-3 px-1">
             <div class="flex items-center gap-2">
@@ -232,12 +240,27 @@
             <div><label class="text-[10px] font-bold text-gray-400 ml-1">金額</label><input type="number" name="amount" class="w-full text-3xl font-bold text-gray-800 border-b border-gray-200 py-1 focus:border-primary bg-transparent text-center focus:outline-none" placeholder="0" required inputmode="decimal"></div>
             <div class="grid grid-cols-2 gap-3">
                 <div><label class="text-[10px] font-bold text-gray-400 ml-1">日期</label><input type="date" name="date" class="w-full bg-gray-50 rounded-xl px-3 py-2.5 text-xs font-medium focus:bg-white focus:ring-1 focus:ring-primary transition" required></div>
-                <div><label class="text-[10px] font-bold text-gray-400 ml-1">分類</label><input list="cat-list" name="category" class="w-full bg-gray-50 rounded-xl px-3 py-2.5 text-xs font-medium focus:bg-white focus:ring-1 focus:ring-primary transition" placeholder="選擇分類" required><datalist id="cat-list"></datalist></div>
+                <div>
+                    <label class="text-[10px] font-bold text-gray-400 ml-1">分類</label>
+                    <div class="flex gap-2">
+                        <input name="category" class="w-full bg-gray-50 rounded-xl px-3 py-2.5 text-xs font-medium focus:bg-white focus:ring-1 focus:ring-primary transition" placeholder="選擇或輸入..." required>
+                        <button type="button" onclick="App.openCategorySelector()" class="w-10 h-10 bg-gray-100 rounded-xl flex items-center justify-center text-gray-500 hover:bg-gray-200 transition"><i class="fa-solid fa-list-ul"></i></button>
+                    </div>
+                </div>
             </div>
             <div><label class="text-[10px] font-bold text-gray-400 ml-1">專案 / 帳戶 (選填)</label><input type="text" name="project" class="w-full bg-gray-50 rounded-xl px-3 py-2.5 text-xs font-medium focus:bg-white focus:ring-1 focus:ring-primary transition" placeholder="例如: 台積電、學貸..."></div>
             <div><label class="text-[10px] font-bold text-gray-400 ml-1">備註</label><input type="text" name="remarks" class="w-full bg-gray-50 rounded-xl px-3 py-2.5 text-xs font-medium focus:bg-white focus:ring-1 focus:ring-primary transition" placeholder="寫點什麼..."></div>
             <div class="flex gap-2 pt-2"><button type="button" onclick="App.closeModal()" class="flex-1 bg-gray-100 py-3.5 rounded-xl font-bold text-gray-500 text-sm">取消</button><button type="submit" class="flex-1 bg-primary text-white font-bold py-3.5 rounded-xl shadow-lg shadow-primary/30 text-sm">儲存</button></div>
         </form>
+    </template>
+    
+    <!-- Category Selection Modal Template -->
+    <template id="tpl-category-selector">
+        <div class="flex justify-between items-center mb-4">
+            <h3 class="text-lg font-bold text-gray-800">選擇分類</h3>
+            <button onclick="App.closeSubModal()" class="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center text-gray-500"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        <div id="category-chips" class="flex flex-wrap gap-2 max-h-60 overflow-y-auto"></div>
     </template>
 
     <template id="tpl-investment-modal">
@@ -280,6 +303,7 @@
         const auth = getAuth(app); const db = getFirestore(app);
         const State = { user: null, data: { transactions: [], debts: [], investments: [], events: [], investmentBudgets: [], debtBudgets: [], legacyTxs: {} }, listeners: [], chart: null, categories: { expense: ['飲食', '交通', '居住', '娛樂', '購物', '醫療', '教育', '投資', '其他'], income: ['薪資', '獎金', '投資', '兼職', '其他'] }, view: { invTab: 'active', currentTab: 'accounting' } };
 
+        // 🛡️ Ultra Robust Date Parser
         const getTxDate = (tx) => {
             if (!tx) return new Date();
             try {
@@ -302,8 +326,7 @@
             const day = String(d.getDate()).padStart(2, '0');
             return `${year}-${month}-${day}`;
         };
-        const renderDatalist = (e, i) => { if(e) e.innerHTML = i.map(v => `<option value="${v}">`).join(''); };
-
+        
         window.App = {
             init: () => onAuthStateChanged(auth, u => {
                 State.user = u;
@@ -335,8 +358,14 @@
                                 State.data.legacyTxs[inv.id] = subSnap.docs.map(d => {
                                     const data = d.data();
                                     let ts = data.timestamp || data.date;
-                                    if (!ts || (!ts.toDate && isNaN(new Date(ts).getTime()))) ts = Timestamp.now();
-                                    else if (typeof ts === 'string') ts = Timestamp.fromDate(new Date(ts));
+                                    if (typeof ts === 'string') {
+                                        const pd = new Date(ts);
+                                        if(!isNaN(pd.getTime())) ts = Timestamp.fromDate(pd);
+                                        else ts = Timestamp.fromDate(new Date());
+                                    } else if (ts && !ts.toDate) { 
+                                        if(ts.seconds) ts = new Timestamp(ts.seconds, ts.nanoseconds);
+                                        else ts = Timestamp.fromDate(new Date()); 
+                                    }
                                     return { id: d.id, ...data, timestamp: ts, remarks: data.remarks || data.remark, isLegacy: true, legacyInvId: inv.id };
                                 });
                             } catch(e) { State.data.legacyTxs[inv.id] = []; }
@@ -391,7 +420,15 @@
                         const sub = State.data.legacyTxs[inv.id] || [];
                         sub.forEach(t => {
                             let tsObj = getTxDate(t);
-                            allTxs.push({ ...t, project: inv.name, category: t.category || (t.type === 'income' ? '投資收入' : '投資支出'), timestamp: Timestamp.fromDate(tsObj), amount: parseFloat(t.amount) || 0, isLegacy: true, legacyInvId: inv.id });
+                            allTxs.push({ 
+                                ...t, 
+                                project: inv.name, 
+                                category: t.category || (t.type === 'income' ? '投資收入' : '投資支出'), 
+                                timestamp: Timestamp.fromDate(tsObj), 
+                                amount: parseFloat(t.amount) || 0, 
+                                isLegacy: true,
+                                legacyInvId: inv.id 
+                            });
                             if(t.mainTransactionId) linkedIds.add(t.mainTransactionId);
                         });
                     });
@@ -409,7 +446,6 @@
 
             handleSaveTransaction: async (e) => {
                 e.preventDefault(); const f=e.target, uid=State.user.uid, id=f.id.value, lid=f.legacy_inv_id.value;
-                // Fix: ensure local date is preserved by appending time
                 const localDate = new Date(f.date.value + 'T12:00:00'); 
                 const d = { type: f.type.value, amount: parseFloat(f.amount.value), category: f.category.value, remarks: f.remarks.value, timestamp: Timestamp.fromDate(localDate), project: f.project.value };
                 if (lid && id) {
@@ -433,6 +469,44 @@
             updateMarketValue: async (id,old) => { const v=prompt("目前市值:",old); if(v&&!isNaN(v)) await updateDoc(doc(db, `users/${State.user.uid}/investments`, id), {marketValue:parseFloat(v)}); },
             realizeBudget: async(ctx, id) => { if(!confirm("執行預算?"))return; const col=ctx==='investment'?'investmentBudgets':'debtBudgets'; const b=State.data[col].find(i=>i.id===id); const acc=(ctx==='investment'?State.data.investments:State.data.debts).find(a=>a.id===b.targetId); const batch=writeBatch(db); batch.update(doc(db,`users/${State.user.uid}/${col}`,id),{isRealized:true}); batch.set(doc(collection(db,`users/${State.user.uid}/transactions`)),{type:ctx==='investment'?'income':'expense',amount:b.amount,category:ctx==='investment'?'投資':'負債還款',project:acc.name,remarks:`預算執行: ${b.description}`,timestamp:Timestamp.now()}); if(ctx!=='investment') batch.update(doc(db,`users/${State.user.uid}/debts`,acc.id),{remainingAmount:increment(-b.amount)}); await batch.commit(); },
             exportReport: () => { if(!confirm("匯出?"))return; const csv="Date,Category,Project,Note,Type,Amount\n"+App.getAllTransactions().map(t=>`${toDateStr(t.timestamp)},${t.category},${t.project||''},${t.remarks||''},${t.type},${t.amount}`).join("\n"); const l=document.createElement("a"); l.href=URL.createObjectURL(new Blob(["\uFEFF"+csv],{type:'text/csv'})); l.download="report.csv"; l.click(); },
+
+            // CATEGORY SELECTION LOGIC
+            openCategorySelector: () => {
+                const type = document.getElementById('tx-type').value;
+                const allTxs = App.getAllTransactions();
+                
+                // 1. Get History
+                const historyCats = allTxs
+                    .filter(t => t.type === type && t.category)
+                    .map(t => t.category);
+                
+                // 2. Count frequency
+                const counts = {};
+                historyCats.forEach(c => counts[c] = (counts[c] || 0) + 1);
+                
+                // 3. Sort by frequency
+                const sortedHistory = Object.keys(counts).sort((a,b) => counts[b] - counts[a]);
+                
+                // 4. Merge with Defaults
+                const defaults = State.categories[type];
+                const combined = [...new Set([...sortedHistory, ...defaults])];
+
+                // 5. Render
+                const c = document.getElementById('sub-modal-content');
+                c.innerHTML = document.getElementById('tpl-category-selector').innerHTML;
+                const list = document.getElementById('category-chips');
+                list.innerHTML = combined.map(c => 
+                    `<button onclick="App.pickCategory('${c}')" class="bg-gray-100 hover:bg-primary hover:text-white text-gray-700 px-3 py-2 rounded-xl text-sm transition">${c}</button>`
+                ).join('');
+                
+                document.getElementById('sub-modal-overlay').classList.remove('hidden');
+                document.getElementById('sub-modal-overlay').classList.add('flex');
+            },
+            closeSubModal: () => document.getElementById('sub-modal-overlay').classList.add('hidden'),
+            pickCategory: (val) => {
+                document.querySelector('#modal-content input[name="category"]').value = val;
+                App.closeSubModal();
+            },
 
             renderTransactions: () => {
                 if(!document.getElementById('tx-list')) return;
@@ -468,22 +542,18 @@
                 if(!document.getElementById('inv-list')) return;
                 const mVal = document.getElementById('inv-date-filter').value; const [yr, mn] = mVal ? mVal.split('-').map(Number) : [new Date().getFullYear(), new Date().getMonth()+1];
                 const startM = new Date(yr, mn-1, 1), endM = new Date(yr, mn, 0, 23, 59, 59);
-
                 const invs = State.data.investments.sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
                 const activeInvs = invs.filter(i => State.view.invTab === 'active' ? !i.isArchived : i.isArchived);
                 let tv=0, tr=0, tc=0;
-                
                 document.getElementById('inv-list').innerHTML = activeInvs.length ? activeInvs.map(i=>{
                     const subTxs = State.data.legacyTxs[i.id] || [];
                     const mainTxs = State.data.transactions.filter(t => t.project === i.name);
                     const linked = new Set(subTxs.map(t => t.mainTransactionId).filter(Boolean));
                     const all = [...subTxs, ...mainTxs.filter(t => !linked.has(t.id))];
-                    
                     const inc = all.filter(t=>t.type==='income').reduce((a,b)=>a+parseFloat(b.amount),0);
                     const exp = all.filter(t=>t.type==='expense').reduce((a,b)=>a+parseFloat(b.amount),0);
                     const profit = inc - exp;
                     if(State.view.invTab === 'active') { tv += (parseFloat(i.marketValue)||0); tc += exp; tr += profit; }
-
                     // FIX: Monthly earnings calculation (Income only)
                     const mInc = all.filter(t => {
                          const d = getTxDate(t);
@@ -494,24 +564,21 @@
 
                     return `<div class="bg-white p-3 rounded-xl card-shadow flex justify-between items-center cursor-pointer" onclick="App.showDetails('investment', '${i.id}')"><div class="flex-1 min-w-0 mr-2"><h4 class="font-bold text-gray-800 text-sm">${i.name}</h4><p class="text-[10px] text-gray-400">成本: ${(parseFloat(i.initialValue)||0).toLocaleString()}</p></div><div class="text-right"><p class="font-bold text-sm">$${(parseFloat(i.marketValue)||0).toLocaleString()}</p><p class="text-[10px] font-bold ${profit>=0?'text-green-500':'text-red-500'}">總: ${profit.toLocaleString()}</p>${mDisp}</div><button onclick="event.stopPropagation();App.openModal('investment-modal', '${i.id}')" type="button" class="text-gray-300 hover:text-blue-500 ml-2"><i class="fa-solid fa-pen text-xs"></i></button></div>`;
                 }).join('') : '<div class="text-center text-gray-400 py-4 text-xs">無帳戶</div>';
-
                 // Update Total Monthly Summary for Investment
                 const allInvIncome = App.getAllTransactions().filter(t => {
                     const d = getTxDate(t);
                     return t.type === 'income' && t.category.includes('投資') && d >= startM && d <= endM;
                 }).reduce((s, t) => s + parseFloat(t.amount), 0);
                 document.getElementById('inv-monthly-summary').innerText = `本月收益: $${allInvIncome.toLocaleString()}`;
-
                 const roi = tc > 0 ? (tr / tc) * 100 : 0;
                 document.getElementById('inv-total-val').innerText = `$${tv.toLocaleString()}`; document.getElementById('inv-total-ret').innerText = `${tr>0?'+':''}${tr.toLocaleString()}`; document.getElementById('inv-roi').innerText = `${roi.toFixed(1)}%`;
-                document.getElementById('inv-budget-list').innerHTML = State.data.investmentBudgets.filter(b=>!b.isRealized).sort((a,b)=>(a.expectedDate?.seconds||0)-(b.expectedDate?.seconds||0)).map(b=>`<li class="flex justify-between items-center p-2 rounded-xl border card-shadow mb-1 ${b.expectedDate?.toDate()<new Date().setHours(0,0,0,0)?'bg-red-50 border-red-200':'bg-white border-gray-100'}"><div class="text-xs"><span class="font-bold text-gray-700">${(State.data.investments.find(i=>i.id===b.targetId)?.name)||'未知'}</span>: <span class="text-blue-600 font-medium">${b.description}</span> <span class="text-secondary">$${(parseFloat(b.amount)||0).toLocaleString()}</span><span class="text-[10px] ml-2 ${b.expectedDate?.toDate()<new Date().setHours(0,0,0,0)?'text-red-500 font-bold':'text-gray-400'}">${b.expectedDate?.toDate().toLocaleDateString()||''}</span></div><div class="flex gap-2"><button onclick="App.realizeBudget('investment','${b.id}')" class="text-secondary hover:text-green-700"><i class="fa-solid fa-check"></i></button><button onclick="App.openBudgetModal('investment','${b.id}')" class="text-gray-300 hover:text-blue-500"><i class="fa-solid fa-pen"></i></button><button onclick="App.deleteItem('investmentBudgets','${b.id}')" class="text-gray-300 hover:text-red-500"><i class="fa-solid fa-trash"></i></button></div></li>`).join('')||'<li class="text-xs text-gray-400 text-center py-2">無預算</li>';
+                document.getElementById('inv-budget-list').innerHTML = State.data.investmentBudgets.filter(b=>!b.isRealized).sort((a,b)=>(a.expectedDate?.seconds||0)-(b.expectedDate?.seconds||0)).map(b=>`<li class="flex justify-between items-center p-2 rounded-xl border card-shadow mb-1 ${b.expectedDate?.toDate()<new Date().setHours(0,0,0,0)?'bg-red-50 border-red-200':'bg-white border-gray-100'}"><div class="text-xs"><span class="font-bold text-gray-700">${(invs.find(i=>i.id===b.targetId)?.name)||'未知'}</span>: <span class="text-blue-600 font-medium">${b.description}</span> <span class="text-secondary">$${(parseFloat(b.amount)||0).toLocaleString()}</span><span class="text-[10px] ml-2 ${b.expectedDate?.toDate()<new Date().setHours(0,0,0,0)?'text-red-500 font-bold':'text-gray-400'}">${b.expectedDate?.toDate().toLocaleDateString()||''}</span></div><div class="flex gap-2"><button onclick="App.realizeBudget('investment','${b.id}')" class="text-secondary hover:text-green-700"><i class="fa-solid fa-check"></i></button><button onclick="App.openBudgetModal('investment','${b.id}')" class="text-gray-300 hover:text-blue-500"><i class="fa-solid fa-pen"></i></button><button onclick="App.deleteItem('investmentBudgets','${b.id}')" class="text-gray-300 hover:text-red-500"><i class="fa-solid fa-trash"></i></button></div></li>`).join('')||'<li class="text-xs text-gray-400 text-center py-2">無預算</li>';
             },
             renderDebts: () => { if(!document.getElementById('debt-list')) return;
                 const mVal = document.getElementById('debt-date-filter').value; const [yr, mn] = mVal ? mVal.split('-').map(Number) : [new Date().getFullYear(), new Date().getMonth()+1];
                 const startM = new Date(yr, mn-1, 1), endM = new Date(yr, mn, 0, 23, 59, 59);
                 const debts = State.data.debts.sort((a,b)=>(b.createdAt?.seconds||0)-(a.createdAt?.seconds||0));
                 let tr=0, totalMonthlyRepaid=0; 
-                
                 document.getElementById('debt-list').innerHTML = debts.map(d=>{
                     tr+=parseFloat(d.remainingAmount); const p=Math.round(((d.totalAmount-d.remainingAmount)/d.totalAmount)*100);
                     // FIX: Relaxed filter for Debt Repayment
@@ -520,22 +587,16 @@
                          t.project === d.name &&
                          (t.category === '負債還款' || t.remarks.includes('償還') || t.project.includes(d.name))
                     );
-                    
                     const mRepaid = debtTxs.reduce((sum, t) => {
                         const dt = getTxDate(t); 
                         return (dt >= startM && dt <= endM) ? sum + (parseFloat(t.amount)||0) : sum;
                     }, 0);
-                    
                     totalMonthlyRepaid += mRepaid;
-
                     const mDisp = mRepaid > 0 ? `<span class="text-[10px] text-green-600 font-medium ml-2">本月已還:$${mRepaid.toLocaleString()}</span>` : '';
-
                     return `<div class="bg-white p-3 rounded-xl card-shadow cursor-pointer" onclick="App.showDetails('debt', '${d.id}')"><div class="flex justify-between mb-1"><span class="font-bold text-sm">${d.name}</span><button onclick="event.stopPropagation();App.openModal('debt-modal','${d.id}')" class="text-gray-300 hover:text-blue-500"><i class="fa-solid fa-pen text-xs"></i></button></div><div class="flex justify-between text-xs text-gray-500 mb-1"><span>剩 $${d.remainingAmount.toLocaleString()}</span>${mDisp}<span>${p}%</span></div><div class="w-full bg-gray-100 rounded-full h-1.5 mb-2"><div class="bg-primary h-1.5 rounded-full" style="width:${p}%"></div></div><div class="flex justify-end gap-2"><button onclick="event.stopPropagation();App.openRepayModal('${d.id}','${d.name}')" class="text-xs bg-green-50 text-green-600 px-2 py-0.5 rounded">還款</button><button onclick="event.stopPropagation();App.deleteItem('debts','${d.id}')" class="text-xs text-gray-300 px-1"><i class="fa-solid fa-trash"></i></button></div></div>`
                 }).join('');
-                
                 document.getElementById('debt-total-remaining').innerText = `$${tr.toLocaleString()}`;
                 document.getElementById('debt-monthly-summary').innerText = `本月還款: $${totalMonthlyRepaid.toLocaleString()}`;
-
                 document.getElementById('debt-budget-list').innerHTML = State.data.debtBudgets.filter(b=>!b.isRealized).sort((a,b)=>(a.expectedDate?.seconds||0)-(b.expectedDate?.seconds||0)).map(b=>`<li class="flex justify-between items-center p-2 rounded-xl border card-shadow mb-1 ${b.expectedDate?.toDate()<new Date().setHours(0,0,0,0)?'bg-red-50 border-red-200':'bg-white border-gray-100'}"><div class="text-xs"><span class="font-bold text-gray-700">${(State.data.debts.find(d=>d.id===b.targetId)?.name)||'未知'}</span>: <span class="text-blue-600 font-medium">${b.description}</span> <span class="text-danger">$${(parseFloat(b.amount)||0).toLocaleString()}</span><span class="text-[10px] ml-2 ${b.expectedDate?.toDate()<new Date().setHours(0,0,0,0)?'text-red-500 font-bold':'text-gray-400'}">${b.expectedDate?.toDate().toLocaleDateString()||''}</span></div><div class="flex gap-2"><button onclick="App.realizeBudget('debt','${b.id}')" class="text-secondary hover:text-green-700"><i class="fa-solid fa-check"></i></button><button onclick="App.openBudgetModal('debt','${b.id}')" class="text-gray-300 hover:text-blue-500"><i class="fa-solid fa-pen"></i></button><button onclick="App.deleteItem('debtBudgets','${b.id}')" class="text-gray-300 hover:text-red-500"><i class="fa-solid fa-trash"></i></button></div></li>`).join('')||'<li class="text-xs text-gray-400 text-center py-2">無計畫項目</li>';
             },
             renderReports: () => {
@@ -554,30 +615,14 @@
                 if(mnVal==='all') { start=new Date(yr,0,1); end=new Date(yr,11,31,23,59,59); } else { const m=parseInt(mnVal); start=new Date(yr,m-1,1); end=new Date(yr,m,0,23,59,59); }
                 const filtered = allTxs.filter(t => { const d = getTxDate(t); return d>=start && d<=end && (pSel.value==='all'||t.project===pSel.value) && (cSel.value==='all'||t.category===cSel.value); }).sort((a,b)=>getTxDate(b)-getTxDate(a));
                 if(State.chart) State.chart.destroy();
-                
-                // Calculate Stats
-                const expMap={}, incMap={};
-                let expTotal=0, incTotal=0;
-                filtered.forEach(t => {
-                    const amt = parseFloat(t.amount)||0;
-                    const c = t.category || '未分類';
-                    if (t.type === 'expense') { expMap[c] = (expMap[c]||0) + amt; expTotal += amt; } 
-                    else { incMap[c] = (incMap[c]||0) + amt; incTotal += amt; }
-                });
-
-                State.chart = new Chart(document.getElementById('expense-chart').getContext('2d'), { type: 'doughnut', data: { labels: Object.keys(expMap), datasets: [{ data: Object.values(expMap), backgroundColor: ['#EF4444','#F59E0B','#10B981','#3B82F6','#6366F1','#8B5CF6','#EC4899','#6B7280'], borderWidth:0 }] }, options: {responsive:true, maintainAspectRatio:false, plugins:{legend:{position:'right',labels:{font:{size:10},boxWidth:10}}}} });
-                
+                const map={}, total=filtered.filter(t=>t.type==='expense').reduce((s,t)=>{const c=t.category||'未分類'; map[c]=(map[c]||0)+parseFloat(t.amount); return s+parseFloat(t.amount)},0);
+                State.chart = new Chart(document.getElementById('expense-chart').getContext('2d'), { type: 'doughnut', data: { labels: Object.keys(map), datasets: [{ data: Object.values(map), backgroundColor: ['#EF4444','#F59E0B','#10B981','#3B82F6','#6366F1','#8B5CF6','#EC4899','#6B7280'], borderWidth:0 }] }, options: {responsive:true, maintainAspectRatio:false, plugins:{legend:{position:'right',labels:{font:{size:10},boxWidth:10}}}} });
                 let statsHtml = '';
-                if (incTotal > 0) {
-                    statsHtml += `<li class="text-xs font-bold text-green-600 mb-2 border-b border-gray-100 pb-1 mt-2">收入統計 (總計: $${incTotal.toLocaleString()})</li>`;
-                    statsHtml += Object.entries(incMap).sort((a,b)=>b[1]-a[1]).map(([k,v])=>`<li class="flex justify-between border-b border-gray-50 pb-1 last:border-0"><span>${k}</span><span class="font-bold text-green-600">$${v.toLocaleString()} <span class="text-[10px] text-gray-400 font-normal">(${((v/incTotal)*100).toFixed(1)}%)</span></span></li>`).join('');
-                }
-                if (expTotal > 0) {
-                    statsHtml += `<li class="text-xs font-bold text-red-500 mb-2 border-b border-gray-100 pb-1 mt-4">支出統計 (總計: $${expTotal.toLocaleString()})</li>`;
-                    statsHtml += Object.entries(expMap).sort((a,b)=>b[1]-a[1]).map(([k,v])=>`<li class="flex justify-between border-b border-gray-50 pb-1 last:border-0"><span>${k}</span><span class="font-bold text-red-500">$${v.toLocaleString()} <span class="text-[10px] text-gray-400 font-normal">(${((v/expTotal)*100).toFixed(1)}%)</span></span></li>`).join('');
-                }
+                const incMap={}, expMap={}; let incTotal=0, expTotal=0;
+                filtered.forEach(t => { const amt = parseFloat(t.amount)||0; const c = t.category||'未分類'; if (t.type === 'expense') { expMap[c]=(expMap[c]||0)+amt; expTotal+=amt; } else { incMap[c]=(incMap[c]||0)+amt; incTotal+=amt; } });
+                if (incTotal > 0) { statsHtml += `<li class="text-xs font-bold text-green-600 mb-2 border-b border-gray-100 pb-1 mt-2">收入統計 (總計: $${incTotal.toLocaleString()})</li>` + Object.entries(incMap).sort((a,b)=>b[1]-a[1]).map(([k,v])=>`<li class="flex justify-between border-b border-gray-50 pb-1 last:border-0"><span>${k}</span><span class="font-bold text-green-600">$${v.toLocaleString()}</span></li>`).join(''); }
+                if (expTotal > 0) { statsHtml += `<li class="text-xs font-bold text-red-500 mb-2 border-b border-gray-100 pb-1 mt-4">支出統計 (總計: $${expTotal.toLocaleString()})</li>` + Object.entries(expMap).sort((a,b)=>b[1]-a[1]).map(([k,v])=>`<li class="flex justify-between border-b border-gray-50 pb-1 last:border-0"><span>${k}</span><span class="font-bold text-red-500">$${v.toLocaleString()} <span class="text-[10px] text-gray-400 font-normal">(${((v/expTotal)*100).toFixed(1)}%)</span></span></li>`).join(''); }
                 if (incTotal === 0 && expTotal === 0) statsHtml = '<li class="text-center text-gray-400 py-4">無數據</li>';
-
                 document.getElementById('report-stats').innerHTML = statsHtml;
                 document.getElementById('report-details').innerHTML = filtered.length ? filtered.map(t => `<li class="flex justify-between items-center py-2 border-b border-gray-50 last:border-0 group cursor-pointer hover:bg-gray-50 p-1 rounded transition" onclick="App.openModal('transaction-modal', '${t.id}')"><div class="flex-1 min-w-0 mr-2"><p class="text-xs text-gray-500 mb-0.5">${getTxDate(t).toLocaleDateString()} <span class="font-medium text-gray-700">${t.category}</span></p><p class="text-[10px] text-gray-400 truncate">${t.remarks||''}</p></div><div class="flex items-center gap-2"><span class="text-xs font-bold ${t.type==='expense'?'text-red-500':'text-green-600'} whitespace-nowrap">${t.type==='expense'?'-':'+'} ${parseFloat(t.amount).toLocaleString()}</span><div class="flex gap-1"><button type="button" class="text-gray-400 hover:text-blue-500 z-10 relative" onclick="event.stopPropagation();App.openModal('transaction-modal','${t.id}')"><i class="fa-solid fa-pen text-xs"></i></button><button type="button" class="text-gray-400 hover:text-red-500 z-10 relative" onclick="event.stopPropagation();App.deleteTransaction('${t.id}', '${t.legacyInvId}')"><i class="fa-solid fa-trash-can text-xs"></i></button></div></div></li>`).join('') : '<li class="text-center text-xs text-gray-400 py-2">無交易紀錄</li>';
             },
@@ -587,20 +632,16 @@
                 State.data.events.sort((a,b) => getTxDate(b) - getTxDate(a)).forEach(e => { const k = getTxDate(e).toLocaleDateString('zh-TW', {year:'numeric', month:'long'}); if(!grouped[k]) grouped[k]=[]; grouped[k].push(e); });
                 document.getElementById('event-list').innerHTML = Object.keys(grouped).length ? Object.entries(grouped).map(([m, evs]) => `<div class="mb-6"><h3 class="text-xs font-bold text-gray-400 mb-3 border-b border-gray-200 pb-1">${m}</h3><div class="space-y-4">${evs.map(e => `<div class="relative pl-4 border-l-2 border-primary/30 pb-2 group"><div class="absolute -left-[5px] top-1.5 w-2.5 h-2.5 bg-primary rounded-full border-2 border-white shadow-sm"></div><div class="flex justify-between items-start"><div><p class="text-[10px] font-bold text-primary mb-0.5">${getTxDate(e).toLocaleDateString('zh-TW', {day:'numeric', weekday:'short'})}</p><h4 class="font-bold text-gray-800 text-sm">${e.title}</h4><p class="text-xs text-gray-500 mt-1 whitespace-pre-wrap">${e.description||''}</p></div><div class="flex gap-2 opacity-100"><button onclick="App.openModal('event-modal','${e.id}')" type="button" class="text-gray-300 hover:text-blue-500"><i class="fa-solid fa-pen text-xs"></i></button><button onclick="App.deleteItem('events','${e.id}')" type="button" class="text-gray-300 hover:text-red-500"><i class="fa-solid fa-trash-can text-xs"></i></button></div></div></div>`).join('')}</div></div>`).join('') : '<div class="text-center py-10 text-gray-400 text-xs">尚無大事記</div>';
             },
-            // Modal Logic with proper ID population
             openModal: (t, id, defaults = {}) => {
                 const c = document.getElementById('modal-content'); 
                 c.innerHTML = document.getElementById(`tpl-${t}`).innerHTML;
                 if(t==='transaction-modal') {
-                    renderDatalist(c.querySelector('#cat-list'), State.categories.expense);
                     if(defaults.project) c.querySelector('[name=project]').value = defaults.project;
                     if(defaults.category) c.querySelector('[name=category]').value = defaults.category;
                 }
                 if(id) {
                     let item = State.data[t==='transaction-modal'?'transactions':t==='investment-modal'?'investments':t==='debt-modal'?'debts':t==='event-modal'?'events':[]].find(i=>i.id===id);
-                    // Fallback for legacy items in reports/details
                     if(!item && t==='transaction-modal') item = App.getAllTransactions().find(i=>i.id===id);
-
                     if(item) {
                         c.querySelector('[name=id]').value = id;
                         if(t==='transaction-modal') {
@@ -679,7 +720,7 @@
 
                 content.querySelector('.details-list').innerHTML = relatedTxs.sort((a,b)=>getTxDate(b)-getTxDate(a)).map(t => `<li class="flex justify-between items-center py-3 px-3 rounded-xl mb-2 ${t.type==='expense'?'bg-red-50':'bg-green-50'}"><div><p class="text-[10px] text-gray-500 mb-0.5">${getTxDate(t).toLocaleDateString()}</p><p class="text-xs font-bold text-gray-700">${t.remarks||t.category}</p></div><div class="flex items-center gap-3"><span class="text-sm font-bold ${t.type==='expense'?'text-red-500':'text-green-600'}">${t.type==='expense'?'-':'+'} ${parseFloat(t.amount).toLocaleString()}</span><div class="flex gap-1"><button onclick="App.openModal('transaction-modal', '${t.id}')" class="text-gray-400 hover:text-blue-500 p-1"><i class="fa-solid fa-pen text-xs"></i></button><button onclick="App.deleteTransaction('${t.id}', '${t.legacyInvId}')" class="text-gray-400 hover:text-red-500 p-1"><i class="fa-solid fa-xmark text-xs"></i></button></div></div></li>`).join('') || '<li class="text-center text-xs text-gray-400 py-4">無相關紀錄</li>';
             },
-            toggleTxType: (t) => { document.getElementById('tx-type').value=t; const e=document.getElementById('btn-expense'), i=document.getElementById('btn-income'); if(t==='expense'){e.classList.add('bg-white','shadow','text-danger');e.classList.remove('text-gray-500');i.classList.remove('bg-white','shadow','text-primary');i.classList.add('text-gray-500'); renderDatalist(document.getElementById('cat-list'), State.categories.expense);}else{i.classList.add('bg-white','shadow','text-primary');i.classList.remove('text-gray-500');e.classList.remove('bg-white','shadow','text-danger');e.classList.add('text-gray-500');renderDatalist(document.getElementById('cat-list'), State.categories.income);} }
+            toggleTxType: (t) => { document.getElementById('tx-type').value=t; const e=document.getElementById('btn-expense'), i=document.getElementById('btn-income'); if(t==='expense'){e.classList.add('bg-white','shadow','text-danger');e.classList.remove('text-gray-500');i.classList.remove('bg-white','shadow','text-primary');i.classList.add('text-gray-500');}else{i.classList.add('bg-white','shadow','text-primary');i.classList.remove('text-gray-500');e.classList.remove('bg-white','shadow','text-danger');e.classList.add('text-gray-500');} }
         };
         window.App = App; App.init();
     </script>
