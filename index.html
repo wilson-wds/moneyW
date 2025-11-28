@@ -62,7 +62,6 @@
 
     <!-- Main App Frame -->
     <div id="app-container" class="hidden app-frame">
-        <!-- Header -->
         <header class="bg-white px-4 py-3 flex justify-between items-center shadow-sm z-20 shrink-0">
             <h1 class="font-bold text-gray-800 flex items-center gap-2"><i class="fa-solid fa-chart-pie text-primary"></i> <span id="page-title">總覽</span></h1>
             <div class="flex items-center gap-3">
@@ -71,7 +70,6 @@
             </div>
         </header>
 
-        <!-- Content -->
         <main id="main-content" class="flex-1 overflow-y-auto hide-scrollbar relative bg-gray-50 pb-20">
             <div id="view-accounting" class="view-section animate-fade"></div>
             <div id="view-investment" class="view-section hidden p-3 space-y-3 animate-fade"></div>
@@ -80,7 +78,6 @@
             <div id="view-events" class="view-section hidden p-3 space-y-3 animate-fade"></div>
         </main>
 
-        <!-- Nav -->
         <nav class="bg-white border-t border-gray-100 px-2 py-2 flex justify-between items-center text-[10px] font-medium text-gray-400 z-50 shrink-0 pb-safe">
             <button id="nav-accounting" onclick="App.switchTab('accounting', this)" class="nav-btn active flex flex-col items-center gap-1 transition p-1 min-w-[3.5rem]"><i class="fa-solid fa-house text-lg"></i> 記帳</button>
             <button onclick="App.switchTab('investment', this)" class="nav-btn flex flex-col items-center gap-1 transition p-1 min-w-[3.5rem]"><i class="fa-solid fa-arrow-trend-up text-lg"></i> 投資</button>
@@ -93,7 +90,6 @@
         </nav>
     </div>
 
-    <!-- Modal System -->
     <div id="modal-overlay" class="fixed inset-0 bg-black/40 z-50 hidden flex items-end sm:items-center justify-center animate-fade backdrop-blur-sm">
         <div id="modal-content" class="bg-white w-full max-w-[28rem] rounded-t-3xl sm:rounded-2xl p-6 shadow-2xl transform transition-transform duration-300 pb-10 sm:pb-6 max-h-[85vh] overflow-y-auto hide-scrollbar"></div>
     </div>
@@ -362,14 +358,8 @@
                                 State.data.legacyTxs[inv.id] = subSnap.docs.map(d => {
                                     const data = d.data();
                                     let ts = data.timestamp || data.date;
-                                    if (typeof ts === 'string') {
-                                        const pd = new Date(ts);
-                                        if(!isNaN(pd.getTime())) ts = Timestamp.fromDate(pd);
-                                        else ts = Timestamp.fromDate(new Date());
-                                    } else if (ts && !ts.toDate) { 
-                                        if(ts.seconds) ts = new Timestamp(ts.seconds, ts.nanoseconds);
-                                        else ts = Timestamp.fromDate(new Date()); 
-                                    }
+                                    if (!ts || (!ts.toDate && isNaN(new Date(ts).getTime()))) ts = Timestamp.now();
+                                    else if (typeof ts === 'string') ts = Timestamp.fromDate(new Date(ts));
                                     return { id: d.id, ...data, timestamp: ts, remarks: data.remarks || data.remark, isLegacy: true, legacyInvId: inv.id };
                                 });
                             } catch(e) { State.data.legacyTxs[inv.id] = []; }
@@ -452,39 +442,49 @@
             handleSaveTransaction: async (e) => {
                 e.preventDefault(); const f=e.target, uid=State.user.uid, id=f.id.value, lid=f.legacy_inv_id.value;
                 const localDate = new Date(f.date.value + 'T12:00:00'); 
-                const d = { type: f.type.value, amount: parseFloat(f.amount.value), category: f.category.value, remarks: f.remarks.value, timestamp: Timestamp.fromDate(localDate), project: f.project.value };
+                const type = f.type.value;
+                const amount = parseFloat(f.amount.value);
+                const project = f.project.value;
+
+                const d = { type: type, amount: amount, category: f.category.value, remarks: f.remarks.value, timestamp: Timestamp.fromDate(localDate), project: project };
+                
+                const batch = writeBatch(db);
+
                 if (lid && id) {
-                    const batch = writeBatch(db);
-                    batch.set(doc(collection(db, `users/${uid}/transactions`)), d);
+                    const newRef = doc(collection(db, `users/${uid}/transactions`));
+                    batch.set(newRef, d);
                     batch.delete(doc(db, `users/${uid}/investments/${lid}/transactions`, id));
-                    await batch.commit();
-                    // Manual Update: Remove from legacy cache to prevent ghosting
                     if (State.data.legacyTxs[lid]) {
                          State.data.legacyTxs[lid] = State.data.legacyTxs[lid].filter(t => t.id !== id);
                     }
                 } else {
-                    id ? await updateDoc(doc(db, `users/${uid}/transactions`, id), d) : await addDoc(collection(db, `users/${uid}/transactions`), d);
+                    if(id) {
+                         batch.update(doc(db, `users/${uid}/transactions`, id), d);
+                    } else {
+                         const newRef = doc(collection(db, `users/${uid}/transactions`));
+                         batch.set(newRef, d);
+                         
+                         // New Logic: Update Debt Balance automatically on new Expense transaction
+                         if (type === 'expense' && project) {
+                             const debt = State.data.debts.find(db => db.name === project);
+                             if (debt) {
+                                 const debtRef = doc(db, `users/${uid}/debts`, debt.id);
+                                 batch.update(debtRef, { remainingAmount: increment(-amount) });
+                             }
+                         }
+                    }
                 }
+                await batch.commit();
                 App.closeModal();
             },
+            // Simplified Handlers
             handleSaveInvestment: async (e) => { e.preventDefault(); const f=e.target; const d={name:f.name.value, initialValue:parseFloat(f.initial.value)||0, isArchived:f.isArchived.checked}; if(!f.id.value){d.marketValue=d.initialValue;d.createdAt=Timestamp.now();} f.id.value?await updateDoc(doc(db,`users/${State.user.uid}/investments`,f.id.value),d):(await addDoc(collection(db,`users/${State.user.uid}/investments`),d) && d.initialValue>0 && await addDoc(collection(db,`users/${State.user.uid}/transactions`),{type:'expense',amount:d.initialValue,category:'投資',project:f.name.value,remarks:'初始投入',timestamp:Timestamp.now()})); App.closeModal(); },
             handleSaveDebt: async (e) => { e.preventDefault(); const f=e.target, uid=State.user.uid; const d={name:f.name.value, totalAmount:parseFloat(f.total.value)}; if(!f.id.value){d.remainingAmount=d.totalAmount;d.createdAt=Timestamp.now();} f.id.value?await updateDoc(doc(db,`users/${uid}/debts`,f.id.value),d):await addDoc(collection(db,`users/${uid}/debts`),d); App.closeModal(); },
             handleSaveBudget: async (e) => { e.preventDefault(); const f=e.target, uid=State.user.uid, ctx=f.context.value; const col = ctx === 'investment' ? 'investmentBudgets' : 'debtBudgets'; const d = { targetId: f.targetId.value,amount:parseFloat(f.amount.value),expectedDate:Timestamp.fromDate(new Date(f.date.value)),description:f.desc.value}; if(!f.id.value){d.isRealized=false;d.createdAt=Timestamp.now();} f.id.value?await updateDoc(doc(db,`users/${State.user.uid}/${f.context.value==='investment'?'investmentBudgets':'debtBudgets'}`,f.id.value),d):await addDoc(collection(db,`users/${State.user.uid}/${f.context.value==='investment'?'investmentBudgets':'debtBudgets'}`),d); App.closeModal(); },
-            handleRepayDebt: async (e) => { e.preventDefault(); const f=e.target, amt=parseFloat(f.amount.value), uid=State.user.uid; const debt=State.data.debts.find(d=>d.id===f.id.value); const batch=writeBatch(db); batch.update(doc(db,`users/${State.user.uid}/debts`,f.id.value),{remainingAmount:increment(-amt)}); batch.set(doc(collection(db,`users/${State.user.uid}/transactions`)),{type:'expense',amount:amt,category:'負債還款',project:debt.name,remarks:`償還: ${debt.name}`,timestamp:Timestamp.fromDate(new Date(f.date.value))}); await batch.commit(); App.closeModal(); },
+            handleRepayDebt: async (e) => { e.preventDefault(); const f=e.target, amt=parseFloat(f.amount.value), uid=State.user.uid; const debt=State.data.debts.find(d=>d.id===f.id.value); const batch=writeBatch(db); batch.update(doc(db,`users/${uid}/debts`,f.id.value),{remainingAmount:increment(-amt)}); batch.set(doc(collection(db,`users/${uid}/transactions`)),{type:'expense',amount:amt,category:'負債還款',project:debt.name,remarks:`償還: ${debt.name}`,timestamp:Timestamp.fromDate(new Date(f.date.value))}); await batch.commit(); App.closeModal(); },
             handleSaveEvent: async(e) => { e.preventDefault(); const f=e.target, uid=State.user.uid; const d = { title:f.title.value, description:f.desc.value, date:Timestamp.fromDate(new Date(f.date.value)) }; f.id.value?await updateDoc(doc(db,`users/${uid}/events`,f.id.value),d):await addDoc(collection(db,`users/${uid}/events`),d); App.closeModal(); },
             
-            deleteTransaction: async (id, legacyInvId) => { 
-                if(!confirm('確定刪除?')) return; 
-                let path = `users/${State.user.uid}/transactions/${id}`; 
-                if (legacyInvId && legacyInvId !== 'undefined') {
-                     path = `users/${State.user.uid}/investments/${legacyInvId}/transactions/${id}`; 
-                     if (State.data.legacyTxs[legacyInvId]) {
-                         State.data.legacyTxs[legacyInvId] = State.data.legacyTxs[legacyInvId].filter(t => t.id !== id);
-                     }
-                }
-                await deleteDoc(doc(db, path)); 
-                App.closeModal(); 
-            },
+            deleteTransaction: async (id, legacyInvId) => { if(!confirm('確定刪除?')) return; let path = `users/${State.user.uid}/transactions/${id}`; if (legacyInvId && legacyInvId !== 'undefined') path = `users/${State.user.uid}/investments/${legacyInvId}/transactions/${id}`; await deleteDoc(doc(db, path)); App.closeModal(); },
             deleteItem: async (c,id) => { if(confirm('刪除?')) await deleteDoc(doc(db, `users/${State.user.uid}/${c}`, id)); },
             updateMarketValue: async (id,old) => { const v=prompt("目前市值:",old); if(v&&!isNaN(v)) await updateDoc(doc(db, `users/${State.user.uid}/investments`, id), {marketValue:parseFloat(v)}); },
             realizeBudget: async(ctx, id) => { if(!confirm("執行預算?"))return; const col=ctx==='investment'?'investmentBudgets':'debtBudgets'; const b=State.data[col].find(i=>i.id===id); const acc=(ctx==='investment'?State.data.investments:State.data.debts).find(a=>a.id===b.targetId); const batch=writeBatch(db); batch.update(doc(db,`users/${State.user.uid}/${col}`,id),{isRealized:true}); batch.set(doc(collection(db,`users/${State.user.uid}/transactions`)),{type:ctx==='investment'?'income':'expense',amount:b.amount,category:ctx==='investment'?'投資':'負債還款',project:acc.name,remarks:`預算執行: ${b.description}`,timestamp:Timestamp.now()}); if(ctx!=='investment') batch.update(doc(db,`users/${State.user.uid}/debts`,acc.id),{remainingAmount:increment(-b.amount)}); await batch.commit(); },
@@ -590,8 +590,7 @@
                     // FIX: Relaxed filter for Debt Repayment
                     const debtTxs = State.data.transactions.filter(t => 
                          t.type === 'expense' && 
-                         t.project === d.name &&
-                         (t.category === '負債還款' || t.remarks.includes('償還') || t.project.includes(d.name))
+                         t.project === d.name
                     );
                     const mRepaid = debtTxs.reduce((sum, t) => {
                         const dt = getTxDate(t); 
@@ -599,7 +598,7 @@
                     }, 0);
                     totalMonthlyRepaid += mRepaid;
                     const mDisp = mRepaid > 0 ? `<span class="text-[10px] text-green-600 font-medium ml-2">本月已還:$${mRepaid.toLocaleString()}</span>` : '';
-                    return `<div class="bg-white p-3 rounded-xl card-shadow cursor-pointer" onclick="App.showDetails('debt', '${d.id}')"><div class="flex justify-between mb-1"><span class="font-bold text-sm">${d.name}</span><button onclick="event.stopPropagation();App.openModal('debt-modal','${d.id}')" class="text-gray-300 hover:text-blue-500"><i class="fa-solid fa-pen text-xs"></i></button></div><div class="flex justify-between text-xs text-gray-500 mb-1"><span>剩 $${d.remainingAmount.toLocaleString()}</span>${mDisp}<span>${p}%</span></div><div class="w-full bg-gray-100 rounded-full h-1.5 mb-2"><div class="bg-primary h-1.5 rounded-full" style="width:${p}%"></div></div><div class="flex justify-end gap-2"><button onclick="event.stopPropagation();App.openRepayModal('${d.id}','${d.name}')" class="text-xs bg-green-50 text-green-600 px-2 py-0.5 rounded">還款</button><button onclick="event.stopPropagation();App.deleteItem('debts','${d.id}')" class="text-xs text-gray-300 px-1"><i class="fa-solid fa-trash"></i></button></div></div>`
+                    return `<div class="bg-white p-3 rounded-xl card-shadow cursor-pointer" onclick="App.showDetails('debt', '${d.id}')"><div class="flex justify-between mb-1"><span class="font-bold text-sm">${d.name}</span><button onclick="event.stopPropagation();App.openModal('debt-modal','${d.id}')" class="text-gray-300 hover:text-blue-500"><i class="fa-solid fa-pen text-xs"></i></button></div><div class="flex justify-between text-xs text-gray-500 mb-1"><span>剩 $${d.remainingAmount.toLocaleString()}</span>${mDisp}<span>${p}%</span></div><div class="w-full bg-gray-100 rounded-full h-1.5 mb-2"><div class="bg-primary h-1.5 rounded-full" style="width:${p}%"></div></div><div class="flex justify-end gap-2"><button onclick="event.stopPropagation();App.openRepayModal('${d.id}','${d.name}')" class="text-xs bg-green-50 px-2 py-0.5 rounded">還款</button><button onclick="event.stopPropagation();App.deleteItem('debts','${d.id}')" class="text-xs text-gray-300 px-1"><i class="fa-solid fa-trash"></i></button></div></div>`
                 }).join('');
                 document.getElementById('debt-total-remaining').innerText = `$${tr.toLocaleString()}`;
                 document.getElementById('debt-monthly-summary').innerText = `本月還款: $${totalMonthlyRepaid.toLocaleString()}`;
