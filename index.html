@@ -270,10 +270,22 @@
             <button type="submit" class="w-full bg-primary text-white font-bold py-3 rounded-xl shadow-lg text-sm">儲存</button>
         </form>
     </template>
+    
+    <!-- Updated Debt Modal with Manual Balance Correction -->
     <template id="tpl-debt-modal">
         <div class="flex justify-between items-center mb-4"><h3 class="text-lg font-bold text-gray-800">負債項目</h3><button type="button" onclick="App.closeModal()" class="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center text-gray-500"><i class="fa-solid fa-xmark"></i></button></div>
-        <form onsubmit="App.handleSaveDebt(event)" class="space-y-4"><input type="hidden" name="id"><input type="text" name="name" class="w-full bg-gray-50 rounded-xl p-3 text-sm" placeholder="名稱" required><input type="number" name="total" class="w-full bg-gray-50 rounded-xl p-3 text-sm" placeholder="總金額" required><button type="submit" class="w-full bg-warning text-white font-bold py-3 rounded-xl shadow-lg text-sm">儲存</button></form>
+        <form onsubmit="App.handleSaveDebt(event)" class="space-y-4">
+            <input type="hidden" name="id">
+            <div><label class="text-[10px] font-bold text-gray-400 ml-1">名稱</label><input type="text" name="name" class="w-full bg-gray-50 rounded-xl p-3 text-sm" placeholder="名稱" required></div>
+            <div class="grid grid-cols-2 gap-3">
+                <div><label class="text-[10px] font-bold text-gray-400 ml-1">總金額</label><input type="number" name="total" class="w-full bg-gray-50 rounded-xl p-3 text-sm" placeholder="總金額" required></div>
+                <!-- Added field for manual correction -->
+                <div><label class="text-[10px] font-bold text-gray-400 ml-1">剩餘金額 (手動校正)</label><input type="number" name="remaining" class="w-full bg-gray-50 rounded-xl p-3 text-sm border border-gray-200" placeholder="剩餘金額"></div>
+            </div>
+            <button type="submit" class="w-full bg-warning text-white font-bold py-3 rounded-xl shadow-lg text-sm">儲存</button>
+        </form>
     </template>
+
     <template id="tpl-budget-form">
         <div class="flex justify-between items-center mb-4"><h3 class="text-lg font-bold text-gray-800" id="budget-modal-title">新增預算</h3><button type="button" onclick="App.closeModal()" class="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center text-gray-500"><i class="fa-solid fa-xmark"></i></button></div>
         <form onsubmit="App.handleSaveBudget(event)" class="space-y-4"><input type="hidden" name="id"><input type="hidden" name="context" id="budget-context"><select name="targetId" id="budget-target" class="w-full bg-gray-50 rounded-xl p-3 text-sm appearance-none" required></select><input type="number" name="amount" class="w-full bg-gray-50 rounded-xl p-3 text-sm" placeholder="金額" required><input type="date" name="date" class="w-full bg-gray-50 rounded-xl p-3 text-sm" required><input type="text" name="desc" class="w-full bg-gray-50 rounded-xl p-3 text-sm placeholder-blue-400 text-blue-600 font-medium" placeholder="說明" required><button type="submit" class="w-full bg-primary text-white py-3 rounded-xl font-bold shadow-lg shadow-primary/30 text-sm">設定</button></form>
@@ -317,7 +329,7 @@
             return new Date();
         };
 
-        // FIX: Use local date components string construction to avoid timezone shift
+        // FIX: Use local date components string construction
         const toDateStr = (dateObj) => {
             const d = (dateObj instanceof Date) ? dateObj : getTxDate({timestamp: dateObj});
             const year = d.getFullYear();
@@ -470,7 +482,7 @@
                          const newRef = doc(collection(db, `users/${uid}/transactions`));
                          batch.set(newRef, d);
                          
-                         // Auto Debt Reduction
+                         // Auto Debt Reduction - Fixed with "Remaining Amount" edit in debt modal
                          if (type === 'expense' && project) {
                              const debt = State.data.debts.find(db => db.name === project);
                              if (debt) {
@@ -483,11 +495,28 @@
                 await batch.commit();
                 App.closeModal();
             },
-            // Simplified Handlers
             handleSaveInvestment: async (e) => { e.preventDefault(); const f=e.target; const d={name:f.name.value, initialValue:parseFloat(f.initial.value)||0, isArchived:f.isArchived.checked}; if(!f.id.value){d.marketValue=d.initialValue;d.createdAt=Timestamp.now();} f.id.value?await updateDoc(doc(db,`users/${State.user.uid}/investments`,f.id.value),d):(await addDoc(collection(db,`users/${State.user.uid}/investments`),d) && d.initialValue>0 && await addDoc(collection(db,`users/${State.user.uid}/transactions`),{type:'expense',amount:d.initialValue,category:'投資',project:f.name.value,remarks:'初始投入',timestamp:Timestamp.now()})); App.closeModal(); },
-            handleSaveDebt: async (e) => { e.preventDefault(); const f=e.target, uid=State.user.uid; const d={name:f.name.value, totalAmount:parseFloat(f.total.value)}; if(!f.id.value){d.remainingAmount=d.totalAmount;d.createdAt=Timestamp.now();} f.id.value?await updateDoc(doc(db,`users/${uid}/debts`,f.id.value),d):await addDoc(collection(db,`users/${uid}/debts`),d); App.closeModal(); },
+            
+            // MODIFIED: Allow Manual Correction of Remaining Amount
+            handleSaveDebt: async (e) => { 
+                e.preventDefault(); 
+                const f=e.target, uid=State.user.uid; 
+                const total = parseFloat(f.total.value);
+                const d = { name:f.name.value, totalAmount: total };
+                
+                if (f.remaining && f.remaining.value) {
+                    d.remainingAmount = parseFloat(f.remaining.value);
+                } else if(!f.id.value) {
+                    d.remainingAmount = total;
+                    d.createdAt = Timestamp.now();
+                }
+
+                f.id.value ? await updateDoc(doc(db,`users/${uid}/debts`,f.id.value),d) : await addDoc(collection(db,`users/${uid}/debts`),d); 
+                App.closeModal(); 
+            },
+            
             handleSaveBudget: async (e) => { e.preventDefault(); const f=e.target, uid=State.user.uid, ctx=f.context.value; const col = ctx === 'investment' ? 'investmentBudgets' : 'debtBudgets'; const d = { targetId: f.targetId.value,amount:parseFloat(f.amount.value),expectedDate:Timestamp.fromDate(new Date(f.date.value)),description:f.desc.value}; if(!f.id.value){d.isRealized=false;d.createdAt=Timestamp.now();} f.id.value?await updateDoc(doc(db,`users/${State.user.uid}/${f.context.value==='investment'?'investmentBudgets':'debtBudgets'}`,f.id.value),d):await addDoc(collection(db,`users/${State.user.uid}/${f.context.value==='investment'?'investmentBudgets':'debtBudgets'}`),d); App.closeModal(); },
-            handleRepayDebt: async (e) => { e.preventDefault(); const f=e.target, amt=parseFloat(f.amount.value), uid=State.user.uid; const debt=State.data.debts.find(d=>d.id===f.id.value); const batch=writeBatch(db); batch.update(doc(db,`users/${uid}/debts`,f.id.value),{remainingAmount:increment(-amt)}); batch.set(doc(collection(db,`users/${uid}/transactions`)),{type:'expense',amount:amt,category:'負債還款',project:debt.name,remarks:`償還: ${debt.name}`,timestamp:Timestamp.fromDate(new Date(f.date.value))}); await batch.commit(); App.closeModal(); },
+            handleRepayDebt: async (e) => { e.preventDefault(); const f=e.target, amt=parseFloat(f.amount.value), uid=State.user.uid; const debt=State.data.debts.find(d=>d.id===f.id.value); const batch=writeBatch(db); batch.update(doc(db,`users/${State.user.uid}/debts`,f.id.value),{remainingAmount:increment(-amt)}); batch.set(doc(collection(db,`users/${State.user.uid}/transactions`)),{type:'expense',amount:amt,category:'負債還款',project:debt.name,remarks:`償還: ${debt.name}`,timestamp:Timestamp.fromDate(new Date(f.date.value))}); await batch.commit(); App.closeModal(); },
             handleSaveEvent: async(e) => { e.preventDefault(); const f=e.target, uid=State.user.uid; const d = { title:f.title.value, description:f.desc.value, date:Timestamp.fromDate(new Date(f.date.value)) }; f.id.value?await updateDoc(doc(db,`users/${uid}/events`,f.id.value),d):await addDoc(collection(db,`users/${uid}/events`),d); App.closeModal(); },
             
             deleteTransaction: async (id, legacyInvId) => {
@@ -508,7 +537,7 @@
                     const txData = docSnap.data();
                     const batch = writeBatch(db);
 
-                    // Reverse Debt Repayment
+                    // Reverse Debt Repayment (Add back the amount)
                     if (!isLegacy && txData.type === 'expense' && txData.project) {
                          const debt = State.data.debts.find(d => d.name === txData.project);
                          if (debt) {
