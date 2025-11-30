@@ -215,7 +215,10 @@
     </template>
 
     <template id="tpl-events">
-        <button type="button" onclick="App.openModal('event-modal')" class="w-full py-3 border-2 border-dashed border-gray-300 rounded-2xl text-gray-400 font-bold hover:bg-gray-50 hover:border-gray-400 transition mb-2 text-xs">+ 紀錄大事記</button>
+        <div class="flex gap-2 mb-4">
+             <button type="button" onclick="App.openModal('event-modal')" class="flex-1 py-3 border-2 border-dashed border-gray-300 rounded-2xl text-gray-400 font-bold hover:bg-gray-50 hover:border-gray-400 transition text-xs">+ 紀錄大事記</button>
+             <button type="button" onclick="App.exportEvents()" class="w-12 flex items-center justify-center bg-gray-100 rounded-2xl text-gray-400 hover:text-primary hover:bg-blue-50 transition"><i class="fa-solid fa-file-export"></i></button>
+        </div>
         <div id="event-list" class="space-y-4 pl-2"></div>
     </template>
 
@@ -324,8 +327,8 @@
             } catch (e) {}
             return new Date();
         };
-        
-        // FIX: Use local date components for formatting
+
+        // FIX: Use local date components string construction
         const toDateStr = (dateObj) => {
             const d = (dateObj instanceof Date) ? dateObj : getTxDate({timestamp: dateObj});
             const year = d.getFullYear();
@@ -417,7 +420,6 @@
                 document.querySelectorAll('.nav-btn').forEach(e => e.classList.remove('active', 'text-primary'));
                 if(btn) btn.classList.add('active', 'text-primary');
                 document.getElementById('page-title').innerText = {accounting:'總覽', investment:'投資', debt:'負債', reports:'報表', events:'大事記'}[tab];
-                
                 App.refreshCurrentView();
             },
             
@@ -473,30 +475,12 @@
                     }
                 } else {
                     if(id) {
-                         // UPDATED: Check for Debt updates on Edit
-                         const oldTx = State.data.transactions.find(t => t.id === id);
-                         if (oldTx && oldTx.type === 'expense' && oldTx.project) {
-                              // Reverse old debt logic
-                              const oldDebt = State.data.debts.find(db => db.name === oldTx.project);
-                              if (oldDebt) {
-                                   batch.update(doc(db, `users/${uid}/debts`, oldDebt.id), { remainingAmount: increment(oldTx.amount) });
-                              }
-                         }
-                         
                          batch.update(doc(db, `users/${uid}/transactions`, id), d);
-
-                         // Apply new debt logic
-                         if (type === 'expense' && project) {
-                             const newDebt = State.data.debts.find(db => db.name === project);
-                             if (newDebt) {
-                                  batch.update(doc(db, `users/${uid}/debts`, newDebt.id), { remainingAmount: increment(-amount) });
-                             }
-                         }
-
                     } else {
                          const newRef = doc(collection(db, `users/${uid}/transactions`));
                          batch.set(newRef, d);
                          
+                         // Auto Debt Reduction
                          if (type === 'expense' && project) {
                              const debt = State.data.debts.find(db => db.name === project);
                              if (debt) {
@@ -509,6 +493,7 @@
                 await batch.commit();
                 App.closeModal();
             },
+            // Simplified Handlers
             handleSaveInvestment: async (e) => { e.preventDefault(); const f=e.target; const d={name:f.name.value, initialValue:parseFloat(f.initial.value)||0, isArchived:f.isArchived.checked}; if(!f.id.value){d.marketValue=d.initialValue;d.createdAt=Timestamp.now();} f.id.value?await updateDoc(doc(db,`users/${State.user.uid}/investments`,f.id.value),d):(await addDoc(collection(db,`users/${State.user.uid}/investments`),d) && d.initialValue>0 && await addDoc(collection(db,`users/${State.user.uid}/transactions`),{type:'expense',amount:d.initialValue,category:'投資',project:f.name.value,remarks:'初始投入',timestamp:Timestamp.now()})); App.closeModal(); },
             
             handleSaveDebt: async (e) => { 
@@ -531,6 +516,18 @@
             handleSaveBudget: async (e) => { e.preventDefault(); const f=e.target, uid=State.user.uid, ctx=f.context.value; const col = ctx === 'investment' ? 'investmentBudgets' : 'debtBudgets'; const d = { targetId: f.targetId.value,amount:parseFloat(f.amount.value),expectedDate:Timestamp.fromDate(new Date(f.date.value)),description:f.desc.value}; if(!f.id.value){d.isRealized=false;d.createdAt=Timestamp.now();} f.id.value?await updateDoc(doc(db,`users/${State.user.uid}/${f.context.value==='investment'?'investmentBudgets':'debtBudgets'}`,f.id.value),d):await addDoc(collection(db,`users/${State.user.uid}/${f.context.value==='investment'?'investmentBudgets':'debtBudgets'}`),d); App.closeModal(); },
             handleRepayDebt: async (e) => { e.preventDefault(); const f=e.target, amt=parseFloat(f.amount.value), uid=State.user.uid; const debt=State.data.debts.find(d=>d.id===f.id.value); const batch=writeBatch(db); batch.update(doc(db,`users/${State.user.uid}/debts`,f.id.value),{remainingAmount:increment(-amt)}); batch.set(doc(collection(db,`users/${State.user.uid}/transactions`)),{type:'expense',amount:amt,category:'負債還款',project:debt.name,remarks:`償還: ${debt.name}`,timestamp:Timestamp.fromDate(new Date(f.date.value))}); await batch.commit(); App.closeModal(); },
             handleSaveEvent: async(e) => { e.preventDefault(); const f=e.target, uid=State.user.uid; const d = { title:f.title.value, description:f.desc.value, date:Timestamp.fromDate(new Date(f.date.value)) }; f.id.value?await updateDoc(doc(db,`users/${uid}/events`,f.id.value),d):await addDoc(collection(db,`users/${uid}/events`),d); App.closeModal(); },
+            
+            exportEvents: () => {
+                if(!confirm("匯出大事記?")) return;
+                const csv = "Date,Title,Description\n" + State.data.events
+                    .sort((a,b) => getTxDate(b) - getTxDate(a))
+                    .map(e => `"${toDateStr(getTxDate(e))}","${(e.title||'').replace(/"/g,'""')}","${(e.description||'').replace(/"/g,'""')}"`)
+                    .join("\n");
+                const l = document.createElement("a");
+                l.href = URL.createObjectURL(new Blob(["\uFEFF"+csv], {type:'text/csv;charset=utf-8;'}));
+                l.download = "events.csv";
+                l.click();
+            },
             
             deleteTransaction: async (id, legacyInvId) => {
                 if (!confirm('確定刪除?')) return;
@@ -573,6 +570,7 @@
             realizeBudget: async(ctx, id) => { if(!confirm("執行預算?"))return; const col=ctx==='investment'?'investmentBudgets':'debtBudgets'; const b=State.data[col].find(i=>i.id===id); const acc=(ctx==='investment'?State.data.investments:State.data.debts).find(a=>a.id===b.targetId); const batch=writeBatch(db); batch.update(doc(db,`users/${State.user.uid}/${col}`,id),{isRealized:true}); batch.set(doc(collection(db,`users/${State.user.uid}/transactions`)),{type:ctx==='investment'?'income':'expense',amount:b.amount,category:ctx==='investment'?'投資':'負債還款',project:acc.name,remarks:`預算執行: ${b.description}`,timestamp:Timestamp.now()}); if(ctx!=='investment') batch.update(doc(db,`users/${State.user.uid}/debts`,acc.id),{remainingAmount:increment(-b.amount)}); await batch.commit(); },
             exportReport: () => { if(!confirm("匯出?"))return; const csv="Date,Category,Project,Note,Type,Amount\n"+App.getAllTransactions().map(t=>`${toDateStr(t.timestamp)},${t.category},${t.project||''},${t.remarks||''},${t.type},${t.amount}`).join("\n"); const l=document.createElement("a"); l.href=URL.createObjectURL(new Blob(["\uFEFF"+csv],{type:'text/csv'})); l.download="report.csv"; l.click(); },
 
+            // CATEGORY SELECTION LOGIC
             openCategorySelector: () => {
                 const type = document.getElementById('tx-type').value;
                 const allTxs = App.getAllTransactions();
