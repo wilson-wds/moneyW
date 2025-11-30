@@ -420,6 +420,7 @@
                 document.querySelectorAll('.nav-btn').forEach(e => e.classList.remove('active', 'text-primary'));
                 if(btn) btn.classList.add('active', 'text-primary');
                 document.getElementById('page-title').innerText = {accounting:'總覽', investment:'投資', debt:'負債', reports:'報表', events:'大事記'}[tab];
+                
                 App.refreshCurrentView();
             },
             
@@ -493,7 +494,6 @@
                 await batch.commit();
                 App.closeModal();
             },
-            // Simplified Handlers
             handleSaveInvestment: async (e) => { e.preventDefault(); const f=e.target; const d={name:f.name.value, initialValue:parseFloat(f.initial.value)||0, isArchived:f.isArchived.checked}; if(!f.id.value){d.marketValue=d.initialValue;d.createdAt=Timestamp.now();} f.id.value?await updateDoc(doc(db,`users/${State.user.uid}/investments`,f.id.value),d):(await addDoc(collection(db,`users/${State.user.uid}/investments`),d) && d.initialValue>0 && await addDoc(collection(db,`users/${State.user.uid}/transactions`),{type:'expense',amount:d.initialValue,category:'投資',project:f.name.value,remarks:'初始投入',timestamp:Timestamp.now()})); App.closeModal(); },
             
             handleSaveDebt: async (e) => { 
@@ -519,13 +519,13 @@
             
             exportEvents: () => {
                 if(!confirm("匯出大事記?")) return;
-                const csv = "Date,Title,Description\n" + State.data.events
+                const txt = State.data.events
                     .sort((a,b) => getTxDate(b) - getTxDate(a))
-                    .map(e => `"${toDateStr(getTxDate(e))}","${(e.title||'').replace(/"/g,'""')}","${(e.description||'').replace(/"/g,'""')}"`)
+                    .map(e => `${toDateStr(getTxDate(e))} - ${e.title}\n${e.description || ''}\n-------------------------`)
                     .join("\n");
                 const l = document.createElement("a");
-                l.href = URL.createObjectURL(new Blob(["\uFEFF"+csv], {type:'text/csv;charset=utf-8;'}));
-                l.download = "events.csv";
+                l.href = URL.createObjectURL(new Blob([txt], {type:'text/plain;charset=utf-8;'}));
+                l.download = "events.txt";
                 l.click();
             },
             
