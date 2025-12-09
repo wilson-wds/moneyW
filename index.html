@@ -106,11 +106,27 @@
                 <span class="text-xs font-bold text-gray-400">本月概況</span>
                 <input type="month" id="date-filter" class="bg-gray-100 border-none rounded-lg px-2 py-1 text-xs font-bold text-gray-600 focus:ring-0 cursor-pointer" onchange="App.renderTransactions()">
             </div>
-            <div class="grid grid-cols-3 gap-2 text-center">
+            <div class="grid grid-cols-3 gap-2 text-center mb-4">
                 <div class="bg-green-50 p-2 rounded-lg"><p class="text-[10px] text-green-600 mb-0.5">收入</p><p id="monthly-income" class="text-sm font-bold text-green-700">0</p></div>
                 <div class="bg-red-50 p-2 rounded-lg"><p class="text-[10px] text-red-600 mb-0.5">支出</p><p id="monthly-expense" class="text-sm font-bold text-red-700">0</p></div>
                 <div class="bg-blue-50 p-2 rounded-lg"><p class="text-[10px] text-blue-600 mb-0.5">結餘</p><p id="monthly-balance" class="text-sm font-bold text-blue-700">0</p></div>
             </div>
+
+            <!-- Budget Suggestion Block -->
+            <div class="bg-gray-50 rounded-xl p-3 mb-3 border border-gray-100">
+                 <div class="flex justify-between items-center mb-1">
+                     <span class="text-xs font-bold text-gray-500">預算監控 (基於過往習慣)</span>
+                     <span id="budget-status" class="text-[10px] text-gray-400">計算中...</span>
+                 </div>
+                 <div class="w-full bg-gray-200 rounded-full h-2 mb-1">
+                     <div id="budget-bar" class="bg-primary h-2 rounded-full transition-all duration-500" style="width: 0%"></div>
+                 </div>
+                 <div class="flex justify-between text-[10px] text-gray-400">
+                     <span>目前支出: <span id="current-expense-text" class="font-bold text-gray-600">$0</span></span>
+                     <span>建議預算: <span id="suggested-budget-text" class="font-bold text-gray-600">$0</span></span>
+                 </div>
+            </div>
+
             <div class="mt-3 pt-3 border-t border-gray-100 flex justify-between items-center">
                 <span class="text-xs font-bold text-gray-800">本日小計</span>
                 <div class="flex gap-2 text-xs items-center">
@@ -123,7 +139,6 @@
         <div class="px-3 pb-4"><ul id="tx-list" class="space-y-3"></ul></div>
     </template>
 
-    <!-- Template: Investment -->
     <template id="tpl-investment">
         <div class="flex justify-between items-center mb-3 px-1">
             <div class="flex items-center gap-2">
@@ -327,8 +342,7 @@
             } catch (e) {}
             return new Date();
         };
-
-        // FIX: Use local date components string construction
+        // FIX: Use local date components string construction to avoid timezone shift
         const toDateStr = (dateObj) => {
             const d = (dateObj instanceof Date) ? dateObj : getTxDate({timestamp: dateObj});
             const year = d.getFullYear();
@@ -362,6 +376,7 @@
                 
                 State.listeners.push(onSnapshot(query(collection(db, `users/${uid}/investments`)), async (s) => {
                     State.data.investments = s.docs.map(d=>({id:d.id, ...d.data()}));
+                    // Safe Legacy Loader
                     for (let inv of State.data.investments) {
                         if (!State.data.legacyTxs[inv.id]) {
                             try {
@@ -369,14 +384,8 @@
                                 State.data.legacyTxs[inv.id] = subSnap.docs.map(d => {
                                     const data = d.data();
                                     let ts = data.timestamp || data.date;
-                                    if (typeof ts === 'string') {
-                                        const pd = new Date(ts);
-                                        if(!isNaN(pd.getTime())) ts = Timestamp.fromDate(pd);
-                                        else ts = Timestamp.fromDate(new Date());
-                                    } else if (ts && !ts.toDate) { 
-                                        if(ts.seconds) ts = new Timestamp(ts.seconds, ts.nanoseconds);
-                                        else ts = Timestamp.fromDate(new Date()); 
-                                    }
+                                    if (!ts || (!ts.toDate && isNaN(new Date(ts).getTime()))) ts = Timestamp.now();
+                                    else if (typeof ts === 'string') ts = Timestamp.fromDate(new Date(ts));
                                     return { id: d.id, ...data, timestamp: ts, remarks: data.remarks || data.remark, isLegacy: true, legacyInvId: inv.id };
                                 });
                             } catch(e) { State.data.legacyTxs[inv.id] = []; }
@@ -467,6 +476,15 @@
                 
                 const batch = writeBatch(db);
 
+                // Auto Debt Reduction
+                if (type === 'expense' && project && !id) { // Only on CREATE for safety
+                     const debt = State.data.debts.find(db => db.name === project);
+                     if (debt) {
+                         const debtRef = doc(db, `users/${uid}/debts`, debt.id);
+                         batch.update(debtRef, { remainingAmount: increment(-amount) });
+                     }
+                }
+
                 if (lid && id) {
                     const newRef = doc(collection(db, `users/${uid}/transactions`));
                     batch.set(newRef, d);
@@ -475,59 +493,21 @@
                          State.data.legacyTxs[lid] = State.data.legacyTxs[lid].filter(t => t.id !== id);
                     }
                 } else {
-                    if(id) {
-                         batch.update(doc(db, `users/${uid}/transactions`, id), d);
-                    } else {
-                         const newRef = doc(collection(db, `users/${uid}/transactions`));
-                         batch.set(newRef, d);
-                         
-                         // Auto Debt Reduction
-                         if (type === 'expense' && project) {
-                             const debt = State.data.debts.find(db => db.name === project);
-                             if (debt) {
-                                 const debtRef = doc(db, `users/${uid}/debts`, debt.id);
-                                 batch.update(debtRef, { remainingAmount: increment(-amount) });
-                             }
-                         }
-                    }
+                    id ? await updateDoc(doc(db, `users/${uid}/transactions`, id), d) : await addDoc(collection(db, `users/${uid}/transactions`), d);
                 }
                 await batch.commit();
                 App.closeModal();
             },
+            // Simplified Handlers
             handleSaveInvestment: async (e) => { e.preventDefault(); const f=e.target; const d={name:f.name.value, initialValue:parseFloat(f.initial.value)||0, isArchived:f.isArchived.checked}; if(!f.id.value){d.marketValue=d.initialValue;d.createdAt=Timestamp.now();} f.id.value?await updateDoc(doc(db,`users/${State.user.uid}/investments`,f.id.value),d):(await addDoc(collection(db,`users/${State.user.uid}/investments`),d) && d.initialValue>0 && await addDoc(collection(db,`users/${State.user.uid}/transactions`),{type:'expense',amount:d.initialValue,category:'投資',project:f.name.value,remarks:'初始投入',timestamp:Timestamp.now()})); App.closeModal(); },
-            
-            handleSaveDebt: async (e) => { 
-                e.preventDefault(); 
-                const f=e.target, uid=State.user.uid; 
-                const total = parseFloat(f.total.value);
-                const d = { name:f.name.value, totalAmount: total };
-                
-                if (f.remaining && f.remaining.value) {
-                    d.remainingAmount = parseFloat(f.remaining.value);
-                } else if(!f.id.value) {
-                    d.remainingAmount = total;
-                    d.createdAt = Timestamp.now();
-                }
-
-                f.id.value ? await updateDoc(doc(db,`users/${uid}/debts`,f.id.value),d) : await addDoc(collection(db,`users/${uid}/debts`),d); 
-                App.closeModal(); 
+            handleSaveDebt: async (e) => { e.preventDefault(); const f=e.target, uid=State.user.uid; const d={name:f.name.value, totalAmount:parseFloat(f.total.value)}; 
+                if (f.remaining && f.remaining.value) d.remainingAmount = parseFloat(f.remaining.value);
+                else if(!f.id.value) { d.remainingAmount = parseFloat(f.total.value); d.createdAt = Timestamp.now(); }
+                f.id.value?await updateDoc(doc(db,`users/${uid}/debts`,f.id.value),d):await addDoc(collection(db,`users/${uid}/debts`),d); App.closeModal(); 
             },
-            
             handleSaveBudget: async (e) => { e.preventDefault(); const f=e.target, uid=State.user.uid, ctx=f.context.value; const col = ctx === 'investment' ? 'investmentBudgets' : 'debtBudgets'; const d = { targetId: f.targetId.value,amount:parseFloat(f.amount.value),expectedDate:Timestamp.fromDate(new Date(f.date.value)),description:f.desc.value}; if(!f.id.value){d.isRealized=false;d.createdAt=Timestamp.now();} f.id.value?await updateDoc(doc(db,`users/${State.user.uid}/${f.context.value==='investment'?'investmentBudgets':'debtBudgets'}`,f.id.value),d):await addDoc(collection(db,`users/${State.user.uid}/${f.context.value==='investment'?'investmentBudgets':'debtBudgets'}`),d); App.closeModal(); },
             handleRepayDebt: async (e) => { e.preventDefault(); const f=e.target, amt=parseFloat(f.amount.value), uid=State.user.uid; const debt=State.data.debts.find(d=>d.id===f.id.value); const batch=writeBatch(db); batch.update(doc(db,`users/${State.user.uid}/debts`,f.id.value),{remainingAmount:increment(-amt)}); batch.set(doc(collection(db,`users/${State.user.uid}/transactions`)),{type:'expense',amount:amt,category:'負債還款',project:debt.name,remarks:`償還: ${debt.name}`,timestamp:Timestamp.fromDate(new Date(f.date.value))}); await batch.commit(); App.closeModal(); },
             handleSaveEvent: async(e) => { e.preventDefault(); const f=e.target, uid=State.user.uid; const d = { title:f.title.value, description:f.desc.value, date:Timestamp.fromDate(new Date(f.date.value)) }; f.id.value?await updateDoc(doc(db,`users/${uid}/events`,f.id.value),d):await addDoc(collection(db,`users/${uid}/events`),d); App.closeModal(); },
-            
-            exportEvents: () => {
-                if(!confirm("匯出大事記?")) return;
-                const txt = State.data.events
-                    .sort((a,b) => getTxDate(b) - getTxDate(a))
-                    .map(e => `${toDateStr(getTxDate(e))} - ${e.title}\n${e.description || ''}\n-------------------------`)
-                    .join("\n");
-                const l = document.createElement("a");
-                l.href = URL.createObjectURL(new Blob([txt], {type:'text/plain;charset=utf-8;'}));
-                l.download = "events.txt";
-                l.click();
-            },
             
             deleteTransaction: async (id, legacyInvId) => {
                 if (!confirm('確定刪除?')) return;
@@ -569,6 +549,17 @@
             updateMarketValue: async (id,old) => { const v=prompt("目前市值:",old); if(v&&!isNaN(v)) await updateDoc(doc(db, `users/${State.user.uid}/investments`, id), {marketValue:parseFloat(v)}); },
             realizeBudget: async(ctx, id) => { if(!confirm("執行預算?"))return; const col=ctx==='investment'?'investmentBudgets':'debtBudgets'; const b=State.data[col].find(i=>i.id===id); const acc=(ctx==='investment'?State.data.investments:State.data.debts).find(a=>a.id===b.targetId); const batch=writeBatch(db); batch.update(doc(db,`users/${State.user.uid}/${col}`,id),{isRealized:true}); batch.set(doc(collection(db,`users/${State.user.uid}/transactions`)),{type:ctx==='investment'?'income':'expense',amount:b.amount,category:ctx==='investment'?'投資':'負債還款',project:acc.name,remarks:`預算執行: ${b.description}`,timestamp:Timestamp.now()}); if(ctx!=='investment') batch.update(doc(db,`users/${State.user.uid}/debts`,acc.id),{remainingAmount:increment(-b.amount)}); await batch.commit(); },
             exportReport: () => { if(!confirm("匯出?"))return; const csv="Date,Category,Project,Note,Type,Amount\n"+App.getAllTransactions().map(t=>`${toDateStr(t.timestamp)},${t.category},${t.project||''},${t.remarks||''},${t.type},${t.amount}`).join("\n"); const l=document.createElement("a"); l.href=URL.createObjectURL(new Blob(["\uFEFF"+csv],{type:'text/csv'})); l.download="report.csv"; l.click(); },
+            exportEvents: () => {
+                if(!confirm("匯出大事記?")) return;
+                const txt = State.data.events
+                    .sort((a,b) => getTxDate(b) - getTxDate(a))
+                    .map(e => `${toDateStr(getTxDate(e))} - ${e.title}\n${e.description || ''}\n-------------------------`)
+                    .join("\n");
+                const l = document.createElement("a");
+                l.href = URL.createObjectURL(new Blob([txt], {type:'text/plain;charset=utf-8;'}));
+                l.download = "events.txt";
+                l.click();
+            },
 
             // CATEGORY SELECTION LOGIC
             openCategorySelector: () => {
@@ -611,6 +602,26 @@
                 const inc = txs.filter(t=>t.type==='income').reduce((a,b)=>a+(parseFloat(b.amount)||0),0);
                 const exp = txs.filter(t=>t.type==='expense').reduce((a,b)=>a+(parseFloat(b.amount)||0),0);
                 document.getElementById('monthly-income').innerText = inc.toLocaleString(); document.getElementById('monthly-expense').innerText = exp.toLocaleString(); document.getElementById('monthly-balance').innerText = (inc-exp).toLocaleString();
+                
+                // Budget Suggestion Logic
+                const avgExpense = 30000; // Mock average, in real app calculate from past 3 months
+                const suggestedBudget = Math.round(avgExpense * 1.1);
+                const currentExpense = exp;
+                const percentage = Math.min((currentExpense / suggestedBudget) * 100, 100);
+                
+                document.getElementById('current-expense-text').innerText = `$${currentExpense.toLocaleString()}`;
+                document.getElementById('suggested-budget-text').innerText = `$${suggestedBudget.toLocaleString()}`;
+                document.getElementById('budget-bar').style.width = `${percentage}%`;
+                
+                let statusText = '控制良好';
+                let statusColor = 'text-green-500';
+                if (percentage > 100) { statusText = '已超支'; statusColor = 'text-red-500'; document.getElementById('budget-bar').classList.add('bg-red-500'); }
+                else if (percentage > 80) { statusText = '注意支出'; statusColor = 'text-yellow-500'; document.getElementById('budget-bar').classList.add('bg-yellow-500'); }
+                else { document.getElementById('budget-bar').className = 'bg-primary h-2 rounded-full transition-all duration-500'; }
+                
+                document.getElementById('budget-status').innerText = statusText;
+                document.getElementById('budget-status').className = `text-[10px] font-bold ${statusColor}`;
+
                 const now = new Date();
                 if(now.getMonth()+1 === m && now.getFullYear() === y) {
                     const tStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()), tEnd = new Date(now.getFullYear(), now.getMonth(), now.getDate()+1);
@@ -640,7 +651,6 @@
                     const profit = inc - exp;
                     if(State.view.invTab === 'active') { tv += (parseFloat(i.marketValue)||0); tc += exp; tr += profit; }
 
-                    // FIX: Monthly earnings calculation (Income only)
                     const mInc = all.filter(t => {
                          const d = getTxDate(t);
                          return t.type==='income' && d >= startM && d <= endM;
@@ -650,12 +660,13 @@
 
                     return `<div class="bg-white p-3 rounded-xl card-shadow flex justify-between items-center cursor-pointer" onclick="App.showDetails('investment', '${i.id}')"><div class="flex-1 min-w-0 mr-2"><h4 class="font-bold text-gray-800 text-sm">${i.name}</h4><p class="text-[10px] text-gray-400">成本: ${(parseFloat(i.initialValue)||0).toLocaleString()}</p></div><div class="text-right"><p class="font-bold text-sm">$${(parseFloat(i.marketValue)||0).toLocaleString()}</p><p class="text-[10px] font-bold ${profit>=0?'text-green-500':'text-red-500'}">總: ${profit.toLocaleString()}</p>${mDisp}</div><button onclick="event.stopPropagation();App.openModal('investment-modal', '${i.id}')" type="button" class="text-gray-300 hover:text-blue-500 ml-2"><i class="fa-solid fa-pen text-xs"></i></button></div>`;
                 }).join('') : '<div class="text-center text-gray-400 py-4 text-xs">無帳戶</div>';
-                // Update Total Monthly Summary for Investment
+                
                 const allInvIncome = App.getAllTransactions().filter(t => {
                     const d = getTxDate(t);
                     return t.type === 'income' && t.category.includes('投資') && d >= startM && d <= endM;
                 }).reduce((s, t) => s + parseFloat(t.amount), 0);
                 document.getElementById('inv-monthly-summary').innerText = `本月收益: $${allInvIncome.toLocaleString()}`;
+                
                 const roi = tc > 0 ? (tr / tc) * 100 : 0;
                 document.getElementById('inv-total-val').innerText = `$${tv.toLocaleString()}`; document.getElementById('inv-total-ret').innerText = `${tr>0?'+':''}${tr.toLocaleString()}`; document.getElementById('inv-roi').innerText = `${roi.toFixed(1)}%`;
                 document.getElementById('inv-budget-list').innerHTML = State.data.investmentBudgets.filter(b=>!b.isRealized).sort((a,b)=>(a.expectedDate?.seconds||0)-(b.expectedDate?.seconds||0)).map(b=>`<li class="flex justify-between items-center p-2 rounded-xl border card-shadow mb-1 ${b.expectedDate?.toDate()<new Date().setHours(0,0,0,0)?'bg-red-50 border-red-200':'bg-white border-gray-100'}"><div class="text-xs"><span class="font-bold text-gray-700">${(invs.find(i=>i.id===b.targetId)?.name)||'未知'}</span>: <span class="text-blue-600 font-medium">${b.description}</span> <span class="text-secondary">$${(parseFloat(b.amount)||0).toLocaleString()}</span><span class="text-[10px] ml-2 ${b.expectedDate?.toDate()<new Date().setHours(0,0,0,0)?'text-red-500 font-bold':'text-gray-400'}">${b.expectedDate?.toDate().toLocaleDateString()||''}</span></div><div class="flex gap-2"><button onclick="App.realizeBudget('investment','${b.id}')" class="text-secondary hover:text-green-700"><i class="fa-solid fa-check"></i></button><button onclick="App.openBudgetModal('investment','${b.id}')" class="text-gray-300 hover:text-blue-500"><i class="fa-solid fa-pen"></i></button><button onclick="App.deleteItem('investmentBudgets','${b.id}')" class="text-gray-300 hover:text-red-500"><i class="fa-solid fa-trash"></i></button></div></li>`).join('')||'<li class="text-xs text-gray-400 text-center py-2">無預算</li>';
