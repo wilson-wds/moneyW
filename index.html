@@ -245,7 +245,7 @@
                                     <div class="bg-white p-3 rounded-3 border">
                                         <div class="d-flex justify-content-between align-items-center mb-2">
                                             <small class="fw-bold text-muted"><i class="fas fa-bullseye me-1"></i>預算監控</small>
-                                            <span id="budget-status" class="badge bg-light text-dark">計算中...</span>
+                                            <button class="btn btn-sm btn-link text-decoration-none p-0 small" onclick="App.setBudget()">設定預算</button>
                                         </div>
                                         <div class="progress mb-2" style="height: 6px;">
                                             <div id="budget-bar" class="progress-bar bg-primary" role="progressbar" style="width: 0%"></div>
@@ -254,6 +254,7 @@
                                             <span class="text-muted">已用: <span id="current-expense-text" class="fw-bold text-dark">$0</span></span>
                                             <span class="text-muted">建議: <span id="suggested-budget-text" class="fw-bold text-dark">$0</span></span>
                                         </div>
+                                        <div class="text-end"><span id="budget-status" class="badge bg-light text-dark">計算中...</span></div>
                                     </div>
                                 </div>
                             </div>
@@ -270,9 +271,9 @@
                         <div class="col-lg-8">
                             <!-- Daily Trend Chart (New) -->
                             <div class="card border-0 shadow-sm mb-4" style="border-radius: 16px;">
-                                <div class="card-header bg-white border-0 pt-3 px-3 fw-bold">每日收支趨勢</div>
+                                <div class="card-header bg-white border-0 pt-3 px-3 fw-bold">每日收支趨勢 (含結餘)</div>
                                 <div class="card-body">
-                                    <div class="chart-container" style="height: 200px;">
+                                    <div class="chart-container" style="height: 250px;">
                                         <canvas id="daily-cashflow-chart"></canvas>
                                     </div>
                                 </div>
@@ -486,6 +487,7 @@
                         <input type="hidden" name="id">
                         <div class="mb-3"><label class="form-label">名稱</label><input type="text" name="name" class="form-control" required></div>
                         <div class="mb-3"><label class="form-label">初始成本</label><input type="number" name="initial" class="form-control"></div>
+                        <div class="mb-3"><label class="form-label">目標金額 (預算)</label><input type="number" name="target" class="form-control" placeholder="選填"></div>
                         <div class="form-check mb-3"><input class="form-check-input" type="checkbox" name="isArchived" id="inv-archived"><label class="form-check-label" for="inv-archived">已結案 (歸檔)</label></div>
                         <button type="submit" class="btn btn-primary w-100 rounded-pill">儲存</button>
                     </form>
@@ -504,7 +506,7 @@
                         <input type="hidden" name="id">
                         <div class="mb-3"><label class="form-label">名稱</label><input type="text" name="name" class="form-control" required></div>
                         <div class="row mb-3">
-                            <div class="col-6"><label class="form-label">總金額</label><input type="number" name="total" class="form-control" required></div>
+                            <div class="col-6"><label class="form-label">總金額 (預算/上限)</label><input type="number" name="total" class="form-control" required></div>
                             <div class="col-6"><label class="form-label">剩餘 (手動校正)</label><input type="number" name="remaining" class="form-control"></div>
                         </div>
                         <button type="submit" class="btn btn-warning w-100 text-white fw-bold rounded-pill">儲存</button>
@@ -562,8 +564,7 @@
         const auth = getAuth(app); const db = getFirestore(app);
         
         const bsModals = {};
-        // ADDED dailyChart: null
-        const State = { user: null, data: { transactions: [], debts: [], investments: [], events: [], legacyTxs: {} }, listeners: [], chart: null, dailyChart: null, categories: { expense: ['飲食', '交通', '居住', '娛樂', '購物', '醫療', '教育', '投資', '其他'], income: ['薪資', '獎金', '投資', '兼職', '其他'] }, view: { invTab: 'active', currentTab: 'accounting' } };
+        const State = { user: null, data: { transactions: [], debts: [], investments: [], events: [], legacyTxs: {} }, listeners: [], chart: null, dailyChart: null, categories: { expense: ['飲食', '交通', '居住', '娛樂', '購物', '醫療', '教育', '投資', '其他'], income: ['薪資', '獎金', '投資', '兼職', '其他'] }, view: { invTab: 'active', currentTab: 'accounting' }, settings: { budget: 30000 } };
 
         const getTxDate = (tx) => {
             if (!tx) return new Date();
@@ -585,6 +586,10 @@
                 ['transactionModal', 'categoryModal', 'investmentModal', 'debtModal', 'eventModal', 'detailsModal'].forEach(id => {
                     const el = document.getElementById(id); if(el) bsModals[id] = new bootstrap.Modal(el);
                 });
+                // Load local settings
+                const savedBudget = localStorage.getItem('monthly_budget');
+                if(savedBudget) State.settings.budget = parseFloat(savedBudget);
+
                 onAuthStateChanged(auth, u => {
                     State.user = u;
                     const loginEl = document.getElementById('login-view'); const appEl = document.getElementById('app-container');
@@ -627,6 +632,15 @@
             loginGoogle: async () => { try { await signInWithPopup(auth, new GoogleAuthProvider()); } catch (error) { let msg = "登入失敗: " + error.message; if (window.location.protocol === 'file:') msg = "❌ Google 安全限制：無法在「檔案模式 (file://)」下使用 Google 登入。\n請改用「訪客體驗」或透過 Live Server 開啟。"; alert(msg); } },
             loginAnon: () => signInAnonymously(auth).catch(e => alert("訪客登入失敗: " + e.message)),
             logout: () => signOut(auth),
+
+            setBudget: () => {
+                const newBudget = prompt("請輸入每月預算金額:", State.settings.budget);
+                if(newBudget && !isNaN(newBudget)) {
+                    State.settings.budget = parseFloat(newBudget);
+                    localStorage.setItem('monthly_budget', newBudget);
+                    App.renderTransactions();
+                }
+            },
 
             refreshCurrentView: () => {
                 App.updateGlobalSummary();
@@ -695,7 +709,7 @@
                 document.getElementById('monthly-income').innerText = formatMoney(inc); document.getElementById('monthly-expense').innerText = formatMoney(exp); document.getElementById('monthly-balance').innerText = formatMoney(inc-exp);
                 
                 // Budget
-                const budget = 30000; const pct = Math.min((exp/budget)*100, 100);
+                const budget = State.settings.budget || 30000; const pct = Math.min((exp/budget)*100, 100);
                 const bar = document.getElementById('budget-bar'); bar.style.width = `${pct}%`;
                 bar.className = `progress-bar ${pct>100?'bg-danger':pct>80?'bg-warning':'bg-primary'}`;
                 document.getElementById('current-expense-text').innerText = formatMoney(exp); document.getElementById('suggested-budget-text').innerText = formatMoney(budget); document.getElementById('budget-status').innerText = pct>100?'已超支':pct>80?'注意':'良好';
@@ -724,6 +738,9 @@
                         else dailyExp[day - 1] += parseFloat(t.amount);
                     }
                 });
+                
+                // Calculate Daily Balance (Net)
+                const dailyBal = dailyInc.map((inc, i) => inc - dailyExp[i]);
 
                 const ctx = document.getElementById('daily-cashflow-chart').getContext('2d');
                 if (State.dailyChart) State.dailyChart.destroy();
@@ -733,13 +750,15 @@
                     data: {
                         labels: dailyLabels,
                         datasets: [
-                            { label: '收入', data: dailyInc, backgroundColor: '#27ae60', borderRadius: 4 },
-                            { label: '支出', data: dailyExp, backgroundColor: '#c0392b', borderRadius: 4 }
+                            { type: 'line', label: '結餘', data: dailyBal, borderColor: '#2c3e50', borderWidth: 2, tension: 0.3, pointRadius: 2, order: 1 },
+                            { type: 'bar', label: '收入', data: dailyInc, backgroundColor: '#27ae60', borderRadius: 2, order: 2, stack: 'Stack 0' },
+                            { type: 'bar', label: '支出', data: dailyExp, backgroundColor: '#c0392b', borderRadius: 2, order: 3, stack: 'Stack 1' }
                         ]
                     },
                     options: {
                         responsive: true,
                         maintainAspectRatio: false,
+                        interaction: { mode: 'index', intersect: false },
                         plugins: { legend: { position: 'top', align: 'end', labels: { boxWidth: 12, usePointStyle: true } } },
                         scales: {
                             x: { grid: { display: false } },
@@ -763,6 +782,25 @@
                     const inc = all.filter(t=>t.type==='income').reduce((a,b)=>a+parseFloat(b.amount),0);
                     const exp = all.filter(t=>t.type==='expense').reduce((a,b)=>a+parseFloat(b.amount),0);
                     const profit = inc - exp; const mv = parseFloat(i.marketValue) || 0;
+                    
+                    // Target Logic
+                    const target = parseFloat(i.targetAmount) || 0;
+                    let targetHtml = '';
+                    if (target > 0) {
+                        const pct = Math.min((mv / target) * 100, 100);
+                        targetHtml = `
+                        <div class="mt-2 pt-2 border-top">
+                            <div class="d-flex justify-content-between small mb-1">
+                                <span class="text-muted">目標進度</span>
+                                <span class="fw-bold text-primary">${Math.round(pct)}%</span>
+                            </div>
+                            <div class="progress" style="height: 4px;">
+                                <div class="progress-bar bg-info" role="progressbar" style="width: ${pct}%"></div>
+                            </div>
+                            <small class="text-muted d-block text-end mt-1" style="font-size:0.7rem">目標: $${target.toLocaleString()}</small>
+                        </div>`;
+                    }
+
                     return `
                     <div class="col-md-6 col-lg-4">
                         <div class="card-item" onclick="App.showDetails('investment', '${i.id}')" style="cursor:pointer;">
@@ -785,6 +823,7 @@
                                         <span class="fw-bold text-secondary">$${exp.toLocaleString()}</span>
                                     </div>
                                 </div>
+                                ${targetHtml}
                             </div>
                         </div>
                     </div>`;
@@ -831,7 +870,8 @@
                                 <div class="progress mb-3" style="height: 8px; background-color: #ffebee;">
                                     <div class="progress-bar bg-success" role="progressbar" style="width: ${pct}%"></div>
                                 </div>
-                                <div class="d-flex justify-content-end gap-2">
+                                <div class="d-flex justify-content-end gap-2 align-items-center">
+                                    <small class="text-muted me-auto" style="font-size:0.75rem">總額(上限): $${total.toLocaleString()}</small>
                                     <button onclick="event.stopPropagation();App.openModal('debtModal','${d.id}')" class="btn btn-sm btn-outline-secondary rounded-pill px-3"><i class="fas fa-pen"></i></button>
                                     <button onclick="event.stopPropagation();App.deleteItem('debts','${d.id}')" class="btn btn-sm btn-outline-danger rounded-pill px-3"><i class="fas fa-trash"></i></button>
                                 </div>
@@ -926,6 +966,7 @@
                             } else if (modalId==='investmentModal') {
                                 form.querySelector('[name=name]').value = item.name;
                                 form.querySelector('[name=initial]').value = item.initialValue;
+                                form.querySelector('[name=target]').value = item.targetAmount || '';
                                 if(form.querySelector('[name=isArchived]')) form.querySelector('[name=isArchived]').checked = item.isArchived;
                             } else if (modalId==='debtModal') {
                                 form.querySelector('[name=name]').value = item.name;
@@ -999,7 +1040,7 @@
                 } catch(err) { alert(err.message); }
             },
 
-            handleSaveInvestment: async (e) => { e.preventDefault(); try { const f=e.target; const d={name:f.name.value, initialValue:parseFloat(f.initial.value)||0, isArchived:f.isArchived.checked}; if(!f.id.value){d.marketValue=d.initialValue;d.createdAt=Timestamp.now();} f.id.value?await updateDoc(doc(db,`users/${State.user.uid}/investments`,f.id.value),d):(await addDoc(collection(db,`users/${State.user.uid}/investments`),d) && d.initialValue>0 && await addDoc(collection(db,`users/${State.user.uid}/transactions`),{type:'expense',amount:d.initialValue,category:'投資',project:f.name.value,remarks:'初始投入',timestamp:Timestamp.now()})); bsModals['investmentModal'].hide(); } catch(e){console.error(e);} },
+            handleSaveInvestment: async (e) => { e.preventDefault(); try { const f=e.target; const d={name:f.name.value, initialValue:parseFloat(f.initial.value)||0, targetAmount:parseFloat(f.target.value)||0, isArchived:f.isArchived.checked}; if(!f.id.value){d.marketValue=d.initialValue;d.createdAt=Timestamp.now();} f.id.value?await updateDoc(doc(db,`users/${State.user.uid}/investments`,f.id.value),d):(await addDoc(collection(db,`users/${State.user.uid}/investments`),d) && d.initialValue>0 && await addDoc(collection(db,`users/${State.user.uid}/transactions`),{type:'expense',amount:d.initialValue,category:'投資',project:f.name.value,remarks:'初始投入',timestamp:Timestamp.now()})); bsModals['investmentModal'].hide(); } catch(e){console.error(e);} },
             handleSaveDebt: async (e) => { e.preventDefault(); try { const f=e.target, uid=State.user.uid; const d={name:f.name.value, totalAmount:parseFloat(f.total.value)}; if (f.remaining && f.remaining.value) d.remainingAmount = parseFloat(f.remaining.value); else if(!f.id.value) { d.remainingAmount = parseFloat(f.total.value); d.createdAt = Timestamp.now(); } f.id.value?await updateDoc(doc(db,`users/${uid}/debts`,f.id.value),d):await addDoc(collection(db,`users/${uid}/debts`),d); bsModals['debtModal'].hide(); } catch(e){console.error(e);} },
             handleSaveEvent: async(e) => { e.preventDefault(); try { const f=e.target, uid=State.user.uid; const d = { title:f.title.value, description:f.desc.value, date:Timestamp.fromDate(new Date(f.date.value)) }; f.id.value?await updateDoc(doc(db,`users/${uid}/events`,f.id.value),d):await addDoc(collection(db,`users/${uid}/events`),d); bsModals['eventModal'].hide(); } catch(e){console.error(e);} },
 
