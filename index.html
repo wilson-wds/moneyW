@@ -122,7 +122,9 @@
     <div id="login-view" class="d-none">
         <div class="card login-card p-4 animate-fade">
             <div class="card-body text-center">
-                <div class="mb-4 text-primary display-4"><i class="fas fa-wallet"></i></div>
+                <div class="mb-4">
+                    <img src="https://i.ibb.co/ym6SBKmv/963.png" alt="Well Design Logo" class="rounded-3 shadow-sm" style="width: 80px; height: 80px; object-fit: cover;">
+                </div>
                 <h3 class="fw-bold mb-1">雲端記帳 Pro</h3>
                 <p class="text-muted mb-4">個人財務管理助手</p>
                 
@@ -144,7 +146,11 @@
         <!-- Navbar -->
         <nav class="navbar navbar-expand-lg navbar-dark bg-dark mb-4 shadow-sm sticky-top">
             <div class="container">
-                <a class="navbar-brand fw-bold" href="#"><i class="fas fa-chart-pie me-2"></i>雲端記帳 Pro</a>
+                <a class="navbar-brand fw-bold d-flex align-items-center" href="#">
+                    <!-- Logo resized to 45px -->
+                    <img src="https://i.ibb.co/ym6SBKmv/963.png" alt="Logo" class="me-3 rounded shadow-sm" style="height: 45px; width: 45px; object-fit: cover;">
+                    <span class="fs-4">雲端記帳 Pro</span>
+                </a>
                 <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
                     <span class="navbar-toggler-icon"></span>
                 </button>
@@ -260,8 +266,19 @@
                             </div>
                         </div>
 
-                        <!-- Right: Transaction List -->
+                        <!-- Right: Transaction List & Daily Chart -->
                         <div class="col-lg-8">
+                            <!-- Daily Trend Chart (New) -->
+                            <div class="card border-0 shadow-sm mb-4" style="border-radius: 16px;">
+                                <div class="card-header bg-white border-0 pt-3 px-3 fw-bold">每日收支趨勢</div>
+                                <div class="card-body">
+                                    <div class="chart-container" style="height: 200px;">
+                                        <canvas id="daily-cashflow-chart"></canvas>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Transaction List -->
                             <div class="card border-0 shadow-sm" style="border-radius: 16px;">
                                 <div class="card-header bg-white border-0 pt-3 px-3 fw-bold">近期交易明細</div>
                                 <div class="card-body p-0">
@@ -322,11 +339,11 @@
                 <div id="view-reports" class="view-section d-none animate-fade">
                     <div class="card border-0 shadow-sm p-3 mb-3" style="border-radius: 16px;">
                          <div class="row g-2 align-items-center">
-                             <div class="col-md-3">
+                             <div class="col-md-2">
                                  <label class="small text-muted fw-bold ms-1">年份</label>
                                  <select id="report-year" class="form-select form-select-sm fw-bold border-0 bg-light" onchange="App.renderReports()"></select>
                              </div>
-                             <div class="col-md-3">
+                             <div class="col-md-2">
                                  <label class="small text-muted fw-bold ms-1">月份</label>
                                  <select id="report-month-select" class="form-select form-select-sm fw-bold border-0 bg-light" onchange="App.renderReports()">
                                      <option value="all">全年度</option>
@@ -334,10 +351,16 @@
                                      <option value="7">7月</option><option value="8">8月</option><option value="9">9月</option><option value="10">10月</option><option value="11">11月</option><option value="12">12月</option>
                                  </select>
                              </div>
-                             <div class="col-md-4">
-                                 <label class="small text-muted fw-bold ms-1">分類篩選</label>
+                             <div class="col-md-3">
+                                 <label class="small text-muted fw-bold ms-1">分類</label>
                                  <select id="report-category" class="form-select form-select-sm fw-bold border-0 bg-light" onchange="App.renderReports()">
                                      <option value="all">全部分類</option>
+                                 </select>
+                             </div>
+                             <div class="col-md-3">
+                                 <label class="small text-muted fw-bold ms-1">帳戶/專案</label>
+                                 <select id="report-project" class="form-select form-select-sm fw-bold border-0 bg-light" onchange="App.renderReports()">
+                                     <option value="all">全部帳戶</option>
                                  </select>
                              </div>
                              <div class="col-md-2 d-grid">
@@ -370,7 +393,7 @@
                                     <thead class="bg-light">
                                         <tr class="text-muted">
                                             <th class="ps-3 border-0">日期</th>
-                                            <th class="border-0">分類/備註</th>
+                                            <th class="border-0">分類/專案</th>
                                             <th class="text-end border-0 pe-3">金額</th>
                                         </tr>
                                     </thead>
@@ -539,7 +562,8 @@
         const auth = getAuth(app); const db = getFirestore(app);
         
         const bsModals = {};
-        const State = { user: null, data: { transactions: [], debts: [], investments: [], events: [], legacyTxs: {} }, listeners: [], chart: null, categories: { expense: ['飲食', '交通', '居住', '娛樂', '購物', '醫療', '教育', '投資', '其他'], income: ['薪資', '獎金', '投資', '兼職', '其他'] }, view: { invTab: 'active', currentTab: 'accounting' } };
+        // ADDED dailyChart: null
+        const State = { user: null, data: { transactions: [], debts: [], investments: [], events: [], legacyTxs: {} }, listeners: [], chart: null, dailyChart: null, categories: { expense: ['飲食', '交通', '居住', '娛樂', '購物', '醫療', '教育', '投資', '其他'], income: ['薪資', '獎金', '投資', '兼職', '其他'] }, view: { invTab: 'active', currentTab: 'accounting' } };
 
         const getTxDate = (tx) => {
             if (!tx) return new Date();
@@ -664,13 +688,19 @@
                 const val = document.getElementById('date-filter').value; const [y, m] = val.split('-').map(Number);
                 const start = new Date(y, m-1, 1), end = new Date(y, m, 0, 23, 59, 59);
                 const txs = State.data.transactions.filter(t => { const d = getTxDate(t); return d >= start && d <= end; }).sort((a,b) => getTxDate(b) - getTxDate(a));
+                
+                // Stats
                 const inc = txs.filter(t=>t.type==='income').reduce((a,b)=>a+(parseFloat(b.amount)||0),0);
                 const exp = txs.filter(t=>t.type==='expense').reduce((a,b)=>a+(parseFloat(b.amount)||0),0);
                 document.getElementById('monthly-income').innerText = formatMoney(inc); document.getElementById('monthly-expense').innerText = formatMoney(exp); document.getElementById('monthly-balance').innerText = formatMoney(inc-exp);
+                
+                // Budget
                 const budget = 30000; const pct = Math.min((exp/budget)*100, 100);
                 const bar = document.getElementById('budget-bar'); bar.style.width = `${pct}%`;
                 bar.className = `progress-bar ${pct>100?'bg-danger':pct>80?'bg-warning':'bg-primary'}`;
                 document.getElementById('current-expense-text').innerText = formatMoney(exp); document.getElementById('suggested-budget-text').innerText = formatMoney(budget); document.getElementById('budget-status').innerText = pct>100?'已超支':pct>80?'注意':'良好';
+                
+                // List
                 document.getElementById('tx-list').innerHTML = txs.length ? txs.map(t => `
                     <tr class="transaction-item type-${t.type}" style="cursor:pointer" onclick="App.openModal('transactionModal', '${t.id}')">
                         <td class="small text-muted ps-3">${getTxDate(t).toLocaleDateString()}</td>
@@ -679,6 +709,44 @@
                         <td class="text-end fw-bold ${t.type==='expense'?'text-danger':'text-success'}">${t.type==='expense'?'-':'+'} ${formatMoney(t.amount)}</td>
                         <td class="text-center pe-3"><button class="btn btn-sm btn-link text-muted" onclick="event.stopPropagation();App.openModal('transactionModal','${t.id}')"><i class="fas fa-pen"></i></button></td>
                     </tr>`).join('') : '<tr><td colspan="5" class="text-center text-muted py-4">本月無交易紀錄</td></tr>';
+
+                // --- Daily Chart Logic ---
+                const daysInMonth = new Date(y, m, 0).getDate();
+                const dailyLabels = Array.from({length: daysInMonth}, (_, i) => i + 1);
+                const dailyInc = new Array(daysInMonth).fill(0);
+                const dailyExp = new Array(daysInMonth).fill(0);
+
+                txs.forEach(t => {
+                    const d = getTxDate(t);
+                    const day = d.getDate();
+                    if (day >= 1 && day <= daysInMonth) {
+                        if (t.type === 'income') dailyInc[day - 1] += parseFloat(t.amount);
+                        else dailyExp[day - 1] += parseFloat(t.amount);
+                    }
+                });
+
+                const ctx = document.getElementById('daily-cashflow-chart').getContext('2d');
+                if (State.dailyChart) State.dailyChart.destroy();
+
+                State.dailyChart = new Chart(ctx, {
+                    type: 'bar',
+                    data: {
+                        labels: dailyLabels,
+                        datasets: [
+                            { label: '收入', data: dailyInc, backgroundColor: '#27ae60', borderRadius: 4 },
+                            { label: '支出', data: dailyExp, backgroundColor: '#c0392b', borderRadius: 4 }
+                        ]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: { legend: { position: 'top', align: 'end', labels: { boxWidth: 12, usePointStyle: true } } },
+                        scales: {
+                            x: { grid: { display: false } },
+                            y: { beginAtZero: true, grid: { borderDash: [2, 4] }, ticks: { callback: function(value) { return value >= 1000 ? value/1000 + 'k' : value; } } }
+                        }
+                    }
+                });
             },
 
             switchInvTab: (tab, btn) => { State.view.invTab = tab; const nav = btn.closest('.nav'); nav.querySelectorAll('.nav-link').forEach(b => b.classList.remove('active')); btn.classList.add('active'); App.renderInvestments(); },
@@ -783,29 +851,44 @@
             renderReports: () => {
                 const allTxs = App.getAllTransactions();
                 const cSel=document.getElementById('report-category'); const curC=cSel.value;
+                const pSel=document.getElementById('report-project'); const curP=pSel.value;
                 
-                // Populate Category Select with ALL defaults + used
+                // Populate Category Select
                 const usedCats = [...new Set(allTxs.map(t=>t.category).filter(Boolean))];
                 const allCats = [...new Set([...State.categories.expense, ...State.categories.income, ...usedCats])].sort();
-                
                 if(cSel.options.length <= 1) {
                     cSel.innerHTML = '<option value="all">全部分類</option>';
-                    // Group by type roughly (simple list for now)
                     allCats.forEach(c => cSel.innerHTML += `<option value="${c}">${c}</option>`);
                 }
                 cSel.value = curC;
+
+                // Populate Project/Account Select
+                const usedProjs = [...new Set(allTxs.map(t=>t.project).filter(Boolean))].sort();
+                if(pSel.options.length <= 1) {
+                    pSel.innerHTML = '<option value="all">全部帳戶</option>';
+                    usedProjs.forEach(p => pSel.innerHTML += `<option value="${p}">${p}</option>`);
+                }
+                pSel.value = curP;
 
                 const yr = parseInt(document.getElementById('report-year').value);
                 const mnVal = document.getElementById('report-month-select').value;
                 let start, end;
                 if(mnVal==='all') { start=new Date(yr,0,1); end=new Date(yr,11,31,23,59,59); } else { const m=parseInt(mnVal); start=new Date(yr,m-1,1); end=new Date(yr,m,0,23,59,59); }
-                const filtered = allTxs.filter(t => { const d = getTxDate(t); return d>=start && d<=end && (curC==='all'||t.category===curC); }).sort((a,b)=>getTxDate(b)-getTxDate(a));
+                
+                // Updated Filter Logic
+                const filtered = allTxs.filter(t => { 
+                    const d = getTxDate(t); 
+                    const matchTime = d>=start && d<=end;
+                    const matchCat = (curC==='all' || t.category===curC);
+                    const matchProj = (curP==='all' || t.project===curP);
+                    return matchTime && matchCat && matchProj;
+                }).sort((a,b)=>getTxDate(b)-getTxDate(a));
                 
                 if(State.chart) State.chart.destroy();
                 const map={}; filtered.filter(t=>t.type==='expense').forEach(t=>{ const c=t.category||'未分類'; map[c]=(map[c]||0)+parseFloat(t.amount); });
                 State.chart = new Chart(document.getElementById('expense-chart').getContext('2d'), { type: 'doughnut', data: { labels: Object.keys(map), datasets: [{ data: Object.values(map), backgroundColor: ['#3498db', '#e74c3c', '#f1c40f', '#2ecc71', '#9b59b6', '#34495e', '#e67e22'], borderWidth:1 }] }, options: { responsive:true, maintainAspectRatio:false, plugins:{ legend:{position:'right'} } } });
                 document.getElementById('report-stats').innerHTML = Object.entries(map).sort((a,b)=>b[1]-a[1]).map(([k,v]) => `<li class="list-group-item d-flex justify-content-between align-items-center px-0"><span>${k}</span><span class="fw-bold text-danger">$${v.toLocaleString()}</span></li>`).join('') || '<li class="list-group-item text-center text-muted">無支出資料</li>';
-                document.getElementById('report-details').innerHTML = filtered.slice(0, 100).map(t => `<tr><td class="small text-muted ps-3">${getTxDate(t).toLocaleDateString()}</td><td><div class="small fw-bold">${t.category}</div><div class="text-muted small text-truncate" style="max-width:100px">${t.remarks||''}</div></td><td class="text-end fw-bold pe-3 ${t.type==='expense'?'text-danger':'text-success'}">${t.type==='expense'?'-':'+'} ${formatMoney(t.amount)}</td></tr>`).join('');
+                document.getElementById('report-details').innerHTML = filtered.slice(0, 100).map(t => `<tr><td class="small text-muted ps-3">${getTxDate(t).toLocaleDateString()}</td><td><div class="small fw-bold">${t.category}</div><div class="text-muted small text-truncate" style="max-width:100px">${t.remarks||t.project||''}</div></td><td class="text-end fw-bold pe-3 ${t.type==='expense'?'text-danger':'text-success'}">${t.type==='expense'?'-':'+'} ${formatMoney(t.amount)}</td></tr>`).join('');
             },
 
             openModal: (modalId, id, defaults={}) => {
