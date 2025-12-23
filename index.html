@@ -307,7 +307,7 @@
                     <div id="inv-pending-section" class="mt-5 d-none">
                         <h6 class="fw-bold text-dark mb-3 ps-1 border-start border-4 border-warning ps-2">預定款項 / 未實現交易</h6>
                         <div class="card border-0 shadow-sm" style="border-radius: 16px;">
-                            <div class="card-body p-0">
+                            <div class="card-body p-0 overflow-auto" style="max-height: 400px;">
                                 <ul class="list-group list-group-flush" id="inv-pending-list"></ul>
                             </div>
                         </div>
@@ -329,7 +329,7 @@
                     <div id="debt-pending-section" class="mt-5 d-none">
                         <h6 class="fw-bold text-dark mb-3 ps-1 border-start border-4 border-warning ps-2">預定還款 / 未實現交易</h6>
                         <div class="card border-0 shadow-sm" style="border-radius: 16px;">
-                            <div class="card-body p-0">
+                            <div class="card-body p-0 overflow-auto" style="max-height: 400px;">
                                 <ul class="list-group list-group-flush" id="debt-pending-list"></ul>
                             </div>
                         </div>
@@ -624,12 +624,14 @@
                 const pendingContainer = document.getElementById('inv-pending-list');
                 const pendingSection = document.getElementById('inv-pending-section');
                 
-                container.innerHTML = '';
-                pendingContainer.innerHTML = '';
+                // Use temp string buffers
+                let containerHtml = '';
+                let pendingHtml = '';
 
                 if(!activeInvs.length) { container.innerHTML = '<div class="col-12 text-center text-muted py-5">無投資帳戶</div>'; }
                 
                 let allPending = [];
+                const today = new Date().setHours(0,0,0,0);
                 
                 activeInvs.forEach(i => {
                     const subTxs = State.data.legacyTxs[i.id] || [];
@@ -651,10 +653,9 @@
                         targetHtml = `<div class="mt-2 pt-2 border-top"><div class="d-flex justify-content-between small mb-1"><span class="text-muted">目標達成率</span><span class="fw-bold text-primary">${Math.round(pct)}%</span></div><div class="progress" style="height: 6px;"><div class="progress-bar bg-warning" role="progressbar" style="width: ${pct}%"></div></div><small class="text-muted d-block text-end mt-1" style="font-size:0.7rem">目標: $${target.toLocaleString()}</small></div>`;
                     }
 
-                    // Indicator for Pending
                     const pendingIndicator = pendingForThis.length > 0 ? `<div class="pending-indicator text-warning" title="有 ${pendingForThis.length} 筆預定款項"><i class="fas fa-clock"></i></div>` : '';
 
-                    container.innerHTML += `
+                    containerHtml += `
                     <div class="col-md-6 col-lg-4">
                         <div class="card-item" onclick="App.showDetails('investment', '${i.id}')" style="cursor:pointer;">
                             ${pendingIndicator}
@@ -670,14 +671,21 @@
                         </div>
                     </div>`;
                 });
+                
+                if(activeInvs.length) container.innerHTML = containerHtml;
 
                 if(allPending.length > 0) {
                     pendingSection.classList.remove('d-none');
                     allPending.sort((a,b) => getTxDate(a) - getTxDate(b)).forEach(t => {
-                        pendingContainer.innerHTML += `
+                        const txDate = getTxDate(t);
+                        const isOverdue = txDate < today;
+                        const dateClass = isOverdue ? 'text-danger fw-bold' : 'text-warning fw-bold';
+                        const iconHtml = isOverdue ? '<i class="fas fa-exclamation-circle me-1"></i>' : '<i class="fas fa-calendar me-1"></i>';
+                        
+                        pendingHtml += `
                         <li class="list-group-item d-flex justify-content-between align-items-center">
                             <div>
-                                <small class="text-warning fw-bold d-block"><i class="fas fa-calendar me-1"></i>${getTxDate(t).toLocaleDateString()} - ${t.project}</small>
+                                <small class="${dateClass} d-block">${iconHtml}${txDate.toLocaleDateString()} - ${t.project}</small>
                                 <span class="fw-bold text-dark">${t.remarks||t.category}</span>
                             </div>
                             <div class="d-flex align-items-center">
@@ -688,6 +696,7 @@
                             </div>
                         </li>`;
                     });
+                    pendingContainer.innerHTML = pendingHtml;
                 } else {
                     pendingSection.classList.add('d-none');
                 }
@@ -699,12 +708,13 @@
                 const pendingContainer = document.getElementById('debt-pending-list');
                 const pendingSection = document.getElementById('debt-pending-section');
                 
-                container.innerHTML = '';
-                pendingContainer.innerHTML = '';
+                let containerHtml = '';
+                let pendingHtml = '';
 
                 if(!debts.length) { container.innerHTML = '<div class="col-12 text-center text-muted py-5">無負債項目</div>'; }
                 
                 let allPending = [];
+                const today = new Date().setHours(0,0,0,0);
 
                 debts.forEach(d => {
                     const total = parseFloat(d.totalAmount); const rem = parseFloat(d.remainingAmount); const paid = total - rem; const pct = Math.round((paid / total) * 100);
@@ -712,10 +722,9 @@
                     const pendingForThis = State.data.transactions.filter(t => t.project === d.name && t.isPending);
                     pendingForThis.forEach(pt => allPending.push({...pt, debtId: d.id}));
 
-                    // Indicator for Pending
                     const pendingIndicator = pendingForThis.length > 0 ? `<div class="pending-indicator text-warning" title="有 ${pendingForThis.length} 筆預定款項"><i class="fas fa-clock"></i></div>` : '';
 
-                    container.innerHTML += `
+                    containerHtml += `
                     <div class="col-md-6 col-lg-4">
                         <div class="card-item" onclick="App.showDetails('debt', '${d.id}')" style="cursor:pointer;">
                             ${pendingIndicator}
@@ -731,14 +740,21 @@
                         </div>
                     </div>`;
                 });
+                
+                if(debts.length) container.innerHTML = containerHtml;
 
                 if(allPending.length > 0) {
                     pendingSection.classList.remove('d-none');
                     allPending.sort((a,b) => getTxDate(a) - getTxDate(b)).forEach(t => {
-                        pendingContainer.innerHTML += `
+                        const txDate = getTxDate(t);
+                        const isOverdue = txDate < today;
+                        const dateClass = isOverdue ? 'text-danger fw-bold' : 'text-warning fw-bold';
+                        const iconHtml = isOverdue ? '<i class="fas fa-exclamation-circle me-1"></i>' : '<i class="fas fa-calendar me-1"></i>';
+
+                        pendingHtml += `
                         <li class="list-group-item d-flex justify-content-between align-items-center">
                             <div>
-                                <small class="text-warning fw-bold d-block"><i class="fas fa-calendar me-1"></i>${getTxDate(t).toLocaleDateString()} - ${t.project}</small>
+                                <small class="${dateClass} d-block">${iconHtml}${txDate.toLocaleDateString()} - ${t.project}</small>
                                 <span class="fw-bold text-dark">${t.remarks||t.category}</span>
                             </div>
                             <div class="d-flex align-items-center">
@@ -749,6 +765,7 @@
                             </div>
                         </li>`;
                     });
+                    pendingContainer.innerHTML = pendingHtml;
                 } else {
                     pendingSection.classList.add('d-none');
                 }
@@ -890,7 +907,22 @@
                 const realTxs = relatedTxs.filter(t => !t.isPending).sort((a,b)=>getTxDate(b)-getTxDate(a));
                 const pendingTxs = relatedTxs.filter(t => t.isPending).sort((a,b)=>getTxDate(b)-getTxDate(a));
                 const pendList = modal.querySelector('.pending-list'); const pendSec = document.getElementById('pending-section');
-                if(pendingTxs.length > 0) { pendSec.classList.remove('d-none'); pendList.innerHTML = pendingTxs.map(t => `<li class="list-group-item d-flex justify-content-between align-items-center px-0 border-light bg-light mb-1 rounded"><div class="ms-2"><small class="text-warning d-block fw-bold">${getTxDate(t).toLocaleDateString()}</small><span class="fw-bold">${t.remarks||t.category}</span></div><div class="d-flex align-items-center"><span class="fw-bold me-3 text-muted">$${formatMoney(t.amount)}</span><button class="btn btn-sm btn-success rounded-circle" onclick="App.confirmPendingTransaction('${t.id}', '${item.id}', '${type}')" title="確認執行"><i class="fas fa-check"></i></button><button class="btn btn-sm btn-link text-muted ms-1" onclick="App.openModal('transactionModal','${t.id}', {isPending:true})"><i class="fas fa-pen"></i></button></div></li>`).join(''); } else { pendSec.classList.add('d-none'); }
+                
+                let pendingHtml = '';
+                const today = new Date().setHours(0,0,0,0);
+
+                if(pendingTxs.length > 0) { 
+                    pendSec.classList.remove('d-none'); 
+                    pendingTxs.forEach(t => {
+                        const txDate = getTxDate(t);
+                        const isOverdue = txDate < today;
+                        const dateClass = isOverdue ? 'text-danger fw-bold' : 'text-warning fw-bold';
+                        const iconHtml = isOverdue ? '<i class="fas fa-exclamation-circle me-1"></i>' : '';
+
+                        pendingHtml += `<li class="list-group-item d-flex justify-content-between align-items-center px-0 border-light bg-light mb-1 rounded"><div class="ms-2"><small class="${dateClass} d-block">${iconHtml}${txDate.toLocaleDateString()}</small><span class="fw-bold">${t.remarks||t.category}</span></div><div class="d-flex align-items-center"><span class="fw-bold me-3 text-muted">$${formatMoney(t.amount)}</span><button class="btn btn-sm btn-success rounded-circle" onclick="App.confirmPendingTransaction('${t.id}', '${item.id}', '${type}')" title="確認執行"><i class="fas fa-check"></i></button><button class="btn btn-sm btn-link text-muted ms-1" onclick="App.openModal('transactionModal','${t.id}', {isPending:true})"><i class="fas fa-pen"></i></button></div></li>`;
+                    });
+                    pendList.innerHTML = pendingHtml;
+                } else { pendSec.classList.add('d-none'); }
                 const list = modal.querySelector('.details-list'); list.innerHTML = realTxs.map(t => `<li class="list-group-item d-flex justify-content-between align-items-center px-0"><div><small class="text-muted d-block">${getTxDate(t).toLocaleDateString()}</small><span class="fw-bold">${t.remarks||t.category}</span></div><span class="fw-bold ${t.type==='expense'?'text-danger':'text-success'}">${t.type==='expense'?'-':'+'} ${formatMoney(t.amount)}</span></li>`).join('') || '<li class="list-group-item text-center text-muted">無已實現紀錄</li>';
                 bsModals['detailsModal'].show();
             },
