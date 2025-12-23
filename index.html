@@ -46,10 +46,11 @@
         /* Dashboard Cards */
         .card-summary {
             border: none;
-            border-radius: 12px;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+            border-radius: 16px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.03);
             transition: transform 0.2s;
             height: 100%;
+            background: #fff;
         }
         .card-summary:hover { transform: translateY(-3px); }
 
@@ -67,8 +68,30 @@
         .bg-liability { background-color: rgba(192, 57, 43, 0.1); color: var(--danger-color); }
         .bg-net { background-color: rgba(52, 152, 219, 0.1); color: var(--accent-color); }
 
+        /* Asset/Debt Item Cards (Clean Style) */
+        .card-item {
+            border: 1px solid rgba(0,0,0,0.05);
+            border-radius: 16px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.02);
+            transition: all 0.2s;
+            background: white;
+            overflow: hidden;
+        }
+        .card-item:hover {
+            box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+            transform: translateY(-2px);
+        }
+        .card-item-header {
+            padding: 12px 16px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid #f8f9fa;
+        }
+        .card-item-body { padding: 16px; }
+        
         /* Tables & Lists */
-        .transaction-item { border-left: 4px solid transparent; }
+        .transaction-item { border-left: 3px solid transparent; }
         .type-income { border-left-color: var(--success-color); }
         .type-expense { border-left-color: var(--danger-color); }
         
@@ -80,6 +103,7 @@
             color: var(--primary-color);
             margin-right: 5px;
             border-radius: 8px;
+            font-weight: 500;
         }
 
         /* Util */
@@ -87,7 +111,7 @@
         .chart-container { position: relative; height: 250px; width: 100%; }
         
         /* Modal Styles */
-        .modal-content { border-radius: 15px; border: none; }
+        .modal-content { border-radius: 15px; border: none; box-shadow: 0 10px 30px rgba(0,0,0,0.1); }
         .modal-header { border-bottom: 1px solid #eee; }
         .modal-footer { border-top: 1px solid #eee; }
     </style>
@@ -148,7 +172,7 @@
                         <div class="d-flex align-items-center">
                             <div class="icon-box bg-asset"><i class="fas fa-coins"></i></div>
                             <div>
-                                <h6 class="text-muted mb-0">投資總現值</h6>
+                                <h6 class="text-muted mb-0 small fw-bold">投資總現值</h6>
                                 <h3 class="mb-0 fw-bold text-success" id="summary-investments">$0</h3>
                             </div>
                         </div>
@@ -159,7 +183,7 @@
                         <div class="d-flex align-items-center">
                             <div class="icon-box bg-liability"><i class="fas fa-file-invoice-dollar"></i></div>
                             <div>
-                                <h6 class="text-muted mb-0">剩餘總負債</h6>
+                                <h6 class="text-muted mb-0 small fw-bold">剩餘總負債</h6>
                                 <h3 class="mb-0 fw-bold text-danger" id="summary-debts">$0</h3>
                             </div>
                         </div>
@@ -170,7 +194,7 @@
                         <div class="d-flex align-items-center">
                             <div class="icon-box bg-net"><i class="fas fa-wallet"></i></div>
                             <div>
-                                <h6 class="text-muted mb-0">本月淨現金流</h6>
+                                <h6 class="text-muted mb-0 small fw-bold">本月淨現金流</h6>
                                 <h3 class="mb-0 fw-bold text-primary" id="summary-cashflow">$0</h3>
                             </div>
                         </div>
@@ -185,44 +209,44 @@
                     <div class="row">
                         <!-- Left: Controls & Charts -->
                         <div class="col-lg-4 mb-4">
-                            <div class="card shadow-sm mb-4">
-                                <div class="card-header bg-white fw-bold d-flex justify-content-between align-items-center">
+                            <div class="card border-0 shadow-sm mb-4" style="border-radius: 16px;">
+                                <div class="card-header bg-white border-0 fw-bold d-flex justify-content-between align-items-center pt-3 px-3">
                                     <span>本月概況</span>
                                     <input type="month" id="date-filter" class="form-control form-control-sm w-auto fw-bold border-0 bg-light" onchange="App.renderTransactions()">
                                 </div>
                                 <div class="card-body">
                                     <div class="row text-center g-2 mb-3">
                                         <div class="col-4">
-                                            <div class="p-2 bg-light rounded">
-                                                <small class="text-success d-block mb-1">收入</small>
-                                                <span id="monthly-income" class="fw-bold h6">0</span>
+                                            <div class="p-2 bg-light rounded-3">
+                                                <small class="text-success d-block mb-1 fw-bold">收入</small>
+                                                <span id="monthly-income" class="fw-bold h6 mb-0">0</span>
                                             </div>
                                         </div>
                                         <div class="col-4">
-                                            <div class="p-2 bg-light rounded">
-                                                <small class="text-danger d-block mb-1">支出</small>
-                                                <span id="monthly-expense" class="fw-bold h6">0</span>
+                                            <div class="p-2 bg-light rounded-3">
+                                                <small class="text-danger d-block mb-1 fw-bold">支出</small>
+                                                <span id="monthly-expense" class="fw-bold h6 mb-0">0</span>
                                             </div>
                                         </div>
                                         <div class="col-4">
-                                            <div class="p-2 bg-light rounded">
-                                                <small class="text-primary d-block mb-1">結餘</small>
-                                                <span id="monthly-balance" class="fw-bold h6">0</span>
+                                            <div class="p-2 bg-light rounded-3">
+                                                <small class="text-primary d-block mb-1 fw-bold">結餘</small>
+                                                <span id="monthly-balance" class="fw-bold h6 mb-0">0</span>
                                             </div>
                                         </div>
                                     </div>
                                     <!-- Budget Bar -->
-                                    <div class="bg-light p-3 rounded border">
-                                        <div class="d-flex justify-content-between align-items-center mb-1">
-                                            <small class="fw-bold text-muted">預算監控</small>
-                                            <small id="budget-status" class="fw-bold text-muted">計算中...</small>
+                                    <div class="bg-white p-3 rounded-3 border">
+                                        <div class="d-flex justify-content-between align-items-center mb-2">
+                                            <small class="fw-bold text-muted"><i class="fas fa-bullseye me-1"></i>預算監控</small>
+                                            <span id="budget-status" class="badge bg-light text-dark">計算中...</span>
                                         </div>
-                                        <div class="progress" style="height: 8px;">
+                                        <div class="progress mb-2" style="height: 6px;">
                                             <div id="budget-bar" class="progress-bar bg-primary" role="progressbar" style="width: 0%"></div>
                                         </div>
                                         <div class="d-flex justify-content-between mt-1" style="font-size: 0.75rem;">
-                                            <span class="text-muted">已支出: <span id="current-expense-text" class="fw-bold">$0</span></span>
-                                            <span class="text-muted">建議: <span id="suggested-budget-text" class="fw-bold">$0</span></span>
+                                            <span class="text-muted">已用: <span id="current-expense-text" class="fw-bold text-dark">$0</span></span>
+                                            <span class="text-muted">建議: <span id="suggested-budget-text" class="fw-bold text-dark">$0</span></span>
                                         </div>
                                     </div>
                                 </div>
@@ -230,7 +254,7 @@
                             
                             <!-- Action Button -->
                             <div class="d-grid">
-                                <button class="btn btn-primary btn-lg shadow" onclick="App.openModal('transaction-modal')">
+                                <button class="btn btn-primary btn-lg shadow rounded-pill fw-bold" onclick="App.openModal('transactionModal')">
                                     <i class="fas fa-plus me-2"></i> 記一筆
                                 </button>
                             </div>
@@ -238,18 +262,18 @@
 
                         <!-- Right: Transaction List -->
                         <div class="col-lg-8">
-                            <div class="card shadow-sm">
-                                <div class="card-header bg-white fw-bold">近期交易明細</div>
+                            <div class="card border-0 shadow-sm" style="border-radius: 16px;">
+                                <div class="card-header bg-white border-0 pt-3 px-3 fw-bold">近期交易明細</div>
                                 <div class="card-body p-0">
                                     <div class="table-responsive">
                                         <table class="table table-hover align-middle mb-0">
-                                            <thead class="table-light">
-                                                <tr>
-                                                    <th>日期</th>
-                                                    <th>分類</th>
-                                                    <th>備註</th>
-                                                    <th class="text-end">金額</th>
-                                                    <th class="text-center">操作</th>
+                                            <thead class="bg-light">
+                                                <tr class="text-muted small">
+                                                    <th class="ps-3 border-0">日期</th>
+                                                    <th class="border-0">分類</th>
+                                                    <th class="border-0">備註</th>
+                                                    <th class="text-end border-0">金額</th>
+                                                    <th class="text-center border-0 pe-3">操作</th>
                                                 </tr>
                                             </thead>
                                             <tbody id="tx-list"></tbody>
@@ -268,7 +292,7 @@
                             <li class="nav-item"><button class="nav-link active" onclick="App.switchInvTab('active', this)">進行中</button></li>
                             <li class="nav-item"><button class="nav-link" onclick="App.switchInvTab('archived', this)">已結案</button></li>
                         </ul>
-                        <button class="btn btn-primary btn-sm" onclick="App.openModal('investment-modal')"><i class="fas fa-plus"></i> 新增帳戶</button>
+                        <button class="btn btn-primary btn-sm rounded-pill px-3" onclick="App.openModal('investmentModal')"><i class="fas fa-plus me-1"></i>新增帳戶</button>
                     </div>
                     <div id="inv-list" class="row g-3"></div>
                 </div>
@@ -276,8 +300,8 @@
                 <!-- Debt View -->
                 <div id="view-debt" class="view-section d-none animate-fade">
                     <div class="d-flex justify-content-between align-items-center mb-3">
-                         <h5 class="fw-bold text-secondary">負債管理</h5>
-                         <button class="btn btn-danger btn-sm" onclick="App.openModal('debt-modal')"><i class="fas fa-plus"></i> 新增負債</button>
+                         <h5 class="fw-bold text-secondary mb-0"><i class="fas fa-credit-card me-2"></i>負債管理</h5>
+                         <button class="btn btn-danger btn-sm rounded-pill px-3" onclick="App.openModal('debtModal')"><i class="fas fa-plus me-1"></i>新增負債</button>
                     </div>
                     <div id="debt-list" class="row g-3"></div>
                 </div>
@@ -285,53 +309,71 @@
                 <!-- Events View -->
                 <div id="view-events" class="view-section d-none animate-fade">
                     <div class="d-flex justify-content-between align-items-center mb-3">
-                        <h5 class="fw-bold text-secondary">大事記</h5>
+                        <h5 class="fw-bold text-secondary mb-0"><i class="fas fa-calendar-alt me-2"></i>大事記</h5>
                         <div>
-                            <button class="btn btn-outline-secondary btn-sm me-2" onclick="App.exportEvents()"><i class="fas fa-file-export"></i> 匯出</button>
-                            <button class="btn btn-dark btn-sm" onclick="App.openModal('event-modal')"><i class="fas fa-plus"></i> 新增紀錄</button>
+                            <button class="btn btn-outline-secondary btn-sm me-2 rounded-pill" onclick="App.exportEvents()"><i class="fas fa-file-export me-1"></i>匯出</button>
+                            <button class="btn btn-dark btn-sm rounded-pill px-3" onclick="App.openModal('eventModal')"><i class="fas fa-plus me-1"></i>新增紀錄</button>
                         </div>
                     </div>
-                    <div id="event-list" class="row"></div>
+                    <div id="event-list" class="row g-3"></div>
                 </div>
                 
                 <!-- Reports View -->
                 <div id="view-reports" class="view-section d-none animate-fade">
-                    <div class="card shadow-sm p-3 mb-3">
-                         <div class="row g-2">
-                             <div class="col-md-3"><select id="report-year" class="form-select form-select-sm fw-bold" onchange="App.renderReports()"></select></div>
+                    <div class="card border-0 shadow-sm p-3 mb-3" style="border-radius: 16px;">
+                         <div class="row g-2 align-items-center">
                              <div class="col-md-3">
-                                 <select id="report-month-select" class="form-select form-select-sm fw-bold" onchange="App.renderReports()">
+                                 <label class="small text-muted fw-bold ms-1">年份</label>
+                                 <select id="report-year" class="form-select form-select-sm fw-bold border-0 bg-light" onchange="App.renderReports()"></select>
+                             </div>
+                             <div class="col-md-3">
+                                 <label class="small text-muted fw-bold ms-1">月份</label>
+                                 <select id="report-month-select" class="form-select form-select-sm fw-bold border-0 bg-light" onchange="App.renderReports()">
                                      <option value="all">全年度</option>
                                      <option value="1">1月</option><option value="2">2月</option><option value="3">3月</option><option value="4">4月</option><option value="5">5月</option><option value="6">6月</option>
                                      <option value="7">7月</option><option value="8">8月</option><option value="9">9月</option><option value="10">10月</option><option value="11">11月</option><option value="12">12月</option>
                                  </select>
                              </div>
-                             <div class="col-md-3"><select id="report-category" class="form-select form-select-sm fw-bold" onchange="App.renderReports()"><option value="all">全部分類</option></select></div>
-                             <div class="col-md-3 d-grid"><button class="btn btn-outline-primary btn-sm" onclick="App.exportReport()"><i class="fas fa-file-csv me-1"></i> 匯出報表</button></div>
+                             <div class="col-md-4">
+                                 <label class="small text-muted fw-bold ms-1">分類篩選</label>
+                                 <select id="report-category" class="form-select form-select-sm fw-bold border-0 bg-light" onchange="App.renderReports()">
+                                     <option value="all">全部分類</option>
+                                 </select>
+                             </div>
+                             <div class="col-md-2 d-grid">
+                                 <label class="small text-white">.</label>
+                                 <button class="btn btn-outline-primary btn-sm rounded-pill" onclick="App.exportReport()"><i class="fas fa-file-csv me-1"></i>匯出</button>
+                             </div>
                          </div>
                     </div>
                     <div class="row">
                         <div class="col-md-6 mb-3">
-                            <div class="card shadow-sm h-100">
-                                <div class="card-header bg-white fw-bold">支出分佈</div>
+                            <div class="card border-0 shadow-sm h-100" style="border-radius: 16px;">
+                                <div class="card-header bg-white border-0 pt-3 fw-bold">支出分佈</div>
                                 <div class="card-body"><div class="chart-container"><canvas id="expense-chart"></canvas></div></div>
                             </div>
                         </div>
                         <div class="col-md-6 mb-3">
-                            <div class="card shadow-sm h-100">
-                                <div class="card-header bg-white fw-bold">分類統計</div>
+                            <div class="card border-0 shadow-sm h-100" style="border-radius: 16px;">
+                                <div class="card-header bg-white border-0 pt-3 fw-bold">分類統計</div>
                                 <div class="card-body overflow-auto" style="max-height: 300px;">
                                     <ul id="report-stats" class="list-group list-group-flush small"></ul>
                                 </div>
                             </div>
                         </div>
                     </div>
-                    <div class="card shadow-sm">
-                        <div class="card-header bg-white fw-bold">交易明細</div>
+                    <div class="card border-0 shadow-sm" style="border-radius: 16px;">
+                        <div class="card-header bg-white border-0 pt-3 fw-bold">交易明細</div>
                         <div class="card-body p-0">
                             <div class="table-responsive">
                                 <table class="table table-hover align-middle mb-0 table-sm">
-                                    <thead class="table-light"><tr><th>日期</th><th>分類/備註</th><th class="text-end">金額</th></tr></thead>
+                                    <thead class="bg-light">
+                                        <tr class="text-muted">
+                                            <th class="ps-3 border-0">日期</th>
+                                            <th class="border-0">分類/備註</th>
+                                            <th class="text-end border-0 pe-3">金額</th>
+                                        </tr>
+                                    </thead>
                                     <tbody id="report-details"></tbody>
                                 </table>
                             </div>
@@ -390,7 +432,7 @@
                         </div>
                         <div class="d-flex justify-content-between align-items-center mt-4">
                             <button type="button" id="btn-delete-tx" class="btn btn-link text-danger text-decoration-none d-none"><i class="fas fa-trash"></i> 刪除</button>
-                            <button type="submit" class="btn btn-primary px-5 fw-bold ms-auto">儲存</button>
+                            <button type="submit" class="btn btn-primary px-5 fw-bold ms-auto rounded-pill">儲存</button>
                         </div>
                     </form>
                 </div>
@@ -422,7 +464,7 @@
                         <div class="mb-3"><label class="form-label">名稱</label><input type="text" name="name" class="form-control" required></div>
                         <div class="mb-3"><label class="form-label">初始成本</label><input type="number" name="initial" class="form-control"></div>
                         <div class="form-check mb-3"><input class="form-check-input" type="checkbox" name="isArchived" id="inv-archived"><label class="form-check-label" for="inv-archived">已結案 (歸檔)</label></div>
-                        <button type="submit" class="btn btn-primary w-100">儲存</button>
+                        <button type="submit" class="btn btn-primary w-100 rounded-pill">儲存</button>
                     </form>
                 </div>
             </div>
@@ -442,7 +484,7 @@
                             <div class="col-6"><label class="form-label">總金額</label><input type="number" name="total" class="form-control" required></div>
                             <div class="col-6"><label class="form-label">剩餘 (手動校正)</label><input type="number" name="remaining" class="form-control"></div>
                         </div>
-                        <button type="submit" class="btn btn-warning w-100 text-white fw-bold">儲存</button>
+                        <button type="submit" class="btn btn-warning w-100 text-white fw-bold rounded-pill">儲存</button>
                     </form>
                 </div>
             </div>
@@ -462,7 +504,7 @@
                         <div class="mb-3"><label class="form-label">內容</label><textarea name="desc" class="form-control" rows="3"></textarea></div>
                         <div class="d-flex justify-content-between">
                             <button type="button" id="btn-delete-event" class="btn btn-link text-danger d-none">刪除</button>
-                            <button type="submit" class="btn btn-dark ms-auto">紀錄</button>
+                            <button type="submit" class="btn btn-dark ms-auto rounded-pill px-4">紀錄</button>
                         </div>
                     </form>
                 </div>
@@ -477,7 +519,7 @@
                 <div class="modal-header"><h5 class="modal-title details-title fw-bold">詳情</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
                 <div class="modal-body">
                     <div class="details-actions mb-3 d-grid gap-2"></div>
-                    <h6 class="text-muted border-bottom pb-2">交易紀錄</h6>
+                    <h6 class="text-muted border-bottom pb-2 small fw-bold">交易紀錄</h6>
                     <ul class="list-group list-group-flush details-list small"></ul>
                 </div>
             </div>
@@ -492,7 +534,7 @@
         import { getAuth, signInAnonymously, onAuthStateChanged, GoogleAuthProvider, signInWithPopup, signOut } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, collection, addDoc, query, onSnapshot, doc, deleteDoc, updateDoc, increment, Timestamp, writeBatch, getDocs, getDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-        // Firebase Config (Original)
+        // Firebase Config
         const app = initializeApp({ apiKey: "AIzaSyAqFHm6Bn35m8xauc50ZvNNy_rxIZzCMTE", authDomain: "moneyw-f8105.firebaseapp.com", projectId: "moneyw-f8105", storageBucket: "moneyw-f8105.appspot.com", messagingSenderId: "155586195799", appId: "1:155586195799:web:302184fbf613f032a88e12" });
         const auth = getAuth(app); const db = getFirestore(app);
         
@@ -516,26 +558,18 @@
 
         window.App = {
             init: () => {
-                // Init Modals
                 ['transactionModal', 'categoryModal', 'investmentModal', 'debtModal', 'eventModal', 'detailsModal'].forEach(id => {
-                    const el = document.getElementById(id);
-                    if(el) bsModals[id] = new bootstrap.Modal(el);
+                    const el = document.getElementById(id); if(el) bsModals[id] = new bootstrap.Modal(el);
                 });
-
                 onAuthStateChanged(auth, u => {
                     State.user = u;
-                    const loginEl = document.getElementById('login-view');
-                    const appEl = document.getElementById('app-container');
-                    
+                    const loginEl = document.getElementById('login-view'); const appEl = document.getElementById('app-container');
                     if(u) {
-                        loginEl.classList.add('d-none'); loginEl.classList.remove('d-flex');
-                        appEl.classList.remove('d-none');
+                        loginEl.classList.add('d-none'); loginEl.classList.remove('d-flex'); appEl.classList.remove('d-none');
                         document.getElementById('user-info').innerText = u.isAnonymous ? '訪客' : u.displayName;
-                        App.startListeners(u.uid);
-                        App.switchTab('accounting');
+                        App.startListeners(u.uid); App.switchTab('accounting');
                     } else {
-                        loginEl.classList.remove('d-none'); loginEl.classList.add('d-flex');
-                        appEl.classList.add('d-none');
+                        loginEl.classList.remove('d-none'); loginEl.classList.add('d-flex'); appEl.classList.add('d-none');
                         App.stopListeners();
                     }
                 });
@@ -543,13 +577,9 @@
 
             startListeners: (uid) => {
                 const listen = (c, k) => State.listeners.push(onSnapshot(query(collection(db, `users/${uid}/${c}`)), s => { 
-                    State.data[k] = s.docs.map(d=>({id:d.id, ...d.data()})); 
-                    App.refreshCurrentView();
+                    State.data[k] = s.docs.map(d=>({id:d.id, ...d.data()})); App.refreshCurrentView();
                 }));
-                listen('transactions', 'transactions');
-                listen('debts', 'debts');
-                listen('events', 'events');
-                
+                listen('transactions', 'transactions'); listen('debts', 'debts'); listen('events', 'events');
                 State.listeners.push(onSnapshot(query(collection(db, `users/${uid}/investments`)), async (s) => {
                     State.data.investments = s.docs.map(d=>({id:d.id, ...d.data()}));
                     for (let inv of State.data.investments) {
@@ -557,8 +587,7 @@
                             try {
                                 const subSnap = await getDocs(collection(db, `users/${uid}/investments/${inv.id}/transactions`));
                                 State.data.legacyTxs[inv.id] = subSnap.docs.map(d => {
-                                    const data = d.data();
-                                    let ts = data.timestamp || data.date;
+                                    const data = d.data(); let ts = data.timestamp || data.date;
                                     if (!ts || (!ts.toDate && isNaN(new Date(ts).getTime()))) ts = Timestamp.now();
                                     else if (typeof ts === 'string') ts = Timestamp.fromDate(new Date(ts));
                                     return { id: d.id, ...data, timestamp: ts, remarks: data.remarks || data.remark, isLegacy: true, legacyInvId: inv.id };
@@ -571,27 +600,14 @@
             },
             stopListeners: () => { State.listeners.forEach(u=>u()); State.listeners=[]; },
             
-            // --- UPDATED LOGIN LOGIC ---
-            loginGoogle: async () => {
-                try {
-                    await signInWithPopup(auth, new GoogleAuthProvider());
-                } catch (error) {
-                    console.error("Login Error:", error);
-                    let msg = "登入失敗: " + error.message;
-                    if (window.location.protocol === 'file:') {
-                        msg = "❌ Google 安全限制：無法在「檔案模式 (file://)」下使用 Google 登入。\n\n請嘗試：\n1. 使用「訪客體驗」按鈕測試介面。\n2. 或將此檔案上傳至任何網站空間 (如 GitHub Pages)。\n3. 或在 VS Code 安裝「Live Server」擴充套件，右鍵選擇 'Open with Live Server'。";
-                    }
-                    alert(msg);
-                    document.getElementById('login-msg').innerText = "提示：若要使用 Google 登入，請勿直接開啟檔案，需透過網頁伺服器 (http/https) 執行。";
-                }
-            },
+            loginGoogle: async () => { try { await signInWithPopup(auth, new GoogleAuthProvider()); } catch (error) { let msg = "登入失敗: " + error.message; if (window.location.protocol === 'file:') msg = "❌ Google 安全限制：無法在「檔案模式 (file://)」下使用 Google 登入。\n請改用「訪客體驗」或透過 Live Server 開啟。"; alert(msg); } },
             loginAnon: () => signInAnonymously(auth).catch(e => alert("訪客登入失敗: " + e.message)),
             logout: () => signOut(auth),
 
             refreshCurrentView: () => {
                 App.updateGlobalSummary();
                 const tab = State.view.currentTab;
-                if (tab === 'accounting') { App.renderTransactions(); }
+                if (tab === 'accounting') App.renderTransactions();
                 else if (tab === 'investment') App.renderInvestments();
                 else if (tab === 'debt') App.renderDebts();
                 else if (tab === 'reports') App.renderReports();
@@ -603,42 +619,29 @@
                 document.querySelectorAll('.view-section').forEach(e => e.classList.add('d-none'));
                 document.getElementById(`view-${tab}`).classList.remove('d-none');
                 document.querySelectorAll('.navbar-nav .nav-link').forEach(e => e.classList.remove('active'));
-                if(btn) btn.classList.add('active');
-                else document.querySelector(`.navbar-nav .nav-link[onclick*="${tab}"]`)?.classList.add('active');
-                
-                // Navbar collapse hack for mobile
-                const navCollapse = document.getElementById('navbarNav');
-                if (navCollapse.classList.contains('show')) {
-                    new bootstrap.Collapse(navCollapse).hide();
-                }
-
+                if(btn) btn.classList.add('active'); else document.querySelector(`.navbar-nav .nav-link[onclick*="${tab}"]`)?.classList.add('active');
+                const navCollapse = document.getElementById('navbarNav'); if (navCollapse.classList.contains('show')) new bootstrap.Collapse(navCollapse).hide();
                 if(tab === 'accounting' && !document.getElementById('date-filter').value) document.getElementById('date-filter').value = new Date().toISOString().slice(0, 7);
                 if(tab === 'reports') {
-                    const yrSel = document.getElementById('report-year');
-                    const curYr = new Date().getFullYear();
-                    yrSel.innerHTML = '';
-                    for(let y=curYr-2; y<=curYr+1; y++) yrSel.innerHTML += `<option value="${y}" ${y===curYr?'selected':''}>${y}年</option>`;
+                    const yrSel = document.getElementById('report-year'); const curYr = new Date().getFullYear();
+                    yrSel.innerHTML = ''; for(let y=curYr-2; y<=curYr+1; y++) yrSel.innerHTML += `<option value="${y}" ${y===curYr?'selected':''}>${y}年</option>`;
                     document.getElementById('report-month-select').value = (new Date().getMonth()+1).toString();
                 }
                 App.refreshCurrentView();
             },
 
             getAllTransactions: () => {
-                let allTxs = [];
-                let linkedIds = new Set();
+                let allTxs = []; let linkedIds = new Set();
                 if (State.data.investments && State.data.legacyTxs) {
                     State.data.investments.forEach(inv => {
-                        const sub = State.data.legacyTxs[inv.id] || [];
-                        sub.forEach(t => {
+                        (State.data.legacyTxs[inv.id] || []).forEach(t => {
                             let tsObj = getTxDate(t);
                             allTxs.push({ ...t, project: inv.name, category: t.category || (t.type === 'income' ? '投資收入' : '投資支出'), timestamp: Timestamp.fromDate(tsObj), amount: parseFloat(t.amount) || 0, isLegacy: true, legacyInvId: inv.id });
                             if(t.mainTransactionId) linkedIds.add(t.mainTransactionId);
                         });
                     });
                 }
-                if (State.data.transactions) {
-                    State.data.transactions.forEach(t => { if (!linkedIds.has(t.id)) allTxs.push(t); });
-                }
+                State.data.transactions.forEach(t => { if (!linkedIds.has(t.id)) allTxs.push(t); });
                 return allTxs.sort((a,b) => (getTxDate(b) - getTxDate(a)));
             },
 
@@ -648,8 +651,7 @@
                 const totalDebt = State.data.debts.reduce((sum, d) => sum + (parseFloat(d.remainingAmount) || 0), 0);
                 document.getElementById('summary-debts').innerText = formatMoney(totalDebt);
                 const now = new Date();
-                const startM = new Date(now.getFullYear(), now.getMonth(), 1);
-                const endM = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59);
+                const startM = new Date(now.getFullYear(), now.getMonth(), 1); const endM = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59);
                 const mTx = App.getAllTransactions().filter(t => { const d = getTxDate(t); return d >= startM && d <= endM; });
                 const mInc = mTx.filter(t=>t.type==='income').reduce((a,b)=>a+(parseFloat(b.amount)||0),0);
                 const mExp = mTx.filter(t=>t.type==='expense').reduce((a,b)=>a+(parseFloat(b.amount)||0),0);
@@ -664,24 +666,18 @@
                 const txs = State.data.transactions.filter(t => { const d = getTxDate(t); return d >= start && d <= end; }).sort((a,b) => getTxDate(b) - getTxDate(a));
                 const inc = txs.filter(t=>t.type==='income').reduce((a,b)=>a+(parseFloat(b.amount)||0),0);
                 const exp = txs.filter(t=>t.type==='expense').reduce((a,b)=>a+(parseFloat(b.amount)||0),0);
-                document.getElementById('monthly-income').innerText = formatMoney(inc);
-                document.getElementById('monthly-expense').innerText = formatMoney(exp);
-                document.getElementById('monthly-balance').innerText = formatMoney(inc-exp);
+                document.getElementById('monthly-income').innerText = formatMoney(inc); document.getElementById('monthly-expense').innerText = formatMoney(exp); document.getElementById('monthly-balance').innerText = formatMoney(inc-exp);
                 const budget = 30000; const pct = Math.min((exp/budget)*100, 100);
-                const bar = document.getElementById('budget-bar');
-                bar.style.width = `${pct}%`;
+                const bar = document.getElementById('budget-bar'); bar.style.width = `${pct}%`;
                 bar.className = `progress-bar ${pct>100?'bg-danger':pct>80?'bg-warning':'bg-primary'}`;
-                document.getElementById('current-expense-text').innerText = formatMoney(exp);
-                document.getElementById('suggested-budget-text').innerText = formatMoney(budget);
-                document.getElementById('budget-status').innerText = pct>100?'已超支':pct>80?'注意':'良好';
-                const tbody = document.getElementById('tx-list');
-                tbody.innerHTML = txs.length ? txs.map(t => `
+                document.getElementById('current-expense-text').innerText = formatMoney(exp); document.getElementById('suggested-budget-text').innerText = formatMoney(budget); document.getElementById('budget-status').innerText = pct>100?'已超支':pct>80?'注意':'良好';
+                document.getElementById('tx-list').innerHTML = txs.length ? txs.map(t => `
                     <tr class="transaction-item type-${t.type}" style="cursor:pointer" onclick="App.openModal('transactionModal', '${t.id}')">
-                        <td class="small text-muted">${getTxDate(t).toLocaleDateString()}</td>
+                        <td class="small text-muted ps-3">${getTxDate(t).toLocaleDateString()}</td>
                         <td><div class="fw-bold text-dark">${t.category || '未分類'}</div></td>
                         <td class="text-muted small text-truncate" style="max-width: 150px;">${t.remarks || ''}</td>
                         <td class="text-end fw-bold ${t.type==='expense'?'text-danger':'text-success'}">${t.type==='expense'?'-':'+'} ${formatMoney(t.amount)}</td>
-                        <td class="text-center"><button class="btn btn-sm btn-link text-muted" onclick="event.stopPropagation();App.openModal('transactionModal','${t.id}')"><i class="fas fa-pen"></i></button></td>
+                        <td class="text-center pe-3"><button class="btn btn-sm btn-link text-muted" onclick="event.stopPropagation();App.openModal('transactionModal','${t.id}')"><i class="fas fa-pen"></i></button></td>
                     </tr>`).join('') : '<tr><td colspan="5" class="text-center text-muted py-4">本月無交易紀錄</td></tr>';
             },
 
@@ -698,93 +694,171 @@
                     const all = [...subTxs, ...mainTxs.filter(t => !linked.has(t.id))];
                     const inc = all.filter(t=>t.type==='income').reduce((a,b)=>a+parseFloat(b.amount),0);
                     const exp = all.filter(t=>t.type==='expense').reduce((a,b)=>a+parseFloat(b.amount),0);
-                    const profit = inc - exp;
-                    const mv = parseFloat(i.marketValue) || 0;
-                    return `<div class="col-md-6 col-lg-4"><div class="card shadow-sm h-100 border-0" onclick="App.showDetails('investment', '${i.id}')" style="cursor:pointer; border-left: 4px solid #3498db !important;"><div class="card-body"><div class="d-flex justify-content-between align-items-start mb-2"><h5 class="fw-bold mb-0">${i.name}</h5><button onclick="event.stopPropagation();App.openModal('investmentModal','${i.id}')" class="btn btn-sm btn-link text-muted p-0"><i class="fas fa-pen"></i></button></div><h3 class="fw-bold mb-3">$${mv.toLocaleString()}</h3><div class="d-flex justify-content-between text-sm"><span class="text-muted small">總損益</span><span class="fw-bold ${profit>=0?'text-success':'text-danger'}">${profit>=0?'+':''}${profit.toLocaleString()}</span></div><div class="d-flex justify-content-between text-sm"><span class="text-muted small">投入成本</span><span class="fw-bold">$${exp.toLocaleString()}</span></div></div></div></div>`;
+                    const profit = inc - exp; const mv = parseFloat(i.marketValue) || 0;
+                    return `
+                    <div class="col-md-6 col-lg-4">
+                        <div class="card-item" onclick="App.showDetails('investment', '${i.id}')" style="cursor:pointer;">
+                            <div class="card-item-header">
+                                <h5 class="fw-bold mb-0 text-dark"><i class="fas fa-chart-line text-primary me-2"></i>${i.name}</h5>
+                                <button onclick="event.stopPropagation();App.openModal('investmentModal','${i.id}')" class="btn btn-sm btn-link text-muted p-0"><i class="fas fa-pen"></i></button>
+                            </div>
+                            <div class="card-item-body">
+                                <div class="text-center mb-3">
+                                    <small class="text-muted d-block">目前市值</small>
+                                    <h3 class="fw-bold text-dark">$${mv.toLocaleString()}</h3>
+                                </div>
+                                <div class="row g-0 text-center bg-light rounded-3 p-2">
+                                    <div class="col-6 border-end">
+                                        <small class="text-muted d-block">總損益</small>
+                                        <span class="fw-bold ${profit>=0?'text-success':'text-danger'}">${profit>=0?'+':''}${profit.toLocaleString()}</span>
+                                    </div>
+                                    <div class="col-6">
+                                        <small class="text-muted d-block">投入成本</small>
+                                        <span class="fw-bold text-secondary">$${exp.toLocaleString()}</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>`;
                 }).join('');
             },
+
             renderDebts: () => {
                 const debts = State.data.debts.sort((a,b)=>(b.createdAt?.seconds||0)-(a.createdAt?.seconds||0));
                 const container = document.getElementById('debt-list');
                 if(!debts.length) { container.innerHTML = '<div class="col-12 text-center text-muted py-5">無負債項目</div>'; return; }
+                
+                const now = new Date();
+                const startM = new Date(now.getFullYear(), now.getMonth(), 1);
+                const endM = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59);
+
                 container.innerHTML = debts.map(d => {
                     const total = parseFloat(d.totalAmount); const rem = parseFloat(d.remainingAmount); const paid = total - rem; const pct = Math.round((paid / total) * 100);
-                    return `<div class="col-md-6 col-lg-4"><div class="card shadow-sm h-100 border-0" onclick="App.showDetails('debt', '${d.id}')" style="cursor:pointer; border-left: 4px solid #e74c3c !important;"><div class="card-body"><div class="d-flex justify-content-between align-items-center mb-2"><h6 class="fw-bold mb-0">${d.name}</h6><span class="badge bg-light text-dark border">${pct}% 已還</span></div><h4 class="fw-bold text-danger mb-1">$${rem.toLocaleString()}</h4><small class="text-muted d-block mb-3">總額: $${total.toLocaleString()}</small><div class="progress mb-3" style="height: 6px;"><div class="progress-bar bg-success" role="progressbar" style="width: ${pct}%"></div></div><div class="d-flex justify-content-end gap-2"><button onclick="event.stopPropagation();App.openModal('debtModal','${d.id}')" class="btn btn-sm btn-outline-secondary"><i class="fas fa-pen"></i></button><button onclick="event.stopPropagation();App.deleteItem('debts','${d.id}')" class="btn btn-sm btn-outline-danger"><i class="fas fa-trash"></i></button></div></div></div></div>`;
+                    // Calculate monthly repaid
+                    const mRepaid = State.data.transactions.filter(t => 
+                        t.type === 'expense' && 
+                        t.project === d.name && 
+                        getTxDate(t) >= startM && 
+                        getTxDate(t) <= endM
+                    ).reduce((sum, t) => sum + (parseFloat(t.amount)||0), 0);
+
+                    return `
+                    <div class="col-md-6 col-lg-4">
+                        <div class="card-item" onclick="App.showDetails('debt', '${d.id}')" style="cursor:pointer;">
+                            <div class="card-item-header">
+                                <h6 class="fw-bold mb-0 text-dark"><i class="fas fa-file-invoice text-danger me-2"></i>${d.name}</h6>
+                                <span class="badge bg-light text-dark border">${pct}% 已還</span>
+                            </div>
+                            <div class="card-item-body">
+                                <div class="d-flex justify-content-between align-items-end mb-2">
+                                    <div>
+                                        <small class="text-muted">剩餘金額</small>
+                                        <h4 class="fw-bold text-danger mb-0">$${rem.toLocaleString()}</h4>
+                                    </div>
+                                    <div class="text-end">
+                                        <small class="text-success fw-bold d-block">本月已還</small>
+                                        <span class="text-success fw-bold">+${mRepaid.toLocaleString()}</span>
+                                    </div>
+                                </div>
+                                <div class="progress mb-3" style="height: 8px; background-color: #ffebee;">
+                                    <div class="progress-bar bg-success" role="progressbar" style="width: ${pct}%"></div>
+                                </div>
+                                <div class="d-flex justify-content-end gap-2">
+                                    <button onclick="event.stopPropagation();App.openModal('debtModal','${d.id}')" class="btn btn-sm btn-outline-secondary rounded-pill px-3"><i class="fas fa-pen"></i></button>
+                                    <button onclick="event.stopPropagation();App.deleteItem('debts','${d.id}')" class="btn btn-sm btn-outline-danger rounded-pill px-3"><i class="fas fa-trash"></i></button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>`;
                 }).join('');
             },
+
             renderEvents: () => {
                 const evs = State.data.events.sort((a,b) => getTxDate(b) - getTxDate(a));
                 const container = document.getElementById('event-list');
                 if(!evs.length) { container.innerHTML = '<div class="col-12 text-center text-muted py-5">無大事記</div>'; return; }
-                container.innerHTML = evs.map(e => `<div class="col-md-6 mb-3"><div class="card h-100 shadow-sm border-start border-4 border-dark"><div class="card-body"><div class="d-flex justify-content-between mb-2"><span class="badge bg-dark">${getTxDate(e).toLocaleDateString()}</span><button onclick="App.openModal('eventModal','${e.id}')" class="btn btn-sm btn-link text-muted p-0"><i class="fas fa-pen"></i></button></div><h5 class="card-title fw-bold">${e.title}</h5><p class="card-text text-muted small">${e.description || ''}</p></div></div></div>`).join('');
+                container.innerHTML = evs.map(e => `<div class="col-md-6 mb-3"><div class="card border-0 shadow-sm h-100" style="border-radius: 16px;"><div class="card-body"><div class="d-flex justify-content-between mb-2"><span class="badge bg-dark rounded-pill">${getTxDate(e).toLocaleDateString()}</span><button onclick="App.openModal('eventModal','${e.id}')" class="btn btn-sm btn-link text-muted p-0"><i class="fas fa-pen"></i></button></div><h5 class="card-title fw-bold text-dark">${e.title}</h5><p class="card-text text-muted small">${e.description || ''}</p></div></div></div>`).join('');
             },
+
             renderReports: () => {
                 const allTxs = App.getAllTransactions();
                 const cSel=document.getElementById('report-category'); const curC=cSel.value;
-                const cats = [...new Set(allTxs.map(t=>t.category).filter(Boolean))].sort();
-                if(cSel.options.length <= 1) cSel.innerHTML = '<option value="all">全部分類</option>' + cats.map(c=>`<option value="${c}">${c}</option>`).join('');
+                
+                // Populate Category Select with ALL defaults + used
+                const usedCats = [...new Set(allTxs.map(t=>t.category).filter(Boolean))];
+                const allCats = [...new Set([...State.categories.expense, ...State.categories.income, ...usedCats])].sort();
+                
+                if(cSel.options.length <= 1) {
+                    cSel.innerHTML = '<option value="all">全部分類</option>';
+                    // Group by type roughly (simple list for now)
+                    allCats.forEach(c => cSel.innerHTML += `<option value="${c}">${c}</option>`);
+                }
                 cSel.value = curC;
+
                 const yr = parseInt(document.getElementById('report-year').value);
                 const mnVal = document.getElementById('report-month-select').value;
                 let start, end;
                 if(mnVal==='all') { start=new Date(yr,0,1); end=new Date(yr,11,31,23,59,59); } else { const m=parseInt(mnVal); start=new Date(yr,m-1,1); end=new Date(yr,m,0,23,59,59); }
                 const filtered = allTxs.filter(t => { const d = getTxDate(t); return d>=start && d<=end && (curC==='all'||t.category===curC); }).sort((a,b)=>getTxDate(b)-getTxDate(a));
+                
                 if(State.chart) State.chart.destroy();
                 const map={}; filtered.filter(t=>t.type==='expense').forEach(t=>{ const c=t.category||'未分類'; map[c]=(map[c]||0)+parseFloat(t.amount); });
                 State.chart = new Chart(document.getElementById('expense-chart').getContext('2d'), { type: 'doughnut', data: { labels: Object.keys(map), datasets: [{ data: Object.values(map), backgroundColor: ['#3498db', '#e74c3c', '#f1c40f', '#2ecc71', '#9b59b6', '#34495e', '#e67e22'], borderWidth:1 }] }, options: { responsive:true, maintainAspectRatio:false, plugins:{ legend:{position:'right'} } } });
                 document.getElementById('report-stats').innerHTML = Object.entries(map).sort((a,b)=>b[1]-a[1]).map(([k,v]) => `<li class="list-group-item d-flex justify-content-between align-items-center px-0"><span>${k}</span><span class="fw-bold text-danger">$${v.toLocaleString()}</span></li>`).join('') || '<li class="list-group-item text-center text-muted">無支出資料</li>';
-                document.getElementById('report-details').innerHTML = filtered.slice(0, 100).map(t => `<tr><td class="small text-muted">${getTxDate(t).toLocaleDateString()}</td><td><div class="small fw-bold">${t.category}</div><div class="text-muted small text-truncate" style="max-width:100px">${t.remarks||''}</div></td><td class="text-end fw-bold ${t.type==='expense'?'text-danger':'text-success'}">${t.type==='expense'?'-':'+'} ${formatMoney(t.amount)}</td></tr>`).join('');
+                document.getElementById('report-details').innerHTML = filtered.slice(0, 100).map(t => `<tr><td class="small text-muted ps-3">${getTxDate(t).toLocaleDateString()}</td><td><div class="small fw-bold">${t.category}</div><div class="text-muted small text-truncate" style="max-width:100px">${t.remarks||''}</div></td><td class="text-end fw-bold pe-3 ${t.type==='expense'?'text-danger':'text-success'}">${t.type==='expense'?'-':'+'} ${formatMoney(t.amount)}</td></tr>`).join('');
             },
 
             openModal: (modalId, id, defaults={}) => {
-                const form = document.querySelector(`#${modalId} form`); if(form) form.reset();
-                if(modalId==='transactionModal') {
-                    document.querySelector(`#${modalId} [name=date]`).value = new Date().toLocaleDateString('zh-CA');
-                    App.toggleTxType('expense');
-                    document.querySelector('#cat-list').innerHTML = State.categories.expense.map(v => `<option value="${v}">`).join('');
-                    if(defaults.project) document.querySelector(`[name=project]`).value = defaults.project;
-                    if(defaults.category) document.querySelector(`[name=category]`).value = defaults.category;
-                    const delBtn = document.getElementById('btn-delete-tx'); delBtn.classList.add('d-none');
-                }
-                if(modalId==='eventModal') {
-                    document.querySelector(`#${modalId} [name=date]`).value = new Date().toLocaleDateString('zh-CA');
-                    document.getElementById('btn-delete-event').classList.add('d-none');
-                }
-                if(id) {
-                    let item = State.data[modalId==='transactionModal'?'transactions':modalId==='investmentModal'?'investments':modalId==='debtModal'?'debts':modalId==='eventModal'?'events':[]].find(i=>i.id===id);
-                    if(!item && modalId==='transactionModal') item = App.getAllTransactions().find(i=>i.id===id);
-                    if(item) {
-                        form.querySelector('[name=id]').value = id;
-                        if(modalId==='transactionModal') {
-                            form.querySelector('[name=amount]').value = item.amount;
-                            form.querySelector('[name=date]').value = toDateStr(getTxDate(item));
-                            form.querySelector('[name=category]').value = item.category;
-                            form.querySelector('[name=remarks]').value = item.remarks;
-                            form.querySelector('[name=project]').value = item.project || '';
-                            if(item.legacyInvId) form.querySelector('[name=legacy_inv_id]').value = item.legacyInvId;
-                            if(item.type === 'expense') document.getElementById('type-expense').checked = true;
-                            else document.getElementById('type-income').checked = true;
-                            App.toggleTxType(item.type);
-                            const delBtn = document.getElementById('btn-delete-tx'); delBtn.classList.remove('d-none');
-                            delBtn.onclick = () => App.deleteTransaction(id, item.legacyInvId);
-                        } else if (modalId==='investmentModal') {
-                            form.querySelector('[name=name]').value = item.name;
-                            form.querySelector('[name=initial]').value = item.initialValue;
-                            if(form.querySelector('[name=isArchived]')) form.querySelector('[name=isArchived]').checked = item.isArchived;
-                        } else if (modalId==='debtModal') {
-                            form.querySelector('[name=name]').value = item.name;
-                            form.querySelector('[name=total]').value = item.totalAmount;
-                            form.querySelector('[name=remaining]').value = item.remainingAmount;
-                        } else if (modalId==='eventModal') {
-                            form.querySelector('[name=title]').value = item.title;
-                            form.querySelector('[name=desc]').value = item.description;
-                            form.querySelector('[name=date]').value = toDateStr(getTxDate(item));
-                            const delBtn = document.getElementById('btn-delete-event'); delBtn.classList.remove('d-none');
-                            delBtn.onclick = () => { if(confirm('刪除?')) { App.deleteItem('events', id); bsModals['eventModal'].hide(); } };
+                try {
+                    const form = document.querySelector(`#${modalId} form`); if(form) form.reset();
+                    if(modalId==='transactionModal') {
+                        document.querySelector(`#${modalId} [name=date]`).value = new Date().toLocaleDateString('zh-CA');
+                        App.toggleTxType('expense');
+                        document.querySelector('#cat-list').innerHTML = State.categories.expense.map(v => `<option value="${v}">`).join('');
+                        if(defaults.project) document.querySelector(`[name=project]`).value = defaults.project;
+                        if(defaults.category) document.querySelector(`[name=category]`).value = defaults.category;
+                        document.getElementById('btn-delete-tx').classList.add('d-none');
+                    }
+                    if(modalId==='eventModal') {
+                        document.querySelector(`#${modalId} [name=date]`).value = new Date().toLocaleDateString('zh-CA');
+                        document.getElementById('btn-delete-event').classList.add('d-none');
+                    }
+                    if(id) {
+                        let item = State.data[modalId==='transactionModal'?'transactions':modalId==='investmentModal'?'investments':modalId==='debtModal'?'debts':modalId==='eventModal'?'events':[]].find(i=>i.id===id);
+                        if(!item && modalId==='transactionModal') item = App.getAllTransactions().find(i=>i.id===id);
+                        if(item) {
+                            form.querySelector('[name=id]').value = id;
+                            if(modalId==='transactionModal') {
+                                form.querySelector('[name=amount]').value = item.amount;
+                                form.querySelector('[name=date]').value = toDateStr(getTxDate(item));
+                                form.querySelector('[name=category]').value = item.category;
+                                form.querySelector('[name=remarks]').value = item.remarks;
+                                form.querySelector('[name=project]').value = item.project || '';
+                                if(item.legacyInvId) form.querySelector('[name=legacy_inv_id]').value = item.legacyInvId;
+                                if(item.type === 'expense') document.getElementById('type-expense').checked = true;
+                                else document.getElementById('type-income').checked = true;
+                                App.toggleTxType(item.type);
+                                const delBtn = document.getElementById('btn-delete-tx'); delBtn.classList.remove('d-none');
+                                delBtn.onclick = () => App.deleteTransaction(id, item.legacyInvId);
+                            } else if (modalId==='investmentModal') {
+                                form.querySelector('[name=name]').value = item.name;
+                                form.querySelector('[name=initial]').value = item.initialValue;
+                                if(form.querySelector('[name=isArchived]')) form.querySelector('[name=isArchived]').checked = item.isArchived;
+                            } else if (modalId==='debtModal') {
+                                form.querySelector('[name=name]').value = item.name;
+                                form.querySelector('[name=total]').value = item.totalAmount;
+                                form.querySelector('[name=remaining]').value = item.remainingAmount;
+                            } else if (modalId==='eventModal') {
+                                form.querySelector('[name=title]').value = item.title;
+                                form.querySelector('[name=desc]').value = item.description;
+                                form.querySelector('[name=date]').value = toDateStr(getTxDate(item));
+                                const delBtn = document.getElementById('btn-delete-event'); delBtn.classList.remove('d-none');
+                                delBtn.onclick = () => { if(confirm('刪除?')) { App.deleteItem('events', id); bsModals['eventModal'].hide(); } };
+                            }
                         }
                     }
-                }
-                bsModals[modalId].show();
+                    bsModals[modalId].show();
+                } catch(e) { console.error(e); alert("開啟視窗失敗，請重整頁面試試"); }
             },
             
             showDetails: async (type, id) => {
@@ -792,12 +866,12 @@
                 const modal = document.getElementById('detailsModal');
                 modal.querySelector('.details-title').innerText = item.name;
                 const actionsDiv = modal.querySelector('.details-actions'); actionsDiv.innerHTML = '';
-                const btnAdd = document.createElement('button'); btnAdd.className = "btn btn-primary fw-bold";
+                const btnAdd = document.createElement('button'); btnAdd.className = "btn btn-primary fw-bold rounded-pill";
                 btnAdd.innerHTML = '<i class="fas fa-plus"></i> 新增交易';
                 btnAdd.onclick = () => { bsModals['detailsModal'].hide(); App.openModal('transactionModal',null,{project:item.name, category:type==='investment'?'投資':'負債還款'}); };
                 actionsDiv.appendChild(btnAdd);
                 if(type === 'investment') {
-                    const btnUpd = document.createElement('button'); btnUpd.className = "btn btn-outline-info fw-bold";
+                    const btnUpd = document.createElement('button'); btnUpd.className = "btn btn-outline-info fw-bold rounded-pill";
                     btnUpd.innerHTML = '更新市值'; btnUpd.onclick = () => App.updateMarketValue(id, item.marketValue); actionsDiv.appendChild(btnUpd);
                 }
                 let relatedTxs = [];
@@ -813,25 +887,38 @@
             },
 
             handleSaveTransaction: async (e) => {
-                e.preventDefault(); const f=e.target, uid=State.user.uid, id=f.id.value, lid=f.legacy_inv_id.value;
-                const localDate = new Date(f.date.value + 'T12:00:00'); const type = f.querySelector('[name=type]:checked').value;
-                const amount = parseFloat(f.amount.value); const project = f.project.value;
-                const d = { type, amount, category: f.category.value, remarks: f.remarks.value, timestamp: Timestamp.fromDate(localDate), project };
-                const batch = writeBatch(db);
-                if (type === 'expense' && project && !id) { 
-                     const debt = State.data.debts.find(db => db.name === project);
-                     if (debt) batch.update(doc(db, `users/${uid}/debts`, debt.id), { remainingAmount: increment(-amount) });
-                }
-                if (lid && id) {
-                    const newRef = doc(collection(db, `users/${uid}/transactions`)); batch.set(newRef, d);
-                    batch.delete(doc(db, `users/${uid}/investments/${lid}/transactions`, id));
-                } else { id ? await updateDoc(doc(db, `users/${uid}/transactions`, id), d) : await addDoc(collection(db, `users/${uid}/transactions`), d); }
-                await batch.commit(); bsModals['transactionModal'].hide();
+                e.preventDefault();
+                try {
+                    const f=e.target, uid=State.user.uid, id=f.id.value, lid=f.legacy_inv_id.value;
+                    const dateVal = f.date.value; 
+                    if(!dateVal) throw new Error("日期錯誤");
+                    
+                    const localDate = new Date(dateVal + 'T12:00:00');
+                    const type = f.querySelector('[name=type]:checked').value;
+                    const amount = parseFloat(f.amount.value);
+                    if(isNaN(amount) || amount <= 0) throw new Error("請輸入有效金額");
+
+                    const project = f.project.value;
+                    const d = { type, amount, category: f.category.value, remarks: f.remarks.value, timestamp: Timestamp.fromDate(localDate), project };
+                    const batch = writeBatch(db);
+                    
+                    if (type === 'expense' && project && !id) { 
+                        const debt = State.data.debts.find(db => db.name === project);
+                        if (debt) batch.update(doc(db, `users/${uid}/debts`, debt.id), { remainingAmount: increment(-amount) });
+                    }
+                    if (lid && id) {
+                        const newRef = doc(collection(db, `users/${uid}/transactions`)); batch.set(newRef, d);
+                        batch.delete(doc(db, `users/${uid}/investments/${lid}/transactions`, id));
+                    } else { id ? await updateDoc(doc(db, `users/${uid}/transactions`, id), d) : await addDoc(collection(db, `users/${uid}/transactions`), d); }
+                    
+                    await batch.commit(); 
+                    bsModals['transactionModal'].hide();
+                } catch(err) { alert(err.message); }
             },
 
-            handleSaveInvestment: async (e) => { e.preventDefault(); const f=e.target; const d={name:f.name.value, initialValue:parseFloat(f.initial.value)||0, isArchived:f.isArchived.checked}; if(!f.id.value){d.marketValue=d.initialValue;d.createdAt=Timestamp.now();} f.id.value?await updateDoc(doc(db,`users/${State.user.uid}/investments`,f.id.value),d):(await addDoc(collection(db,`users/${State.user.uid}/investments`),d) && d.initialValue>0 && await addDoc(collection(db,`users/${State.user.uid}/transactions`),{type:'expense',amount:d.initialValue,category:'投資',project:f.name.value,remarks:'初始投入',timestamp:Timestamp.now()})); bsModals['investmentModal'].hide(); },
-            handleSaveDebt: async (e) => { e.preventDefault(); const f=e.target, uid=State.user.uid; const d={name:f.name.value, totalAmount:parseFloat(f.total.value)}; if (f.remaining && f.remaining.value) d.remainingAmount = parseFloat(f.remaining.value); else if(!f.id.value) { d.remainingAmount = parseFloat(f.total.value); d.createdAt = Timestamp.now(); } f.id.value?await updateDoc(doc(db,`users/${uid}/debts`,f.id.value),d):await addDoc(collection(db,`users/${uid}/debts`),d); bsModals['debtModal'].hide(); },
-            handleSaveEvent: async(e) => { e.preventDefault(); const f=e.target, uid=State.user.uid; const d = { title:f.title.value, description:f.desc.value, date:Timestamp.fromDate(new Date(f.date.value)) }; f.id.value?await updateDoc(doc(db,`users/${uid}/events`,f.id.value),d):await addDoc(collection(db,`users/${uid}/events`),d); bsModals['eventModal'].hide(); },
+            handleSaveInvestment: async (e) => { e.preventDefault(); try { const f=e.target; const d={name:f.name.value, initialValue:parseFloat(f.initial.value)||0, isArchived:f.isArchived.checked}; if(!f.id.value){d.marketValue=d.initialValue;d.createdAt=Timestamp.now();} f.id.value?await updateDoc(doc(db,`users/${State.user.uid}/investments`,f.id.value),d):(await addDoc(collection(db,`users/${State.user.uid}/investments`),d) && d.initialValue>0 && await addDoc(collection(db,`users/${State.user.uid}/transactions`),{type:'expense',amount:d.initialValue,category:'投資',project:f.name.value,remarks:'初始投入',timestamp:Timestamp.now()})); bsModals['investmentModal'].hide(); } catch(e){console.error(e);} },
+            handleSaveDebt: async (e) => { e.preventDefault(); try { const f=e.target, uid=State.user.uid; const d={name:f.name.value, totalAmount:parseFloat(f.total.value)}; if (f.remaining && f.remaining.value) d.remainingAmount = parseFloat(f.remaining.value); else if(!f.id.value) { d.remainingAmount = parseFloat(f.total.value); d.createdAt = Timestamp.now(); } f.id.value?await updateDoc(doc(db,`users/${uid}/debts`,f.id.value),d):await addDoc(collection(db,`users/${uid}/debts`),d); bsModals['debtModal'].hide(); } catch(e){console.error(e);} },
+            handleSaveEvent: async(e) => { e.preventDefault(); try { const f=e.target, uid=State.user.uid; const d = { title:f.title.value, description:f.desc.value, date:Timestamp.fromDate(new Date(f.date.value)) }; f.id.value?await updateDoc(doc(db,`users/${uid}/events`,f.id.value),d):await addDoc(collection(db,`users/${uid}/events`),d); bsModals['eventModal'].hide(); } catch(e){console.error(e);} },
 
             deleteTransaction: async (id, legacyInvId) => {
                 if (!confirm('確定刪除?')) return; const uid = State.user.uid;
