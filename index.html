@@ -94,7 +94,7 @@
         .pending-indicator {
             position: absolute;
             top: 10px;
-            right: 50px; /* Adjust based on edit button */
+            right: 50px;
             font-size: 0.8rem;
         }
 
@@ -411,7 +411,7 @@
     <div class="modal fade" id="investmentModal" tabindex="-1"><div class="modal-dialog modal-dialog-centered"><div class="modal-content"><div class="modal-header"><h5 class="modal-title">投資帳戶</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div><div class="modal-body"><form onsubmit="App.handleSaveInvestment(event)"><input type="hidden" name="id"><div class="mb-3"><label class="form-label">名稱</label><input type="text" name="name" class="form-control" required></div><div class="mb-3"><label class="form-label">初始成本</label><input type="number" name="initial" class="form-control"></div><div class="mb-3"><label class="form-label">目標金額 (預算)</label><input type="number" name="target" class="form-control" placeholder="選填"></div><div class="form-check mb-3"><input class="form-check-input" type="checkbox" name="isArchived" id="inv-archived"><label class="form-check-label" for="inv-archived">已結案 (歸檔)</label></div><button type="submit" class="btn btn-primary w-100 rounded-pill">儲存</button></form></div></div></div></div>
     <div class="modal fade" id="debtModal" tabindex="-1"><div class="modal-dialog modal-dialog-centered"><div class="modal-content"><div class="modal-header"><h5 class="modal-title">負債項目</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div><div class="modal-body"><form onsubmit="App.handleSaveDebt(event)"><input type="hidden" name="id"><div class="mb-3"><label class="form-label">名稱</label><input type="text" name="name" class="form-control" required></div><div class="row mb-3"><div class="col-6"><label class="form-label">總金額 (預算/上限)</label><input type="number" name="total" class="form-control" required></div><div class="col-6"><label class="form-label">剩餘 (手動校正)</label><input type="number" name="remaining" class="form-control"></div></div><button type="submit" class="btn btn-warning w-100 text-white fw-bold rounded-pill">儲存</button></form></div></div></div></div>
     
-    <!-- Budget/Target Modal (Modified) -->
+    <!-- Budget/Target Modal -->
     <div class="modal fade" id="budgetModal" tabindex="-1"><div class="modal-dialog modal-dialog-centered"><div class="modal-content"><div class="modal-header bg-light"><h5 class="modal-title fw-bold text-warning"><i class="fas fa-bullseye me-2"></i>設定預算目標</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div><div class="modal-body"><p class="small text-muted mb-3">為您的投資或負債項目設定目標金額，系統將自動計算達成率。</p><form onsubmit="App.handleSaveBudget(event)"><input type="hidden" name="type"><div class="mb-3"><label class="form-label fw-bold small">選擇項目</label><select name="target_id" class="form-select" required></select></div><div class="mb-3"><label class="form-label fw-bold small">目標金額 / 預算上限</label><input type="number" name="amount" class="form-control form-control-lg text-center fw-bold text-primary" placeholder="0" required></div><div class="d-flex justify-content-between"><button type="button" class="btn btn-outline-danger rounded-pill" onclick="App.handleDeleteBudget()">移除目標</button><button type="submit" class="btn btn-warning fw-bold text-white rounded-pill px-4">儲存設定</button></div></form></div></div></div></div>
     
     <div class="modal fade" id="eventModal" tabindex="-1"><div class="modal-dialog modal-dialog-centered"><div class="modal-content"><div class="modal-header"><h5 class="modal-title">大事記</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div><div class="modal-body"><form onsubmit="App.handleSaveEvent(event)"><input type="hidden" name="id"><div class="mb-3"><label class="form-label">日期</label><input type="date" name="date" class="form-control" required></div><div class="mb-3"><label class="form-label">標題</label><input type="text" name="title" class="form-control" required></div><div class="mb-3"><label class="form-label">內容</label><textarea name="desc" class="form-control" rows="3"></textarea></div><div class="d-flex justify-content-between"><button type="button" id="btn-delete-event" class="btn btn-link text-danger d-none">刪除</button><button type="submit" class="btn btn-dark ms-auto rounded-pill px-4">紀錄</button></div></form></div></div></div></div>
@@ -647,7 +647,10 @@
 
                     const inc = all.filter(t=>t.type==='income').reduce((a,b)=>a+parseFloat(b.amount),0);
                     const exp = all.filter(t=>t.type==='expense').reduce((a,b)=>a+parseFloat(b.amount),0);
-                    const profit = inc - exp; const mv = parseFloat(i.marketValue) || 0;
+                    
+                    // NEW PROFIT LOGIC: MV + Income - Expense
+                    const mv = parseFloat(i.marketValue) || 0;
+                    const profit = mv + inc - exp; 
                     
                     const target = parseFloat(i.targetAmount) || 0;
                     let targetHtml = '';
@@ -668,7 +671,7 @@
                             </div>
                             <div class="card-item-body">
                                 <div class="text-center mb-3"><small class="text-muted d-block">目前市值</small><h3 class="fw-bold text-dark">$${mv.toLocaleString()}</h3></div>
-                                <div class="row g-0 text-center bg-light rounded-3 p-2"><div class="col-6 border-end"><small class="text-muted d-block">未實現損益</small><span class="fw-bold ${profit>=0?'text-success':'text-danger'}">${profit>=0?'+':''}${profit.toLocaleString()}</span></div><div class="col-6"><small class="text-muted d-block">投入成本</small><span class="fw-bold text-secondary">$${exp.toLocaleString()}</span></div></div>
+                                <div class="row g-0 text-center bg-light rounded-3 p-2"><div class="col-6 border-end"><small class="text-muted d-block">總損益</small><span class="fw-bold ${profit>=0?'text-success':'text-danger'}">${profit>=0?'+':''}${profit.toLocaleString()}</span></div><div class="col-6"><small class="text-muted d-block">投入成本</small><span class="fw-bold text-secondary">$${exp.toLocaleString()}</span></div></div>
                                 ${targetHtml}
                             </div>
                         </div>
@@ -718,6 +721,11 @@
                 
                 let allPending = [];
                 const today = new Date().setHours(0,0,0,0);
+                
+                // For Monthly Repaid Calc
+                const now = new Date();
+                const startM = new Date(now.getFullYear(), now.getMonth(), 1);
+                const endM = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59);
 
                 debts.forEach(d => {
                     const total = parseFloat(d.totalAmount); const rem = parseFloat(d.remainingAmount); const paid = total - rem; const pct = total > 0 ? Math.round((paid / total) * 100) : 0;
@@ -726,6 +734,15 @@
                     pendingForThis.forEach(pt => allPending.push({...pt, debtId: d.id}));
 
                     const pendingIndicator = pendingForThis.length > 0 ? `<div class="pending-indicator text-warning" title="有 ${pendingForThis.length} 筆預定款項"><i class="fas fa-clock"></i></div>` : '';
+                    
+                    // Calc Monthly Repaid
+                    const mRepaid = State.data.transactions.filter(t => 
+                        !t.isPending &&
+                        t.type === 'expense' && 
+                        t.project === d.name && 
+                        getTxDate(t) >= startM && 
+                        getTxDate(t) <= endM
+                    ).reduce((sum, t) => sum + (parseFloat(t.amount)||0), 0);
 
                     containerHtml += `
                     <div class="col-md-6 col-lg-4">
@@ -736,7 +753,10 @@
                                 <span class="badge bg-light text-dark border">${pct}% 已還</span>
                             </div>
                             <div class="card-item-body">
-                                <div class="d-flex justify-content-between align-items-end mb-2"><div><small class="text-muted">剩餘金額</small><h4 class="fw-bold text-danger mb-0">$${rem.toLocaleString()}</h4></div></div>
+                                <div class="d-flex justify-content-between align-items-end mb-2">
+                                    <div><small class="text-muted">剩餘金額</small><h4 class="fw-bold text-danger mb-0">$${rem.toLocaleString()}</h4></div>
+                                    <div class="text-end"><small class="text-success fw-bold d-block">本月已還</small><span class="text-success fw-bold">+${mRepaid.toLocaleString()}</span></div>
+                                </div>
                                 <div class="progress mb-3" style="height: 8px; background-color: #ffebee;"><div class="progress-bar bg-success" role="progressbar" style="width: ${pct}%"></div></div>
                                 <div class="d-flex justify-content-end gap-2 align-items-center"><button onclick="event.stopPropagation();App.openModal('debtModal','${d.id}')" class="btn btn-sm btn-outline-secondary rounded-pill px-3"><i class="fas fa-pen"></i></button><button onclick="event.stopPropagation();App.deleteItem('debts','${d.id}')" class="btn btn-sm btn-outline-danger rounded-pill px-3"><i class="fas fa-trash"></i></button></div>
                             </div>
