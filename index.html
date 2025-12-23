@@ -2,481 +2,388 @@
 <html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>雲端記帳 Pro (Firebase)</title>
-    <!-- Bootstrap 5 CSS -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <!-- FontAwesome -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <!-- Chart.js -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>雲端記帳 Lite</title>
+    <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: { primary: '#4F46E5', secondary: '#10B981', danger: '#EF4444', warning: '#F59E0B', dark: '#1F2937' },
+                    fontFamily: { sans: ['Noto Sans TC', 'sans-serif'] },
+                    fontSize: { 'xxs': '0.65rem' } 
+                }
+            }
+        }
+    </script>
     <style>
-        :root {
-            --primary-color: #2c3e50;
-            --accent-color: #3498db;
-            --success-color: #27ae60;
-            --danger-color: #c0392b;
-            --warning-color: #f39c12;
-            --bg-light: #f8f9fa;
-        }
-
-        body {
-            font-family: 'Segoe UI', "Microsoft JhengHei", sans-serif;
-            background-color: var(--bg-light);
-            color: #333;
-        }
-
-        /* Login Screen */
-        #login-view {
-            height: 100vh;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            background: linear-gradient(135deg, #2c3e50 0%, #3498db 100%);
-        }
-        .login-card {
+        body { -webkit-tap-highlight-color: transparent; background-color: #e5e7eb; }
+        .app-frame { 
+            max-width: 28rem; 
+            margin: 0 auto; 
+            background-color: #F9FAFB; 
+            height: 100dvh; 
             width: 100%;
-            max-width: 400px;
-            border-radius: 15px;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.2);
-            border: none;
+            display: flex; 
+            flex-direction: column; 
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25); 
+            position: relative; 
+            overflow: hidden; 
         }
-
-        /* Dashboard Cards */
-        .card-summary {
-            border: none;
-            border-radius: 16px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.03);
-            transition: transform 0.2s;
-            height: 100%;
-            background: #fff;
-        }
-        .card-summary:hover { transform: translateY(-3px); }
-
-        .icon-box {
-            width: 50px;
-            height: 50px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            border-radius: 12px;
-            font-size: 1.5rem;
-            margin-right: 15px;
-        }
-        .bg-asset { background-color: rgba(39, 174, 96, 0.1); color: var(--success-color); }
-        .bg-liability { background-color: rgba(192, 57, 43, 0.1); color: var(--danger-color); }
-        .bg-net { background-color: rgba(52, 152, 219, 0.1); color: var(--accent-color); }
-
-        /* Asset/Debt Item Cards */
-        .card-item {
-            border: 1px solid rgba(0,0,0,0.05);
-            border-radius: 16px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.02);
-            transition: all 0.2s;
-            background: white;
-            overflow: hidden;
-            position: relative;
-        }
-        .card-item:hover {
-            box-shadow: 0 5px 15px rgba(0,0,0,0.08);
-            transform: translateY(-2px);
-        }
-        .card-item-header {
-            padding: 12px 16px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            border-bottom: 1px solid #f8f9fa;
-        }
-        .card-item-body { padding: 16px; }
-        
-        .pending-indicator {
-            position: absolute;
-            top: 10px;
-            right: 50px;
-            font-size: 0.8rem;
-        }
-
-        /* Tables & Lists */
-        .transaction-item { border-left: 3px solid transparent; }
-        .type-income { border-left-color: var(--success-color); }
-        .type-expense { border-left-color: var(--danger-color); }
-        .date-header { background-color: #e9ecef; font-size: 0.9rem; color: #495057; }
-        
-        /* Navigation */
-        .nav-pills .nav-link.active {
-            background-color: var(--primary-color);
-        }
-        .nav-pills .nav-link {
-            color: var(--primary-color);
-            margin-right: 5px;
-            border-radius: 8px;
-            font-weight: 500;
-        }
-
-        /* Util */
         .hide-scrollbar::-webkit-scrollbar { display: none; }
-        .chart-container { position: relative; height: 250px; width: 100%; }
-        
-        /* Modal Styles */
-        .modal-content { border-radius: 15px; border: none; box-shadow: 0 10px 30px rgba(0,0,0,0.1); }
-        .modal-header { border-bottom: 1px solid #eee; }
-        .modal-footer { border-top: 1px solid #eee; }
+        .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        .fab { box-shadow: 0 4px 15px rgba(79, 70, 229, 0.4); }
+        .card-shadow { box-shadow: 0 2px 8px rgba(0,0,0,0.04); border: 1px solid rgba(0,0,0,0.02); }
+        .animate-fade { animation: fadeIn 0.3s ease-in-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+        .nav-btn.active { color: #4F46E5; }
+        .nav-btn.active i { transform: translateY(-2px); }
+        .tab-pill.active { background-color: #4F46E5; color: white; }
+        input:focus, select:focus, textarea:focus { ring: 2px; ring-color: #4F46E5; border-color: transparent; outline: none; }
     </style>
 </head>
-<body>
+<body class="text-gray-700 text-sm">
 
-    <!-- Login View -->
-    <div id="login-view" class="d-none">
-        <div class="card login-card p-4 animate-fade">
-            <div class="card-body text-center">
-                <div class="mb-4">
-                    <img src="https://i.ibb.co/ym6SBKmv/963.png" alt="Well Design Logo" class="rounded-3 shadow-sm" style="width: 80px; height: 80px; object-fit: cover;">
-                </div>
-                <h3 class="fw-bold mb-1">雲端記帳 Pro</h3>
-                <p class="text-muted mb-4">個人財務管理助手</p>
-                
-                <div class="d-grid gap-2">
-                    <button onclick="App.loginGoogle()" class="btn btn-outline-dark btn-lg">
-                        <i class="fab fa-google text-danger me-2"></i> Google 登入
-                    </button>
-                    <button onclick="App.loginAnon()" class="btn btn-dark btn-lg">
-                        訪客體驗 (免登入)
-                    </button>
-                </div>
-                <p class="mt-3 text-white-50 small" id="login-msg"></p>
-            </div>
+    <!-- Auth View -->
+    <div id="login-view" class="fixed inset-0 z-50 bg-white flex flex-col justify-center items-center p-6 animate-fade max-w-md mx-auto h-full shadow-2xl">
+        <div class="mb-10 text-center">
+            <div class="w-16 h-16 bg-primary/10 rounded-2xl flex items-center justify-center mx-auto mb-4 text-primary text-3xl"><i class="fa-solid fa-wallet"></i></div>
+            <h1 class="text-2xl font-bold text-gray-800">雲端記帳</h1>
+            <p class="text-gray-500 mt-2 text-xs">個人財務管理助手</p>
         </div>
+        <button onclick="App.loginGoogle()" class="w-full bg-white border border-gray-300 text-gray-700 py-3 rounded-xl font-medium shadow-sm hover:bg-gray-50 flex items-center justify-center gap-2 transition">
+            <i class="fa-brands fa-google text-red-500"></i> Google 登入
+        </button>
+        <button onclick="App.loginAnon()" class="mt-3 w-full bg-gray-800 text-white py-3 rounded-xl font-medium shadow-lg hover:bg-gray-900 transition">訪客體驗</button>
     </div>
 
-    <!-- App Container -->
-    <div id="app-container" class="d-none">
-        <!-- Navbar -->
-        <nav class="navbar navbar-expand-lg navbar-dark bg-dark mb-4 shadow-sm sticky-top">
-            <div class="container">
-                <a class="navbar-brand fw-bold d-flex align-items-center" href="#">
-                    <img src="https://i.ibb.co/ym6SBKmv/963.png" alt="Logo" class="me-3 rounded shadow-sm" style="height: 45px; width: 45px; object-fit: cover;">
-                    <span class="fs-4">雲端記帳 Pro</span>
-                </a>
-                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
-                    <span class="navbar-toggler-icon"></span>
-                </button>
-                <div class="collapse navbar-collapse" id="navbarNav">
-                    <ul class="navbar-nav me-auto">
-                        <li class="nav-item"><a class="nav-link active" href="#" onclick="App.switchTab('accounting', this)">總覽</a></li>
-                        <li class="nav-item"><a class="nav-link" href="#" onclick="App.switchTab('investment', this)">投資</a></li>
-                        <li class="nav-item"><a class="nav-link" href="#" onclick="App.switchTab('debt', this)">負債</a></li>
-                        <li class="nav-item"><a class="nav-link" href="#" onclick="App.switchTab('events', this)">大事記</a></li>
-                        <li class="nav-item"><a class="nav-link" href="#" onclick="App.switchTab('reports', this)">報表</a></li>
-                    </ul>
-                    <div class="d-flex align-items-center gap-3 text-white mt-2 mt-lg-0">
-                        <small id="user-info" class="opacity-75"></small>
-                        <button onclick="App.logout()" class="btn btn-sm btn-outline-danger border-0"><i class="fas fa-sign-out-alt"></i></button>
-                    </div>
-                </div>
+    <!-- Main App Frame -->
+    <div id="app-container" class="hidden app-frame">
+        <header class="bg-white px-4 py-3 flex justify-between items-center shadow-sm z-20 shrink-0">
+            <h1 class="font-bold text-gray-800 flex items-center gap-2"><i class="fa-solid fa-chart-pie text-primary"></i> <span id="page-title">總覽</span></h1>
+            <div class="flex items-center gap-3">
+                <div id="user-info" class="text-xs font-medium text-gray-500"></div>
+                <button onclick="App.logout()" class="text-gray-400 hover:text-red-500"><i class="fa-solid fa-right-from-bracket"></i></button>
             </div>
+        </header>
+
+        <main id="main-content" class="flex-1 overflow-y-auto hide-scrollbar relative bg-gray-50 pb-20">
+            <div id="view-accounting" class="view-section animate-fade"></div>
+            <div id="view-investment" class="view-section hidden p-3 space-y-3 animate-fade"></div>
+            <div id="view-debt" class="view-section hidden p-3 space-y-3 animate-fade"></div>
+            <div id="view-reports" class="view-section hidden p-3 space-y-3 animate-fade"></div>
+            <div id="view-events" class="view-section hidden p-3 space-y-3 animate-fade"></div>
+        </main>
+
+        <nav class="bg-white border-t border-gray-100 px-2 py-2 flex justify-between items-center text-[10px] font-medium text-gray-400 z-50 shrink-0 pb-safe">
+            <button id="nav-accounting" onclick="App.switchTab('accounting', this)" class="nav-btn active flex flex-col items-center gap-1 transition p-1 min-w-[3.5rem]"><i class="fa-solid fa-house text-lg"></i> 記帳</button>
+            <button onclick="App.switchTab('investment', this)" class="nav-btn flex flex-col items-center gap-1 transition p-1 min-w-[3.5rem]"><i class="fa-solid fa-arrow-trend-up text-lg"></i> 投資</button>
+            <button onclick="App.switchTab('debt', this)" class="nav-btn flex flex-col items-center gap-1 transition p-1 min-w-[3.5rem]"><i class="fa-solid fa-credit-card text-lg"></i> 負債</button>
+            <div class="relative -top-6 pointer-events-none mx-1">
+                <button onclick="App.openModal('transaction-modal')" class="fab w-12 h-12 bg-primary rounded-full text-white text-xl flex items-center justify-center transition hover:scale-105 active:scale-95 shadow-xl shadow-primary/30 pointer-events-auto"><i class="fa-solid fa-plus"></i></button>
+            </div>
+            <button onclick="App.switchTab('events', this)" class="nav-btn flex flex-col items-center gap-1 transition p-1 min-w-[3.5rem]"><i class="fa-solid fa-calendar-day text-lg"></i> 大事記</button>
+            <button onclick="App.switchTab('reports', this)" class="nav-btn flex flex-col items-center gap-1 transition p-1 min-w-[3.5rem]"><i class="fa-solid fa-chart-simple text-lg"></i> 報表</button>
         </nav>
+    </div>
 
-        <div class="container pb-5">
-            <!-- Global Summary Cards -->
-            <div class="row g-4 mb-4">
-                <div class="col-md-4">
-                    <div class="card card-summary p-3">
-                        <div class="d-flex align-items-center">
-                            <div class="icon-box bg-asset"><i class="fas fa-coins"></i></div>
-                            <div>
-                                <h6 class="text-muted mb-0 small fw-bold">投資總現值</h6>
-                                <h3 class="mb-0 fw-bold text-success" id="summary-investments">$0</h3>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-md-4">
-                    <div class="card card-summary p-3">
-                        <div class="d-flex align-items-center">
-                            <div class="icon-box bg-liability"><i class="fas fa-file-invoice-dollar"></i></div>
-                            <div>
-                                <h6 class="text-muted mb-0 small fw-bold">剩餘總負債</h6>
-                                <h3 class="mb-0 fw-bold text-danger" id="summary-debts">$0</h3>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-md-4">
-                    <div class="card card-summary p-3">
-                        <div class="d-flex align-items-center">
-                            <div class="icon-box bg-net"><i class="fas fa-wallet"></i></div>
-                            <div>
-                                <h6 class="text-muted mb-0 small fw-bold">本月淨現金流</h6>
-                                <h3 class="mb-0 fw-bold text-primary" id="summary-cashflow">$0</h3>
-                            </div>
-                        </div>
-                    </div>
-                </div>
+    <div id="modal-overlay" class="fixed inset-0 bg-black/40 z-50 hidden flex items-end sm:items-center justify-center animate-fade backdrop-blur-sm">
+        <div id="modal-content" class="bg-white w-full max-w-[28rem] rounded-t-3xl sm:rounded-2xl p-6 shadow-2xl transform transition-transform duration-300 pb-10 sm:pb-6 max-h-[85vh] overflow-y-auto hide-scrollbar"></div>
+    </div>
+
+    <!-- Sub Modal System (For Category Selection) -->
+    <div id="sub-modal-overlay" class="fixed inset-0 bg-black/40 z-[60] hidden flex items-end sm:items-center justify-center animate-fade backdrop-blur-sm">
+        <div id="sub-modal-content" class="bg-white w-full max-w-[28rem] rounded-t-3xl sm:rounded-2xl p-6 shadow-2xl transform transition-transform duration-300 pb-10 sm:pb-6 max-h-[50vh] overflow-y-auto hide-scrollbar"></div>
+    </div>
+
+    <!-- Templates -->
+    <template id="tpl-accounting">
+        <div class="bg-white p-4 rounded-b-2xl card-shadow mb-3 sticky top-0 z-10">
+            <div class="flex justify-between items-center mb-3">
+                <span class="text-xs font-bold text-gray-400">本月概況</span>
+                <input type="month" id="date-filter" class="bg-gray-100 border-none rounded-lg px-2 py-1 text-xs font-bold text-gray-600 focus:ring-0 cursor-pointer" onchange="App.renderTransactions()">
+            </div>
+            <div class="grid grid-cols-3 gap-2 text-center mb-4">
+                <div class="bg-green-50 p-2 rounded-lg"><p class="text-[10px] text-green-600 mb-0.5">收入</p><p id="monthly-income" class="text-sm font-bold text-green-700">0</p></div>
+                <div class="bg-red-50 p-2 rounded-lg"><p class="text-[10px] text-red-600 mb-0.5">支出</p><p id="monthly-expense" class="text-sm font-bold text-red-700">0</p></div>
+                <div class="bg-blue-50 p-2 rounded-lg"><p class="text-[10px] text-blue-600 mb-0.5">結餘</p><p id="monthly-balance" class="text-sm font-bold text-blue-700">0</p></div>
             </div>
 
-            <main id="main-content">
-                <!-- Accounting View -->
-                <div id="view-accounting" class="view-section animate-fade">
-                    <div class="row">
-                        <!-- Left: Controls -->
-                        <div class="col-lg-4 mb-4">
-                            <div class="card border-0 shadow-sm mb-4" style="border-radius: 16px;">
-                                <div class="card-header bg-white border-0 fw-bold d-flex justify-content-between align-items-center pt-3 px-3">
-                                    <span>本月概況</span>
-                                    <input type="month" id="date-filter" class="form-control form-control-sm w-auto fw-bold border-0 bg-light" onchange="App.renderTransactions()">
-                                </div>
-                                <div class="card-body">
-                                    <div class="row text-center g-2 mb-3">
-                                        <div class="col-4">
-                                            <div class="p-2 bg-light rounded-3">
-                                                <small class="text-success d-block mb-1 fw-bold">收入</small>
-                                                <span id="monthly-income" class="fw-bold h6 mb-0">0</span>
-                                            </div>
-                                        </div>
-                                        <div class="col-4">
-                                            <div class="p-2 bg-light rounded-3">
-                                                <small class="text-danger d-block mb-1 fw-bold">支出</small>
-                                                <span id="monthly-expense" class="fw-bold h6 mb-0">0</span>
-                                            </div>
-                                        </div>
-                                        <div class="col-4">
-                                            <div class="p-2 bg-light rounded-3">
-                                                <small class="text-primary d-block mb-1 fw-bold">結餘</small>
-                                                <span id="monthly-balance" class="fw-bold h6 mb-0">0</span>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <!-- Budget Bar -->
-                                    <div class="bg-white p-3 rounded-3 border">
-                                        <div class="d-flex justify-content-between align-items-center mb-2">
-                                            <small class="fw-bold text-muted"><i class="fas fa-bullseye me-1"></i>預算監控</small>
-                                            <button class="btn btn-sm btn-link text-decoration-none p-0 small" onclick="App.setBudget()">設定預算</button>
-                                        </div>
-                                        <div class="progress mb-2" style="height: 6px;">
-                                            <div id="budget-bar" class="progress-bar bg-primary" role="progressbar" style="width: 0%"></div>
-                                        </div>
-                                        <div class="d-flex justify-content-between mt-1" style="font-size: 0.75rem;">
-                                            <span class="text-muted">已用: <span id="current-expense-text" class="fw-bold text-dark">$0</span></span>
-                                            <span class="text-muted">建議: <span id="suggested-budget-text" class="fw-bold text-dark">$0</span></span>
-                                        </div>
-                                        <div class="text-end"><span id="budget-status" class="badge bg-light text-dark">計算中...</span></div>
-                                    </div>
-                                </div>
-                            </div>
-                            
-                            <div class="d-grid">
-                                <button class="btn btn-primary btn-lg shadow rounded-pill fw-bold" onclick="App.openModal('transactionModal')">
-                                    <i class="fas fa-plus me-2"></i> 記一筆
-                                </button>
-                            </div>
-                        </div>
+            <!-- Budget Suggestion Block -->
+            <div class="bg-gray-50 rounded-xl p-3 mb-3 border border-gray-100">
+                 <div class="flex justify-between items-center mb-1">
+                     <span class="text-xs font-bold text-gray-500">預算監控 (基於過往習慣)</span>
+                     <span id="budget-status" class="text-[10px] text-gray-400">計算中...</span>
+                 </div>
+                 <div class="w-full bg-gray-200 rounded-full h-2 mb-1">
+                     <div id="budget-bar" class="bg-primary h-2 rounded-full transition-all duration-500" style="width: 0%"></div>
+                 </div>
+                 <div class="flex justify-between text-[10px] text-gray-400">
+                     <span>目前支出: <span id="current-expense-text" class="font-bold text-gray-600">$0</span></span>
+                     <span>建議預算: <span id="suggested-budget-text" class="font-bold text-gray-600">$0</span></span>
+                 </div>
+            </div>
 
-                        <!-- Right: Transaction List (Daily Grouped) -->
-                        <div class="col-lg-8">
-                            <div class="card border-0 shadow-sm" style="border-radius: 16px;">
-                                <div class="card-header bg-white border-0 pt-3 px-3 fw-bold">近期交易明細 (每日統計)</div>
-                                <div class="card-body p-0">
-                                    <div class="table-responsive">
-                                        <table class="table table-hover align-middle mb-0">
-                                            <tbody id="tx-list"></tbody>
-                                        </table>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
+            <div class="mt-3 pt-3 border-t border-gray-100 flex justify-between items-center">
+                <span class="text-xs font-bold text-gray-800">本日小計</span>
+                <div class="flex gap-2 text-xs items-center">
+                    <span class="text-green-600 font-medium">收:<span id="today-income">0</span></span>
+                    <span class="text-red-500 font-medium">支:<span id="today-expense">0</span></span>
+                    <span class="text-blue-600 font-medium border-l pl-2 border-gray-200" id="today-balance-container">餘:<span id="today-balance">0</span></span>
                 </div>
-
-                <!-- Investment View -->
-                <div id="view-investment" class="view-section d-none animate-fade">
-                    <div class="d-flex justify-content-between align-items-center mb-3">
-                        <ul class="nav nav-pills" id="pills-tab" role="tablist">
-                            <li class="nav-item"><button class="nav-link active" onclick="App.switchInvTab('active', this)">進行中</button></li>
-                            <li class="nav-item"><button class="nav-link" onclick="App.switchInvTab('archived', this)">已結案</button></li>
-                        </ul>
-                        <div class="d-flex gap-2">
-                            <button class="btn btn-outline-warning btn-sm rounded-pill px-3 fw-bold" onclick="App.openModal('budgetModal', null, 'investment')"><i class="fas fa-bullseye me-1"></i>管理目標</button>
-                            <button class="btn btn-primary btn-sm rounded-pill px-3" onclick="App.openModal('investmentModal')"><i class="fas fa-plus me-1"></i>新增帳戶</button>
-                        </div>
-                    </div>
-                    <div id="inv-list" class="row g-3"></div>
-                    
-                    <!-- Investment Pending Items -->
-                    <div id="inv-pending-section" class="mt-5 d-none">
-                        <h6 class="fw-bold text-dark mb-3 ps-1 border-start border-4 border-warning ps-2">預定款項 / 未實現交易</h6>
-                        <div class="card border-0 shadow-sm" style="border-radius: 16px;">
-                            <div class="card-body p-0 overflow-auto" style="max-height: 400px;">
-                                <ul class="list-group list-group-flush" id="inv-pending-list"></ul>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Debt View -->
-                <div id="view-debt" class="view-section d-none animate-fade">
-                    <div class="d-flex justify-content-between align-items-center mb-3">
-                         <h5 class="fw-bold text-secondary mb-0"><i class="fas fa-credit-card me-2"></i>負債管理</h5>
-                         <div class="d-flex gap-2">
-                             <button class="btn btn-outline-warning btn-sm rounded-pill px-3 fw-bold" onclick="App.openModal('budgetModal', null, 'debt')"><i class="fas fa-bullseye me-1"></i>管理上限</button>
-                             <button class="btn btn-danger btn-sm rounded-pill px-3" onclick="App.openModal('debtModal')"><i class="fas fa-plus me-1"></i>新增負債</button>
-                         </div>
-                    </div>
-                    <div id="debt-list" class="row g-3"></div>
-
-                    <!-- Debt Pending Items -->
-                    <div id="debt-pending-section" class="mt-5 d-none">
-                        <h6 class="fw-bold text-dark mb-3 ps-1 border-start border-4 border-warning ps-2">預定還款 / 未實現交易</h6>
-                        <div class="card border-0 shadow-sm" style="border-radius: 16px;">
-                            <div class="card-body p-0 overflow-auto" style="max-height: 400px;">
-                                <ul class="list-group list-group-flush" id="debt-pending-list"></ul>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Events View -->
-                <div id="view-events" class="view-section d-none animate-fade">
-                    <div class="d-flex justify-content-between align-items-center mb-3">
-                        <h5 class="fw-bold text-secondary mb-0"><i class="fas fa-calendar-alt me-2"></i>大事記</h5>
-                        <div>
-                            <button class="btn btn-outline-secondary btn-sm me-2 rounded-pill" onclick="App.exportEvents()"><i class="fas fa-file-export me-1"></i>匯出</button>
-                            <button class="btn btn-dark btn-sm rounded-pill px-3" onclick="App.openModal('eventModal')"><i class="fas fa-plus me-1"></i>新增紀錄</button>
-                        </div>
-                    </div>
-                    <div id="event-list" class="row g-3"></div>
-                </div>
-                
-                <!-- Reports View -->
-                <div id="view-reports" class="view-section d-none animate-fade">
-                    <div class="card border-0 shadow-sm p-3 mb-3" style="border-radius: 16px;">
-                         <div class="row g-2 align-items-center">
-                             <div class="col-md-2"><label class="small text-muted fw-bold ms-1">年份</label><select id="report-year" class="form-select form-select-sm fw-bold border-0 bg-light" onchange="App.renderReports()"></select></div>
-                             <div class="col-md-2"><label class="small text-muted fw-bold ms-1">月份</label><select id="report-month-select" class="form-select form-select-sm fw-bold border-0 bg-light" onchange="App.renderReports()"><option value="all">全年度</option><option value="1">1月</option><option value="2">2月</option><option value="3">3月</option><option value="4">4月</option><option value="5">5月</option><option value="6">6月</option><option value="7">7月</option><option value="8">8月</option><option value="9">9月</option><option value="10">10月</option><option value="11">11月</option><option value="12">12月</option></select></div>
-                             <div class="col-md-3"><label class="small text-muted fw-bold ms-1">分類</label><select id="report-category" class="form-select form-select-sm fw-bold border-0 bg-light" onchange="App.renderReports()"><option value="all">全部分類</option></select></div>
-                             <div class="col-md-3"><label class="small text-muted fw-bold ms-1">帳戶/專案</label><select id="report-project" class="form-select form-select-sm fw-bold border-0 bg-light" onchange="App.renderReports()"><option value="all">全部帳戶</option></select></div>
-                             <div class="col-md-2 d-grid"><label class="small text-white">.</label><button class="btn btn-outline-primary btn-sm rounded-pill" onclick="App.exportReport()"><i class="fas fa-file-csv me-1"></i>匯出</button></div>
-                         </div>
-                    </div>
-                    <div class="row">
-                        <div class="col-md-6 mb-3">
-                            <div class="card border-0 shadow-sm h-100" style="border-radius: 16px;">
-                                <div class="card-header bg-white border-0 pt-3 fw-bold">支出分佈</div>
-                                <div class="card-body"><div class="chart-container"><canvas id="expense-chart"></canvas></div></div>
-                            </div>
-                        </div>
-                        <div class="col-md-6 mb-3">
-                            <div class="card border-0 shadow-sm h-100" style="border-radius: 16px;">
-                                <div class="card-header bg-white border-0 pt-3 fw-bold">分類統計</div>
-                                <div class="card-body overflow-auto" style="max-height: 300px;">
-                                    <ul id="report-stats" class="list-group list-group-flush small"></ul>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="card border-0 shadow-sm" style="border-radius: 16px;">
-                        <div class="card-header bg-white border-0 pt-3 fw-bold">交易明細</div>
-                        <div class="card-body p-0">
-                            <div class="table-responsive">
-                                <table class="table table-hover align-middle mb-0 table-sm"><thead class="bg-light"><tr class="text-muted"><th class="ps-3 border-0">日期</th><th class="border-0">分類/專案</th><th class="text-end border-0 pe-3">金額</th></tr></thead><tbody id="report-details"></tbody></table>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </main>
+            </div>
         </div>
-    </div>
+        <div class="px-3 pb-4"><ul id="tx-list" class="space-y-3"></ul></div>
+    </template>
+
+    <template id="tpl-investment">
+        <div class="flex justify-between items-center mb-3 px-1">
+            <div class="flex items-center gap-2">
+                <h3 class="text-sm font-bold text-gray-600">投資概況</h3>
+                <span id="inv-monthly-summary" class="text-xs text-secondary font-bold bg-green-50 px-2 py-0.5 rounded">本月收益: $0</span>
+            </div>
+            <input type="month" id="inv-date-filter" class="bg-white border border-gray-200 rounded-lg px-2 py-1 text-xs font-bold text-gray-600 focus:ring-0 cursor-pointer shadow-sm" onchange="App.renderInvestments()">
+        </div>
+        <div class="bg-gradient-to-br from-indigo-600 to-blue-700 rounded-2xl p-4 text-white shadow-lg card-shadow mb-4">
+            <p class="text-indigo-100 text-xs mb-1">總資產現值 (進行中)</p>
+            <h2 id="inv-total-val" class="text-3xl font-bold tracking-tight">--</h2>
+            <div class="flex gap-4 mt-3 text-xs border-t border-white/20 pt-3">
+                <div><span class="opacity-70 block mb-0.5">總損益</span> <span id="inv-total-ret" class="font-bold text-base">--</span></div>
+                <div><span class="opacity-70 block mb-0.5">報酬率</span> <span id="inv-roi" class="font-bold text-base">--</span></div>
+            </div>
+        </div>
+        <div class="flex bg-gray-200 p-1 rounded-xl mb-3">
+            <button class="tab-pill flex-1 py-1.5 rounded-lg text-xs font-bold text-gray-500 active transition" onclick="App.switchInvTab('active', this)">進行中</button>
+            <button class="tab-pill flex-1 py-1.5 rounded-lg text-xs font-bold text-gray-500 transition" onclick="App.switchInvTab('archived', this)">已結案</button>
+        </div>
+        <div class="flex justify-between items-center px-1 mb-2">
+            <span class="text-xs font-bold text-gray-500">投資帳戶 (點擊查看明細)</span>
+            <button onclick="App.openModal('investment-modal')" class="text-primary text-xs font-bold bg-primary/10 px-2 py-1 rounded hover:bg-primary/20 transition">+ 新增</button>
+        </div>
+        <div id="inv-list" class="grid gap-2"></div>
+        <div class="mt-4 pt-4 border-t border-gray-200">
+            <div class="flex justify-between items-center px-1 mb-2"><span class="text-xs font-bold text-gray-500">收入預算/目標</span><button onclick="App.openBudgetModal('investment')" class="text-secondary text-xs font-bold bg-secondary/10 px-2 py-1 rounded hover:bg-secondary/20 transition">+ 預算</button></div>
+            <ul id="inv-budget-list" class="space-y-2"></ul>
+        </div>
+    </template>
+
+    <!-- Template: Debt -->
+    <template id="tpl-debt">
+        <div class="flex justify-between items-center mb-3 px-1">
+            <div class="flex items-center gap-2">
+                <h3 class="text-sm font-bold text-gray-600">負債概況</h3>
+                <span id="debt-monthly-summary" class="text-xs text-danger font-bold bg-red-50 px-2 py-0.5 rounded">本月還款: $0</span>
+            </div>
+            <input type="month" id="debt-date-filter" class="bg-white border border-gray-200 rounded-lg px-2 py-1 text-xs font-bold text-gray-600 focus:ring-0 cursor-pointer shadow-sm" onchange="App.renderDebts()">
+        </div>
+        <div class="bg-white p-4 rounded-2xl card-shadow border-t-4 border-warning mb-4">
+            <div class="flex justify-between items-end mb-2">
+                <div><p class="text-xs text-gray-500">剩餘總負債</p><p id="debt-total-remaining" class="text-2xl font-bold text-gray-800">--</p></div>
+                <div class="text-right"><p class="text-[10px] text-gray-400">總進度</p><p id="debt-progress-text" class="text-sm font-bold text-warning">0%</p></div>
+            </div>
+            <div class="w-full bg-gray-100 rounded-full h-2"><div id="debt-progress-bar" class="bg-warning h-2 rounded-full transition-all duration-500" style="width: 0%"></div></div>
+        </div>
+        <div class="flex justify-between items-center px-1 mb-2">
+            <span class="text-xs font-bold text-gray-500">負債項目 (點擊查看明細)</span>
+            <button onclick="App.openModal('debt-modal')" class="text-primary text-xs font-bold bg-primary/10 px-2 py-1 rounded hover:bg-primary/20 transition">+ 新增</button>
+        </div>
+        <div id="debt-list" class="space-y-2"></div>
+        <div class="mt-4 pt-4 border-t border-gray-200">
+            <div class="flex justify-between items-center px-1 mb-2"><span class="text-xs font-bold text-gray-500">還款計畫</span><button onclick="App.openBudgetModal('debt')" class="text-danger text-xs font-bold bg-danger/10 px-2 py-1 rounded hover:bg-danger/20 transition">+ 計畫</button></div>
+            <ul id="debt-budget-list" class="space-y-2"></ul>
+        </div>
+    </template>
+
+    <template id="tpl-reports">
+        <div class="bg-white p-3 rounded-xl card-shadow mb-2 space-y-2">
+            <div class="flex gap-2">
+                <select id="report-year" class="bg-gray-50 rounded-lg px-2 py-1.5 text-xs font-bold border-transparent focus:border-primary flex-1 min-w-0" onchange="App.renderReports()"></select>
+                <select id="report-month-select" class="bg-gray-50 rounded-lg px-2 py-1.5 text-xs font-bold border-transparent focus:border-primary flex-1 min-w-0" onchange="App.renderReports()">
+                    <option value="all">全年度</option>
+                    <option value="1">1月</option><option value="2">2月</option><option value="3">3月</option><option value="4">4月</option><option value="5">5月</option><option value="6">6月</option>
+                    <option value="7">7月</option><option value="8">8月</option><option value="9">9月</option><option value="10">10月</option><option value="11">11月</option><option value="12">12月</option>
+                </select>
+            </div>
+            <div class="flex gap-2">
+                <select id="report-project" class="bg-gray-50 rounded-lg px-2 py-1.5 text-xs font-bold border-transparent focus:border-primary flex-1 min-w-0" onchange="App.renderReports()">
+                    <option value="all">全部專案</option>
+                </select>
+                <select id="report-category" class="bg-gray-50 rounded-lg px-2 py-1.5 text-xs font-bold border-transparent focus:border-primary flex-1 min-w-0" onchange="App.renderReports()">
+                    <option value="all">全部分類</option>
+                </select>
+                <button type="button" onclick="App.exportReport()" class="bg-gray-100 px-3 py-1.5 rounded-lg text-gray-500 hover:text-primary hover:bg-blue-50 transition flex-shrink-0"><i class="fa-solid fa-file-export"></i></button>
+            </div>
+        </div>
+        <div class="bg-white p-4 rounded-2xl card-shadow">
+            <h3 class="font-bold mb-4 text-center text-xs text-gray-500 uppercase tracking-wider">支出分佈</h3>
+            <div class="h-56 relative"><canvas id="expense-chart"></canvas></div>
+        </div>
+        <div class="bg-white p-4 rounded-2xl card-shadow mt-3">
+            <h3 class="font-bold mb-3 text-xs border-b border-gray-100 pb-2 text-gray-500">分類統計</h3>
+            <ul id="report-stats" class="space-y-2 text-xs mb-4"></ul>
+            <h3 class="font-bold mb-3 text-xs border-b border-gray-100 pb-2 text-gray-500">交易明細 (點擊可編輯)</h3>
+            <ul id="report-details" class="space-y-2"></ul>
+        </div>
+    </template>
+
+    <template id="tpl-events">
+        <div class="flex gap-2 mb-4">
+             <button type="button" onclick="App.openModal('event-modal')" class="flex-1 py-3 border-2 border-dashed border-gray-300 rounded-2xl text-gray-400 font-bold hover:bg-gray-50 hover:border-gray-400 transition text-xs">+ 紀錄大事記</button>
+             <button type="button" onclick="App.exportEvents()" class="w-12 flex items-center justify-center bg-gray-100 rounded-2xl text-gray-400 hover:text-primary hover:bg-blue-50 transition"><i class="fa-solid fa-file-export"></i></button>
+        </div>
+        <div id="event-list" class="space-y-4 pl-2"></div>
+    </template>
 
     <!-- Modals -->
-    <div class="modal fade" id="transactionModal" tabindex="-1">
-        <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content">
-                <div class="modal-header"><h5 class="modal-title fw-bold" id="tx-modal-title">記一筆</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
-                <div class="modal-body">
-                    <form onsubmit="App.handleSaveTransaction(event)" id="txForm">
-                        <input type="hidden" name="id"><input type="hidden" name="legacy_inv_id"><input type="hidden" name="is_pending" value="false">
-                        <div class="btn-group w-100 mb-3" role="group"><input type="radio" class="btn-check" name="type" id="type-expense" value="expense" checked onchange="App.toggleTxType('expense')"><label class="btn btn-outline-danger" for="type-expense">支出</label><input type="radio" class="btn-check" name="type" id="type-income" value="income" onchange="App.toggleTxType('income')"><label class="btn btn-outline-success" for="type-income">收入</label></div>
-                        <div class="mb-3"><label class="form-label small text-muted fw-bold">金額</label><input type="number" name="amount" class="form-control form-control-lg fw-bold text-center" placeholder="0" required inputmode="decimal"></div>
-                        <div class="row g-2 mb-3"><div class="col-6"><label class="form-label small text-muted fw-bold">日期</label><input type="date" name="date" class="form-control" required></div><div class="col-6"><label class="form-label small text-muted fw-bold">分類</label><div class="input-group"><input name="category" class="form-control" placeholder="選擇..." required list="cat-list"><datalist id="cat-list"></datalist><button type="button" class="btn btn-outline-secondary" onclick="App.openCategorySelector()"><i class="fas fa-list"></i></button></div></div></div>
-                        <div class="mb-3"><label class="form-label small text-muted fw-bold">專案 / 帳戶 (選填)</label><input type="text" name="project" class="form-control" placeholder="例如: 台積電、學貸..."></div>
-                        <div class="mb-3"><label class="form-label small text-muted fw-bold">備註</label><input type="text" name="remarks" class="form-control" placeholder="寫點什麼..."></div>
-                        <div class="d-flex justify-content-between align-items-center mt-4"><button type="button" id="btn-delete-tx" class="btn btn-link text-danger text-decoration-none d-none"><i class="fas fa-trash"></i> 刪除</button><button type="submit" class="btn btn-primary px-5 fw-bold ms-auto rounded-pill" id="btn-save-tx">儲存</button></div>
-                    </form>
-                </div>
+    <template id="tpl-transaction-modal">
+        <div class="flex justify-between items-center mb-5">
+            <h3 class="text-lg font-bold text-gray-800" id="tx-modal-title">記一筆</h3>
+            <div class="flex items-center gap-2">
+                 <button type="button" id="btn-delete-tx" class="hidden w-8 h-8 rounded-full bg-red-50 text-red-500 flex items-center justify-center hover:bg-red-100 transition"><i class="fa-solid fa-trash-can"></i></button>
+                 <button type="button" onclick="App.closeModal()" class="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center text-gray-500"><i class="fa-solid fa-xmark"></i></button>
             </div>
         </div>
-    </div>
-    <div class="modal fade" id="categoryModal" tabindex="-1"><div class="modal-dialog modal-sm modal-dialog-centered"><div class="modal-content"><div class="modal-header py-2"><h6 class="modal-title">快速選擇</h6><button type="button" class="btn-close btn-sm" data-bs-dismiss="modal"></button></div><div class="modal-body p-2" id="category-chips"></div></div></div></div>
-    <div class="modal fade" id="investmentModal" tabindex="-1"><div class="modal-dialog modal-dialog-centered"><div class="modal-content"><div class="modal-header"><h5 class="modal-title">投資帳戶</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div><div class="modal-body"><form onsubmit="App.handleSaveInvestment(event)"><input type="hidden" name="id"><div class="mb-3"><label class="form-label">名稱</label><input type="text" name="name" class="form-control" required></div><div class="mb-3"><label class="form-label">初始成本</label><input type="number" name="initial" class="form-control"></div><div class="mb-3"><label class="form-label">目標金額 (預算)</label><input type="number" name="target" class="form-control" placeholder="選填"></div><div class="form-check mb-3"><input class="form-check-input" type="checkbox" name="isArchived" id="inv-archived"><label class="form-check-label" for="inv-archived">已結案 (歸檔)</label></div><button type="submit" class="btn btn-primary w-100 rounded-pill">儲存</button></form></div></div></div></div>
-    <div class="modal fade" id="debtModal" tabindex="-1"><div class="modal-dialog modal-dialog-centered"><div class="modal-content"><div class="modal-header"><h5 class="modal-title">負債項目</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div><div class="modal-body"><form onsubmit="App.handleSaveDebt(event)"><input type="hidden" name="id"><div class="mb-3"><label class="form-label">名稱</label><input type="text" name="name" class="form-control" required></div><div class="row mb-3"><div class="col-6"><label class="form-label">總金額 (預算/上限)</label><input type="number" name="total" class="form-control" required></div><div class="col-6"><label class="form-label">剩餘 (手動校正)</label><input type="number" name="remaining" class="form-control"></div></div><button type="submit" class="btn btn-warning w-100 text-white fw-bold rounded-pill">儲存</button></form></div></div></div></div>
+        <form onsubmit="App.handleSaveTransaction(event)" class="space-y-4">
+            <input type="hidden" name="id">
+            <input type="hidden" name="legacy_inv_id"> 
+            <div class="flex bg-gray-100 p-1 rounded-xl">
+                <button type="button" class="type-btn flex-1 py-2 rounded-lg text-xs font-bold bg-white shadow text-danger transition" onclick="App.toggleTxType('expense')" id="btn-expense">支出</button>
+                <button type="button" class="type-btn flex-1 py-2 rounded-lg text-xs font-bold text-gray-500 transition" onclick="App.toggleTxType('income')" id="btn-income">收入</button>
+            </div>
+            <input type="hidden" name="type" id="tx-type" value="expense">
+            <div><label class="text-[10px] font-bold text-gray-400 ml-1">金額</label><input type="number" name="amount" class="w-full text-3xl font-bold text-gray-800 border-b border-gray-200 py-1 focus:border-primary bg-transparent text-center focus:outline-none" placeholder="0" required inputmode="decimal"></div>
+            <div class="grid grid-cols-2 gap-3">
+                <div><label class="text-[10px] font-bold text-gray-400 ml-1">日期</label><input type="date" name="date" class="w-full bg-gray-50 rounded-xl px-3 py-2.5 text-xs font-medium focus:bg-white focus:ring-1 focus:ring-primary transition" required></div>
+                <div>
+                    <label class="text-[10px] font-bold text-gray-400 ml-1">分類</label>
+                    <div class="flex gap-2">
+                        <input name="category" class="w-full bg-gray-50 rounded-xl px-3 py-2.5 text-xs font-medium focus:bg-white focus:ring-1 focus:ring-primary transition" placeholder="選擇或輸入..." required>
+                        <button type="button" onclick="App.openCategorySelector()" class="w-10 h-10 bg-gray-100 rounded-xl flex items-center justify-center text-gray-500 hover:bg-gray-200 transition"><i class="fa-solid fa-list-ul"></i></button>
+                    </div>
+                </div>
+            </div>
+            <div><label class="text-[10px] font-bold text-gray-400 ml-1">專案 / 帳戶 (選填)</label><input type="text" name="project" class="w-full bg-gray-50 rounded-xl px-3 py-2.5 text-xs font-medium focus:bg-white focus:ring-1 focus:ring-primary transition" placeholder="例如: 台積電、學貸..."></div>
+            <div><label class="text-[10px] font-bold text-gray-400 ml-1">備註</label><input type="text" name="remarks" class="w-full bg-gray-50 rounded-xl px-3 py-2.5 text-xs font-medium focus:bg-white focus:ring-1 focus:ring-primary transition" placeholder="寫點什麼..."></div>
+            <div class="flex gap-2 pt-2"><button type="button" onclick="App.closeModal()" class="flex-1 bg-gray-100 py-3.5 rounded-xl font-bold text-gray-500 text-sm">取消</button><button type="submit" class="flex-1 bg-primary text-white font-bold py-3.5 rounded-xl shadow-lg shadow-primary/30 text-sm">儲存</button></div>
+        </form>
+    </template>
     
-    <!-- Budget/Target Modal -->
-    <div class="modal fade" id="budgetModal" tabindex="-1"><div class="modal-dialog modal-dialog-centered"><div class="modal-content"><div class="modal-header bg-light"><h5 class="modal-title fw-bold text-warning"><i class="fas fa-bullseye me-2"></i>設定預算目標</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div><div class="modal-body"><p class="small text-muted mb-3">為您的投資或負債項目設定目標金額，系統將自動計算達成率。</p><form onsubmit="App.handleSaveBudget(event)"><input type="hidden" name="type"><div class="mb-3"><label class="form-label fw-bold small">選擇項目</label><select name="target_id" class="form-select" required></select></div><div class="mb-3"><label class="form-label fw-bold small">目標金額 / 預算上限</label><input type="number" name="amount" class="form-control form-control-lg text-center fw-bold text-primary" placeholder="0" required></div><div class="d-flex justify-content-between"><button type="button" class="btn btn-outline-danger rounded-pill" onclick="App.handleDeleteBudget()">移除目標</button><button type="submit" class="btn btn-warning fw-bold text-white rounded-pill px-4">儲存設定</button></div></form></div></div></div></div>
-    
-    <div class="modal fade" id="eventModal" tabindex="-1"><div class="modal-dialog modal-dialog-centered"><div class="modal-content"><div class="modal-header"><h5 class="modal-title">大事記</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div><div class="modal-body"><form onsubmit="App.handleSaveEvent(event)"><input type="hidden" name="id"><div class="mb-3"><label class="form-label">日期</label><input type="date" name="date" class="form-control" required></div><div class="mb-3"><label class="form-label">標題</label><input type="text" name="title" class="form-control" required></div><div class="mb-3"><label class="form-label">內容</label><textarea name="desc" class="form-control" rows="3"></textarea></div><div class="d-flex justify-content-between"><button type="button" id="btn-delete-event" class="btn btn-link text-danger d-none">刪除</button><button type="submit" class="btn btn-dark ms-auto rounded-pill px-4">紀錄</button></div></form></div></div></div></div>
-    <div class="modal fade" id="detailsModal" tabindex="-1"><div class="modal-dialog modal-dialog-centered modal-dialog-scrollable"><div class="modal-content"><div class="modal-header"><h5 class="modal-title details-title fw-bold">詳情</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div><div class="modal-body"><div class="details-actions mb-3 d-grid gap-2"></div><div id="pending-section" class="d-none mb-3"><h6 class="text-warning border-bottom pb-2 small fw-bold"><i class="fas fa-clock me-1"></i>待確認/預定款項</h6><ul class="list-group list-group-flush pending-list small mb-2"></ul></div><h6 class="text-muted border-bottom pb-2 small fw-bold">已實現交易紀錄</h6><ul class="list-group list-group-flush details-list small"></ul></div></div></div></div>
+    <!-- Category Selection Modal Template -->
+    <template id="tpl-category-selector">
+        <div class="flex justify-between items-center mb-4">
+            <h3 class="text-lg font-bold text-gray-800">選擇分類</h3>
+            <button onclick="App.closeSubModal()" class="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center text-gray-500"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        <div id="category-chips" class="flex flex-wrap gap-2 max-h-60 overflow-y-auto"></div>
+    </template>
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <template id="tpl-investment-modal">
+        <div class="flex justify-between items-center mb-4"><h3 class="text-lg font-bold text-gray-800">投資帳戶</h3><button type="button" onclick="App.closeModal()" class="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center text-gray-500"><i class="fa-solid fa-xmark"></i></button></div>
+        <form onsubmit="App.handleSaveInvestment(event)" class="space-y-4">
+            <input type="hidden" name="id"><input type="text" name="name" class="w-full bg-gray-50 rounded-xl p-3 text-sm focus:bg-white border-transparent focus:border-primary transition" placeholder="名稱" required><input type="number" name="initial" class="w-full bg-gray-50 rounded-xl p-3 text-sm focus:bg-white border-transparent focus:border-primary transition" placeholder="初始成本">
+            <div class="flex items-center gap-2 px-1"><input type="checkbox" name="isArchived" id="inv-archived" class="rounded text-primary focus:ring-primary"><label for="inv-archived" class="text-sm text-gray-600">已結案 (歸檔)</label></div>
+            <button type="submit" class="w-full bg-primary text-white font-bold py-3 rounded-xl shadow-lg text-sm">儲存</button>
+        </form>
+    </template>
+    <template id="tpl-debt-modal">
+        <div class="flex justify-between items-center mb-4"><h3 class="text-lg font-bold text-gray-800">負債項目</h3><button type="button" onclick="App.closeModal()" class="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center text-gray-500"><i class="fa-solid fa-xmark"></i></button></div>
+        <form onsubmit="App.handleSaveDebt(event)" class="space-y-4">
+            <input type="hidden" name="id">
+            <div><label class="text-[10px] font-bold text-gray-400 ml-1">名稱</label><input type="text" name="name" class="w-full bg-gray-50 rounded-xl p-3 text-sm" placeholder="名稱" required></div>
+            <div class="grid grid-cols-2 gap-3">
+                <div><label class="text-[10px] font-bold text-gray-400 ml-1">總金額</label><input type="number" name="total" class="w-full bg-gray-50 rounded-xl p-3 text-sm" placeholder="總金額" required></div>
+                <div><label class="text-[10px] font-bold text-gray-400 ml-1">剩餘金額 (手動校正)</label><input type="number" name="remaining" class="w-full bg-gray-50 rounded-xl p-3 text-sm border border-gray-200" placeholder="剩餘金額"></div>
+            </div>
+            <button type="submit" class="w-full bg-warning text-white font-bold py-3 rounded-xl shadow-lg text-sm">儲存</button>
+        </form>
+    </template>
+    <template id="tpl-budget-form">
+        <div class="flex justify-between items-center mb-4"><h3 class="text-lg font-bold text-gray-800" id="budget-modal-title">新增預算</h3><button type="button" onclick="App.closeModal()" class="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center text-gray-500"><i class="fa-solid fa-xmark"></i></button></div>
+        <form onsubmit="App.handleSaveBudget(event)" class="space-y-4"><input type="hidden" name="id"><input type="hidden" name="context" id="budget-context"><select name="targetId" id="budget-target" class="w-full bg-gray-50 rounded-xl p-3 text-sm appearance-none" required></select><input type="number" name="amount" class="w-full bg-gray-50 rounded-xl p-3 text-sm" placeholder="金額" required><input type="date" name="date" class="w-full bg-gray-50 rounded-xl p-3 text-sm" required><input type="text" name="desc" class="w-full bg-gray-50 rounded-xl p-3 text-sm placeholder-blue-400 text-blue-600 font-medium" placeholder="說明" required><button type="submit" class="w-full bg-primary text-white py-3 rounded-xl font-bold shadow-lg shadow-primary/30 text-sm">設定</button></form>
+    </template>
+    <template id="tpl-repay-form">
+        <div class="flex justify-between items-center mb-4"><h3 class="text-lg font-bold text-gray-800">還款</h3><button type="button" onclick="App.closeModal()" class="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center text-gray-500"><i class="fa-solid fa-xmark"></i></button></div>
+        <p id="repay-debt-name" class="text-xs text-gray-500 mb-4"></p>
+        <form onsubmit="App.handleRepayDebt(event)" class="space-y-4"><input type="hidden" name="id" id="repay-id"><input type="number" name="amount" class="w-full text-3xl font-bold border-b py-2 focus:border-primary text-center focus:outline-none" placeholder="金額" required inputmode="decimal"><input type="date" name="date" class="w-full bg-gray-50 rounded-xl p-3 text-sm" required><div class="flex gap-2 text-sm pt-2"><button type="button" onclick="App.closeModal()" class="flex-1 bg-gray-100 py-3 rounded-xl font-bold text-gray-500">取消</button><button type="submit" class="w-full bg-green-500 text-white py-3 rounded-xl font-bold shadow-lg shadow-green-500/30">確認</button></div></form>
+    </template>
+    <template id="tpl-event-modal">
+        <div class="flex justify-between items-center mb-4"><h3 class="text-lg font-bold text-gray-800">大事記</h3><button type="button" id="btn-delete-event" class="hidden w-8 h-8 rounded-full bg-red-50 text-red-500 flex items-center justify-center hover:bg-red-100 transition"><i class="fa-solid fa-trash-can"></i></button><button type="button" onclick="App.closeModal()" class="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center text-gray-500"><i class="fa-solid fa-xmark"></i></button></div>
+        <form onsubmit="App.handleSaveEvent(event)" class="space-y-4"><input type="hidden" name="id"><input type="date" name="date" class="w-full bg-gray-50 rounded-xl p-3 text-sm" required><input type="text" name="title" class="w-full bg-gray-50 rounded-xl p-3 text-sm" placeholder="標題" required><textarea name="desc" rows="3" class="w-full bg-gray-50 rounded-xl p-3 text-sm" placeholder="內容..."></textarea><button type="submit" class="w-full bg-dark text-white py-3 rounded-xl font-bold text-sm shadow-lg">紀錄</button></form>
+    </template>
+    <template id="tpl-details-modal">
+        <div class="flex justify-between items-center mb-4"><h3 class="text-lg font-bold text-gray-800 details-title truncate pr-4"></h3><button type="button" onclick="App.closeModal()" class="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center text-gray-500 flex-shrink-0"><i class="fa-solid fa-xmark"></i></button></div>
+        <div class="max-h-[60vh] overflow-y-auto hide-scrollbar"><div class="details-budget-section mb-4 hidden"><h4 class="text-xs font-bold text-gray-500 mb-2 border-b pb-1">預算 / 計畫</h4><ul class="details-budget-list space-y-1"></ul></div><div><h4 class="text-xs font-bold text-gray-500 mb-2 border-b pb-1">交易紀錄</h4><ul class="details-list space-y-2"><li class="text-center text-gray-400 py-4">載入中...</li></ul></div></div>
+        <div class="details-actions mt-4 pt-2 border-t border-gray-100 flex flex-col gap-2"></div>
+    </template>
+
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, signInAnonymously, onAuthStateChanged, GoogleAuthProvider, signInWithPopup, signOut } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, collection, addDoc, query, onSnapshot, doc, deleteDoc, updateDoc, increment, Timestamp, writeBatch, getDocs, getDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getFirestore, collection, addDoc, query, onSnapshot, doc, deleteDoc, updateDoc, increment, Timestamp, writeBatch, where, orderBy, getDocs, getDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         const app = initializeApp({ apiKey: "AIzaSyAqFHm6Bn35m8xauc50ZvNNy_rxIZzCMTE", authDomain: "moneyw-f8105.firebaseapp.com", projectId: "moneyw-f8105", storageBucket: "moneyw-f8105.appspot.com", messagingSenderId: "155586195799", appId: "1:155586195799:web:302184fbf613f032a88e12" });
         const auth = getAuth(app); const db = getFirestore(app);
-        
-        const bsModals = {};
-        const State = { user: null, data: { transactions: [], debts: [], investments: [], events: [], legacyTxs: {} }, listeners: [], chart: null, categories: { expense: ['飲食', '交通', '居住', '娛樂', '購物', '醫療', '教育', '投資', '其他'], income: ['薪資', '獎金', '投資', '兼職', '其他'] }, view: { invTab: 'active', currentTab: 'accounting' }, settings: { budget: 30000 } };
+        const State = { user: null, data: { transactions: [], debts: [], investments: [], events: [], investmentBudgets: [], debtBudgets: [], legacyTxs: {} }, listeners: [], chart: null, categories: { expense: ['飲食', '交通', '居住', '娛樂', '購物', '醫療', '教育', '投資', '其他'], income: ['薪資', '獎金', '投資', '兼職', '其他'] }, view: { invTab: 'active', currentTab: 'accounting' } };
 
+        // 🛡️ Ultra Robust Date Parser
         const getTxDate = (tx) => {
             if (!tx) return new Date();
             try {
                 if (tx.timestamp && typeof tx.timestamp.toDate === 'function') return tx.timestamp.toDate();
                 if (tx.date) {
                     if (typeof tx.date.toDate === 'function') return tx.date.toDate();
-                    const d = new Date(tx.date); if (!isNaN(d.getTime())) return d;
+                    const d = new Date(tx.date);
+                    if (!isNaN(d.getTime())) return d;
                 }
                 if (tx.timestamp && tx.timestamp.seconds) return new Date(tx.timestamp.seconds * 1000);
             } catch (e) {}
             return new Date();
         };
-        const toDateStr = (dateObj) => { const d = (dateObj instanceof Date) ? dateObj : getTxDate({timestamp: dateObj}); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; };
-        const formatMoney = (n) => new Intl.NumberFormat('zh-TW', { style: 'currency', currency: 'TWD', minimumFractionDigits: 0 }).format(n);
+        // FIX: Use local date components string construction to avoid timezone shift
+        const toDateStr = (dateObj) => {
+            const d = (dateObj instanceof Date) ? dateObj : getTxDate({timestamp: dateObj});
+            const year = d.getFullYear();
+            const month = String(d.getMonth() + 1).padStart(2, '0');
+            const day = String(d.getDate()).padStart(2, '0');
+            return `${year}-${month}-${day}`;
+        };
+        const renderDatalist = (e, i) => { if(e) e.innerHTML = i.map(v => `<option value="${v}">`).join(''); };
 
         window.App = {
-            init: () => {
-                ['transactionModal', 'categoryModal', 'investmentModal', 'debtModal', 'eventModal', 'detailsModal', 'budgetModal'].forEach(id => {
-                    const el = document.getElementById(id); if(el) bsModals[id] = new bootstrap.Modal(el);
-                });
-                const savedBudget = localStorage.getItem('monthly_budget'); if(savedBudget) State.settings.budget = parseFloat(savedBudget);
-                onAuthStateChanged(auth, u => {
-                    State.user = u;
-                    const loginEl = document.getElementById('login-view'); const appEl = document.getElementById('app-container');
-                    if(u) {
-                        loginEl.classList.add('d-none'); loginEl.classList.remove('d-flex'); appEl.classList.remove('d-none');
-                        document.getElementById('user-info').innerText = u.isAnonymous ? '訪客' : u.displayName;
-                        App.startListeners(u.uid); App.switchTab('accounting');
-                    } else {
-                        loginEl.classList.remove('d-none'); loginEl.classList.add('d-flex'); appEl.classList.add('d-none');
-                        App.stopListeners();
-                    }
-                });
-            },
-
+            init: () => onAuthStateChanged(auth, u => {
+                State.user = u;
+                document.getElementById('login-view').classList.toggle('hidden', !!u);
+                document.getElementById('app-container').classList.toggle('hidden', !u);
+                if(u) {
+                    document.getElementById('user-info').innerText = u.isAnonymous ? '訪客' : u.displayName;
+                    App.switchTab('accounting', document.querySelector('#nav-accounting'));
+                    setTimeout(() => App.startListeners(u.uid), 100);
+                } else App.stopListeners();
+            }),
             startListeners: (uid) => {
                 const listen = (c, k) => State.listeners.push(onSnapshot(query(collection(db, `users/${uid}/${c}`)), s => { 
-                    State.data[k] = s.docs.map(d=>({id:d.id, ...d.data()})); App.refreshCurrentView();
+                    State.data[k] = s.docs.map(d=>({id:d.id, ...d.data()})); 
+                    App.refreshCurrentView();
                 }));
-                listen('transactions', 'transactions'); listen('debts', 'debts'); listen('events', 'events');
+                listen('transactions', 'transactions');
+                listen('debts', 'debts');
+                listen('events', 'events');
+                listen('investmentBudgets', 'investmentBudgets');
+                listen('debtBudgets', 'debtBudgets');
+                
                 State.listeners.push(onSnapshot(query(collection(db, `users/${uid}/investments`)), async (s) => {
                     State.data.investments = s.docs.map(d=>({id:d.id, ...d.data()}));
+                    // Safe Legacy Loader
                     for (let inv of State.data.investments) {
                         if (!State.data.legacyTxs[inv.id]) {
                             try {
                                 const subSnap = await getDocs(collection(db, `users/${uid}/investments/${inv.id}/transactions`));
                                 State.data.legacyTxs[inv.id] = subSnap.docs.map(d => {
-                                    const data = d.data(); let ts = data.timestamp || data.date;
+                                    const data = d.data();
+                                    let ts = data.timestamp || data.date;
                                     if (!ts || (!ts.toDate && isNaN(new Date(ts).getTime()))) ts = Timestamp.now();
                                     else if (typeof ts === 'string') ts = Timestamp.fromDate(new Date(ts));
                                     return { id: d.id, ...data, timestamp: ts, remarks: data.remarks || data.remark, isLegacy: true, legacyInvId: inv.id };
@@ -488,485 +395,434 @@
                 }));
             },
             stopListeners: () => { State.listeners.forEach(u=>u()); State.listeners=[]; },
-            loginGoogle: async () => { try { await signInWithPopup(auth, new GoogleAuthProvider()); } catch (error) { let msg = "登入失敗: " + error.message; if (window.location.protocol === 'file:') msg = "❌ Google 安全限制：無法在「檔案模式 (file://)」下使用 Google 登入。\n請改用「訪客體驗」或透過 Live Server 開啟。"; alert(msg); } },
-            loginAnon: () => signInAnonymously(auth).catch(e => alert("訪客登入失敗: " + e.message)),
-            logout: () => signOut(auth),
-            setBudget: () => { const newBudget = prompt("請輸入每月預算金額:", State.settings.budget); if(newBudget && !isNaN(newBudget)) { State.settings.budget = parseFloat(newBudget); localStorage.setItem('monthly_budget', newBudget); App.renderTransactions(); } },
-
+            loginGoogle: () => signInWithPopup(auth, new GoogleAuthProvider()), loginAnon: () => signInAnonymously(auth), logout: () => signOut(auth),
+            
             refreshCurrentView: () => {
-                App.updateGlobalSummary();
                 const tab = State.view.currentTab;
-                if (tab === 'accounting') App.renderTransactions();
-                else if (tab === 'investment') App.renderInvestments();
-                else if (tab === 'debt') App.renderDebts();
-                else if (tab === 'reports') App.renderReports();
-                else if (tab === 'events') App.renderEvents();
+                try {
+                    if (tab === 'accounting' && document.getElementById('tx-list')) { App.renderTransactions(); App.updateDashboard(); }
+                    else if (tab === 'investment' && document.getElementById('inv-list')) App.renderInvestments();
+                    else if (tab === 'debt' && document.getElementById('debt-list')) App.renderDebts();
+                    else if (tab === 'reports' && document.getElementById('report-stats')) App.renderReports();
+                    else if (tab === 'events' && document.getElementById('event-list')) App.renderEvents();
+                } catch(e) { console.error("Render Error:", e); }
             },
-
+            
             switchTab: (tab, btn) => {
                 State.view.currentTab = tab;
-                document.querySelectorAll('.view-section').forEach(e => e.classList.add('d-none'));
-                document.getElementById(`view-${tab}`).classList.remove('d-none');
-                document.querySelectorAll('.navbar-nav .nav-link').forEach(e => e.classList.remove('active'));
-                if(btn) btn.classList.add('active'); else document.querySelector(`.navbar-nav .nav-link[onclick*="${tab}"]`)?.classList.add('active');
-                const navCollapse = document.getElementById('navbarNav'); if (navCollapse.classList.contains('show')) new bootstrap.Collapse(navCollapse).hide();
-                if(tab === 'accounting' && !document.getElementById('date-filter').value) document.getElementById('date-filter').value = new Date().toISOString().slice(0, 7);
-                if(tab === 'reports') {
-                    const yrSel = document.getElementById('report-year'); const curYr = new Date().getFullYear();
-                    yrSel.innerHTML = ''; for(let y=curYr-2; y<=curYr+1; y++) yrSel.innerHTML += `<option value="${y}" ${y===curYr?'selected':''}>${y}年</option>`;
+                document.querySelectorAll('.view-section').forEach(e => { e.classList.add('hidden'); e.innerHTML = ''; }); 
+                const target = document.getElementById(`view-${tab}`);
+                target.classList.remove('hidden');
+                target.innerHTML = document.getElementById(`tpl-${tab}`).innerHTML; 
+
+                if(tab === 'accounting') document.getElementById('date-filter').value = new Date().toISOString().slice(0, 7);
+                else if(tab === 'investment') document.getElementById('inv-date-filter').value = new Date().toISOString().slice(0, 7);
+                else if(tab === 'debt') document.getElementById('debt-date-filter').value = new Date().toISOString().slice(0, 7);
+                else if(tab === 'reports') {
+                    const yrSel = document.getElementById('report-year');
+                    const curYr = new Date().getFullYear();
+                    yrSel.innerHTML = '';
+                    for(let y=curYr-2; y<=curYr+1; y++) yrSel.innerHTML += `<option value="${y}" ${y===curYr?'selected':''}>${y}年</option>`;
                     document.getElementById('report-month-select').value = (new Date().getMonth()+1).toString();
                 }
+
+                document.querySelectorAll('.nav-btn').forEach(e => e.classList.remove('active', 'text-primary'));
+                if(btn) btn.classList.add('active', 'text-primary');
+                document.getElementById('page-title').innerText = {accounting:'總覽', investment:'投資', debt:'負債', reports:'報表', events:'大事記'}[tab];
+                
                 App.refreshCurrentView();
             },
-
-            getAllTransactions: (includePending = false) => {
-                let allTxs = []; let linkedIds = new Set();
+            
+            getAllTransactions: () => {
+                let allTxs = [];
+                let linkedIds = new Set();
                 if (State.data.investments && State.data.legacyTxs) {
                     State.data.investments.forEach(inv => {
-                        (State.data.legacyTxs[inv.id] || []).forEach(t => {
+                        const sub = State.data.legacyTxs[inv.id] || [];
+                        sub.forEach(t => {
                             let tsObj = getTxDate(t);
-                            allTxs.push({ ...t, project: inv.name, category: t.category || (t.type === 'income' ? '投資收入' : '投資支出'), timestamp: Timestamp.fromDate(tsObj), amount: parseFloat(t.amount) || 0, isLegacy: true, legacyInvId: inv.id });
+                            allTxs.push({ 
+                                ...t, 
+                                project: inv.name, 
+                                category: t.category || (t.type === 'income' ? '投資收入' : '投資支出'), 
+                                timestamp: Timestamp.fromDate(tsObj), 
+                                amount: parseFloat(t.amount) || 0, 
+                                isLegacy: true,
+                                legacyInvId: inv.id 
+                            });
                             if(t.mainTransactionId) linkedIds.add(t.mainTransactionId);
                         });
                     });
                 }
-                State.data.transactions.forEach(t => { if (!linkedIds.has(t.id)) allTxs.push(t); });
-                const filtered = includePending ? allTxs : allTxs.filter(t => !t.isPending);
-                return filtered.sort((a,b) => (getTxDate(b) - getTxDate(a)));
+                if (State.data.transactions) {
+                    State.data.transactions.forEach(t => {
+                        if (!linkedIds.has(t.id)) allTxs.push(t);
+                    });
+                }
+                return allTxs.sort((a,b) => (getTxDate(b) - getTxDate(a)));
             },
 
-            updateGlobalSummary: () => {
-                const totalInv = State.data.investments.reduce((sum, inv) => sum + (parseFloat(inv.marketValue) || 0), 0);
-                document.getElementById('summary-investments').innerText = formatMoney(totalInv);
-                const totalDebt = State.data.debts.reduce((sum, d) => sum + (parseFloat(d.remainingAmount) || 0), 0);
-                document.getElementById('summary-debts').innerText = formatMoney(totalDebt);
-                const now = new Date();
-                const startM = new Date(now.getFullYear(), now.getMonth(), 1); const endM = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59);
-                const mTx = App.getAllTransactions(false).filter(t => { const d = getTxDate(t); return d >= startM && d <= endM; });
-                const mInc = mTx.filter(t=>t.type==='income').reduce((a,b)=>a+(parseFloat(b.amount)||0),0);
-                const mExp = mTx.filter(t=>t.type==='expense').reduce((a,b)=>a+(parseFloat(b.amount)||0),0);
-                const net = mInc - mExp;
-                document.getElementById('summary-cashflow').innerHTML = `${net>=0?'+':''}${formatMoney(net)}`;
-                document.getElementById('summary-cashflow').className = `mb-0 fw-bold ${net>=0 ? 'text-primary' : 'text-danger'}`;
-            },
+            handleDateFilterChange: () => { App.renderTransactions(); App.updateDashboard(); },
+            switchInvTab: (tab, btn) => { State.view.invTab = tab; document.querySelectorAll('.tab-pill').forEach(e => e.classList.remove('active', 'bg-gray-600', 'text-white')); btn.classList.add('active'); App.renderInvestments(); },
 
-            renderTransactions: () => {
-                const val = document.getElementById('date-filter').value; const [y, m] = val.split('-').map(Number);
-                const start = new Date(y, m-1, 1), end = new Date(y, m, 0, 23, 59, 59);
-                const txs = State.data.transactions.filter(t => { 
-                    const d = getTxDate(t); return d >= start && d <= end && !t.isPending; 
-                }).sort((a,b) => getTxDate(b) - getTxDate(a));
-                
-                const inc = txs.filter(t=>t.type==='income').reduce((a,b)=>a+(parseFloat(b.amount)||0),0);
-                const exp = txs.filter(t=>t.type==='expense').reduce((a,b)=>a+(parseFloat(b.amount)||0),0);
-                document.getElementById('monthly-income').innerText = formatMoney(inc); document.getElementById('monthly-expense').innerText = formatMoney(exp); document.getElementById('monthly-balance').innerText = formatMoney(inc-exp);
-                
-                const budget = State.settings.budget || 30000; const pct = Math.min((exp/budget)*100, 100);
-                const bar = document.getElementById('budget-bar'); bar.style.width = `${pct}%`;
-                bar.className = `progress-bar ${pct>100?'bg-danger':pct>80?'bg-warning':'bg-primary'}`;
-                document.getElementById('current-expense-text').innerText = formatMoney(exp); document.getElementById('suggested-budget-text').innerText = formatMoney(budget); document.getElementById('budget-status').innerText = pct>100?'已超支':pct>80?'注意':'良好';
-                
-                const grouped = {};
-                txs.forEach(t => {
-                    const dateStr = toDateStr(getTxDate(t));
-                    if(!grouped[dateStr]) grouped[dateStr] = { txs: [], income: 0, expense: 0 };
-                    grouped[dateStr].txs.push(t);
-                    if(t.type === 'income') grouped[dateStr].income += parseFloat(t.amount);
-                    else grouped[dateStr].expense += parseFloat(t.amount);
-                });
+            handleSaveTransaction: async (e) => {
+                e.preventDefault(); const f=e.target, uid=State.user.uid, id=f.id.value, lid=f.legacy_inv_id.value;
+                const localDate = new Date(f.date.value + 'T12:00:00'); 
+                const type = f.type.value;
+                const amount = parseFloat(f.amount.value);
+                const project = f.project.value;
 
-                const tbody = document.getElementById('tx-list');
-                tbody.innerHTML = '';
+                const d = { type: type, amount: amount, category: f.category.value, remarks: f.remarks.value, timestamp: Timestamp.fromDate(localDate), project: project };
                 
-                if (Object.keys(grouped).length === 0) {
-                    tbody.innerHTML = '<tr><td colspan="5" class="text-center text-muted py-4">本月無交易紀錄</td></tr>';
-                    return;
+                const batch = writeBatch(db);
+
+                // Auto Debt Reduction
+                if (type === 'expense' && project && !id) { // Only on CREATE for safety
+                     const debt = State.data.debts.find(db => db.name === project);
+                     if (debt) {
+                         const debtRef = doc(db, `users/${uid}/debts`, debt.id);
+                         batch.update(debtRef, { remainingAmount: increment(-amount) });
+                     }
                 }
 
-                Object.keys(grouped).sort((a,b) => b.localeCompare(a)).forEach(dateStr => {
-                    const dayData = grouped[dateStr];
-                    const dailyBal = dayData.income - dayData.expense;
-                    const headerRow = document.createElement('tr');
-                    headerRow.className = 'date-header';
-                    headerRow.innerHTML = `
-                        <td colspan="5" class="py-2 px-3 fw-bold border-bottom">
-                            <div class="d-flex justify-content-between align-items-center">
-                                <span><i class="far fa-calendar-alt me-2"></i>${dateStr}</span>
-                                <span class="small">
-                                    <span class="text-success me-2">收: $${dayData.income.toLocaleString()}</span>
-                                    <span class="text-danger me-2">支: $${dayData.expense.toLocaleString()}</span>
-                                    <span class="${dailyBal>=0?'text-primary':'text-danger'}">餘: ${dailyBal>0?'+':''}$${dailyBal.toLocaleString()}</span>
-                                </span>
-                            </div>
-                        </td>
-                    `;
-                    tbody.appendChild(headerRow);
+                if (lid && id) {
+                    const newRef = doc(collection(db, `users/${uid}/transactions`));
+                    batch.set(newRef, d);
+                    batch.delete(doc(db, `users/${uid}/investments/${lid}/transactions`, id));
+                    if (State.data.legacyTxs[lid]) {
+                         State.data.legacyTxs[lid] = State.data.legacyTxs[lid].filter(t => t.id !== id);
+                    }
+                } else {
+                    id ? await updateDoc(doc(db, `users/${uid}/transactions`, id), d) : await addDoc(collection(db, `users/${uid}/transactions`), d);
+                }
+                await batch.commit();
+                App.closeModal();
+            },
+            // Simplified Handlers
+            handleSaveInvestment: async (e) => { e.preventDefault(); const f=e.target; const d={name:f.name.value, initialValue:parseFloat(f.initial.value)||0, isArchived:f.isArchived.checked}; if(!f.id.value){d.marketValue=d.initialValue;d.createdAt=Timestamp.now();} f.id.value?await updateDoc(doc(db,`users/${State.user.uid}/investments`,f.id.value),d):(await addDoc(collection(db,`users/${State.user.uid}/investments`),d) && d.initialValue>0 && await addDoc(collection(db,`users/${State.user.uid}/transactions`),{type:'expense',amount:d.initialValue,category:'投資',project:f.name.value,remarks:'初始投入',timestamp:Timestamp.now()})); App.closeModal(); },
+            handleSaveDebt: async (e) => { e.preventDefault(); const f=e.target, uid=State.user.uid; const d={name:f.name.value, totalAmount:parseFloat(f.total.value)}; 
+                if (f.remaining && f.remaining.value) d.remainingAmount = parseFloat(f.remaining.value);
+                else if(!f.id.value) { d.remainingAmount = parseFloat(f.total.value); d.createdAt = Timestamp.now(); }
+                f.id.value?await updateDoc(doc(db,`users/${uid}/debts`,f.id.value),d):await addDoc(collection(db,`users/${uid}/debts`),d); App.closeModal(); 
+            },
+            handleSaveBudget: async (e) => { e.preventDefault(); const f=e.target, uid=State.user.uid, ctx=f.context.value; const col = ctx === 'investment' ? 'investmentBudgets' : 'debtBudgets'; const d = { targetId: f.targetId.value,amount:parseFloat(f.amount.value),expectedDate:Timestamp.fromDate(new Date(f.date.value)),description:f.desc.value}; if(!f.id.value){d.isRealized=false;d.createdAt=Timestamp.now();} f.id.value?await updateDoc(doc(db,`users/${State.user.uid}/${f.context.value==='investment'?'investmentBudgets':'debtBudgets'}`,f.id.value),d):await addDoc(collection(db,`users/${State.user.uid}/${f.context.value==='investment'?'investmentBudgets':'debtBudgets'}`),d); App.closeModal(); },
+            handleRepayDebt: async (e) => { e.preventDefault(); const f=e.target, amt=parseFloat(f.amount.value), uid=State.user.uid; const debt=State.data.debts.find(d=>d.id===f.id.value); const batch=writeBatch(db); batch.update(doc(db,`users/${State.user.uid}/debts`,f.id.value),{remainingAmount:increment(-amt)}); batch.set(doc(collection(db,`users/${State.user.uid}/transactions`)),{type:'expense',amount:amt,category:'負債還款',project:debt.name,remarks:`償還: ${debt.name}`,timestamp:Timestamp.fromDate(new Date(f.date.value))}); await batch.commit(); App.closeModal(); },
+            handleSaveEvent: async(e) => { e.preventDefault(); const f=e.target, uid=State.user.uid; const d = { title:f.title.value, description:f.desc.value, date:Timestamp.fromDate(new Date(f.date.value)) }; f.id.value?await updateDoc(doc(db,`users/${uid}/events`,f.id.value),d):await addDoc(collection(db,`users/${uid}/events`),d); App.closeModal(); },
+            
+            deleteTransaction: async (id, legacyInvId) => {
+                if (!confirm('確定刪除?')) return;
+                const uid = State.user.uid;
+                let path = `users/${uid}/transactions/${id}`;
+                let isLegacy = false;
 
-                    dayData.txs.forEach(t => {
-                        const row = document.createElement('tr');
-                        row.className = `transaction-item type-${t.type}`;
-                        row.style.cursor = 'pointer';
-                        row.onclick = () => App.openModal('transactionModal', t.id);
-                        row.innerHTML = `
-                            <td class="ps-4"></td>
-                            <td><div class="fw-bold text-dark">${t.category || '未分類'}</div></td>
-                            <td class="text-muted small text-truncate" style="max-width: 150px;">${t.remarks || ''}</td>
-                            <td class="text-end fw-bold ${t.type==='expense'?'text-danger':'text-success'}">${t.type==='expense'?'-':'+'} ${formatMoney(t.amount)}</td>
-                            <td class="text-center pe-3"><button class="btn btn-sm btn-link text-muted" onclick="event.stopPropagation();App.openModal('transactionModal','${t.id}')"><i class="fas fa-pen"></i></button></td>
-                        `;
-                        tbody.appendChild(row);
-                    });
-                });
+                if (legacyInvId && legacyInvId !== 'undefined') {
+                    path = `users/${uid}/investments/${legacyInvId}/transactions/${id}`;
+                    isLegacy = true;
+                }
+
+                const docRef = doc(db, path);
+                try {
+                    const docSnap = await getDoc(docRef);
+                    if (!docSnap.exists()) { alert("找不到該筆資料"); return; }
+                    const txData = docSnap.data();
+                    const batch = writeBatch(db);
+
+                    // Reverse Debt Repayment (Add back the amount)
+                    if (!isLegacy && txData.type === 'expense' && txData.project) {
+                         const debt = State.data.debts.find(d => d.name === txData.project);
+                         if (debt) {
+                             const debtRef = doc(db, `users/${uid}/debts`, debt.id);
+                             batch.update(debtRef, { remainingAmount: increment(txData.amount) });
+                         }
+                    }
+
+                    batch.delete(docRef);
+                    await batch.commit();
+
+                    if (isLegacy && State.data.legacyTxs[legacyInvId]) {
+                         State.data.legacyTxs[legacyInvId] = State.data.legacyTxs[legacyInvId].filter(t => t.id !== id);
+                    }
+                    App.closeModal();
+                } catch (e) { console.error(e); alert("刪除失敗"); }
+            },
+            deleteItem: async (c,id) => { if(confirm('刪除?')) await deleteDoc(doc(db, `users/${State.user.uid}/${c}`, id)); },
+            updateMarketValue: async (id,old) => { const v=prompt("目前市值:",old); if(v&&!isNaN(v)) await updateDoc(doc(db, `users/${State.user.uid}/investments`, id), {marketValue:parseFloat(v)}); },
+            realizeBudget: async(ctx, id) => { if(!confirm("執行預算?"))return; const col=ctx==='investment'?'investmentBudgets':'debtBudgets'; const b=State.data[col].find(i=>i.id===id); const acc=(ctx==='investment'?State.data.investments:State.data.debts).find(a=>a.id===b.targetId); const batch=writeBatch(db); batch.update(doc(db,`users/${State.user.uid}/${col}`,id),{isRealized:true}); batch.set(doc(collection(db,`users/${State.user.uid}/transactions`)),{type:ctx==='investment'?'income':'expense',amount:b.amount,category:ctx==='investment'?'投資':'負債還款',project:acc.name,remarks:`預算執行: ${b.description}`,timestamp:Timestamp.now()}); if(ctx!=='investment') batch.update(doc(db,`users/${State.user.uid}/debts`,acc.id),{remainingAmount:increment(-b.amount)}); await batch.commit(); },
+            exportReport: () => { if(!confirm("匯出?"))return; const csv="Date,Category,Project,Note,Type,Amount\n"+App.getAllTransactions().map(t=>`${toDateStr(t.timestamp)},${t.category},${t.project||''},${t.remarks||''},${t.type},${t.amount}`).join("\n"); const l=document.createElement("a"); l.href=URL.createObjectURL(new Blob(["\uFEFF"+csv],{type:'text/csv'})); l.download="report.csv"; l.click(); },
+            exportEvents: () => {
+                if(!confirm("匯出大事記?")) return;
+                const txt = State.data.events
+                    .sort((a,b) => getTxDate(b) - getTxDate(a))
+                    .map(e => `${toDateStr(getTxDate(e))} - ${e.title}\n${e.description || ''}\n-------------------------`)
+                    .join("\n");
+                const l = document.createElement("a");
+                l.href = URL.createObjectURL(new Blob([txt], {type:'text/plain;charset=utf-8;'}));
+                l.download = "events.txt";
+                l.click();
             },
 
-            switchInvTab: (tab, btn) => { State.view.invTab = tab; const nav = btn.closest('.nav'); nav.querySelectorAll('.nav-link').forEach(b => b.classList.remove('active')); btn.classList.add('active'); App.renderInvestments(); },
+            // CATEGORY SELECTION LOGIC
+            openCategorySelector: () => {
+                const type = document.getElementById('tx-type').value;
+                const allTxs = App.getAllTransactions();
+                const historyCats = allTxs.filter(t => t.type === type && t.category).map(t => t.category);
+                const counts = {}; historyCats.forEach(c => counts[c] = (counts[c] || 0) + 1);
+                const sortedHistory = Object.keys(counts).sort((a,b) => counts[b] - counts[a]);
+                const defaults = State.categories[type];
+                const combined = [...new Set([...sortedHistory, ...defaults])];
+
+                const c = document.getElementById('sub-modal-content');
+                c.innerHTML = document.getElementById('tpl-category-selector').innerHTML;
+                const list = document.getElementById('category-chips');
+                list.innerHTML = combined.map(c => 
+                    `<button onclick="App.pickCategory('${c}')" class="bg-gray-100 hover:bg-primary hover:text-white text-gray-700 px-3 py-2 rounded-xl text-sm transition">${c}</button>`
+                ).join('');
+                document.getElementById('sub-modal-overlay').classList.remove('hidden');
+                document.getElementById('sub-modal-overlay').classList.add('flex');
+            },
+            closeSubModal: () => document.getElementById('sub-modal-overlay').classList.add('hidden'),
+            pickCategory: (val) => { document.querySelector('#modal-content input[name="category"]').value = val; App.closeSubModal(); },
+
+            renderTransactions: () => {
+                if(!document.getElementById('tx-list')) return;
+                const val = document.getElementById('date-filter').value; const [y, m] = val.split('-').map(Number);
+                const start = new Date(y, m-1, 1), end = new Date(y, m, 0, 23, 59, 59);
+                const txs = State.data.transactions.filter(t => { const d = getTxDate(t); return d >= start && d <= end; }).sort((a,b) => getTxDate(b) - getTxDate(a));
+                const grouped = {};
+                txs.forEach(t => { const k = getTxDate(t).toLocaleDateString('zh-TW',{month:'numeric',day:'numeric',weekday:'short'}); if(!grouped[k]) grouped[k]={list:[],inc:0,exp:0}; grouped[k].list.push(t); if(t.type==='income') grouped[k].inc+=parseFloat(t.amount); else grouped[k].exp+=parseFloat(t.amount); });
+                document.getElementById('tx-list').innerHTML = Object.entries(grouped).map(([k, v]) => {
+                    const bal = v.inc - v.exp; return `<div class="mb-4"><div class="flex justify-between items-center text-xs font-bold text-gray-400 mb-2 px-1 sticky top-0"><span>${k}</span><div class="flex gap-2"><span class="text-green-600">+${v.inc.toLocaleString()}</span><span class="text-red-500">-${v.exp.toLocaleString()}</span><span class="${bal<0?'text-red-500':'text-blue-600'} border-l pl-2 border-gray-300">=${bal.toLocaleString()}</span></div></div><div class="bg-white rounded-2xl shadow-sm card-shadow overflow-hidden">${v.list.map(t => `<div class="flex justify-between items-center py-3 px-3 border-b border-gray-50 hover:bg-gray-50 cursor-pointer" onclick="App.openModal('transaction-modal', '${t.id}')"><div class="flex items-center gap-3"><div class="bg-gray-100 w-9 h-9 rounded-full flex items-center justify-center text-gray-500 text-xs font-bold">${(t.category||'未')[0]}</div><div><p class="font-bold text-gray-800 text-xs">${t.category||'未分類'}</p><p class="text-[10px] text-gray-400">${t.remarks||''}</p></div></div><div class="flex items-center gap-2"><p class="font-bold text-sm ${t.type==='expense'?'text-red-500':'text-green-600'}">${t.type==='expense'?'-':'+'} ${parseFloat(t.amount).toLocaleString()}</p><div class="flex gap-1"><button type="button" class="text-gray-400 hover:text-blue-500 z-10 relative" onclick="event.stopPropagation();App.openModal('transaction-modal','${t.id}')"><i class="fa-solid fa-pen text-xs"></i></button><button type="button" class="text-gray-400 hover:text-red-500 z-10 relative" onclick="event.stopPropagation();App.deleteTransaction('${t.id}')"><i class="fa-solid fa-trash-can text-xs"></i></button></div></div></div>`).join('')}</div></div>`
+                }).join('') || '<div class="text-center py-10 text-gray-300">無紀錄</div>';
+            },
+            updateDashboard: () => {
+                if(!document.getElementById('monthly-balance')) return;
+                const val = document.getElementById('date-filter').value; const [y, m] = val.split('-').map(Number);
+                const start = new Date(y, m-1, 1), end = new Date(y, m, 0, 23, 59, 59);
+                const txs = State.data.transactions.filter(t => { const d = getTxDate(t); return d >= start && d <= end; });
+                const inc = txs.filter(t=>t.type==='income').reduce((a,b)=>a+(parseFloat(b.amount)||0),0);
+                const exp = txs.filter(t=>t.type==='expense').reduce((a,b)=>a+(parseFloat(b.amount)||0),0);
+                document.getElementById('monthly-income').innerText = inc.toLocaleString(); document.getElementById('monthly-expense').innerText = exp.toLocaleString(); document.getElementById('monthly-balance').innerText = (inc-exp).toLocaleString();
+                
+                // Budget Suggestion Logic
+                const avgExpense = 30000; // Mock average, in real app calculate from past 3 months
+                const suggestedBudget = Math.round(avgExpense * 1.1);
+                const currentExpense = exp;
+                const percentage = Math.min((currentExpense / suggestedBudget) * 100, 100);
+                
+                document.getElementById('current-expense-text').innerText = `$${currentExpense.toLocaleString()}`;
+                document.getElementById('suggested-budget-text').innerText = `$${suggestedBudget.toLocaleString()}`;
+                document.getElementById('budget-bar').style.width = `${percentage}%`;
+                
+                let statusText = '控制良好';
+                let statusColor = 'text-green-500';
+                if (percentage > 100) { statusText = '已超支'; statusColor = 'text-red-500'; document.getElementById('budget-bar').classList.add('bg-red-500'); }
+                else if (percentage > 80) { statusText = '注意支出'; statusColor = 'text-yellow-500'; document.getElementById('budget-bar').classList.add('bg-yellow-500'); }
+                else { document.getElementById('budget-bar').className = 'bg-primary h-2 rounded-full transition-all duration-500'; }
+                
+                document.getElementById('budget-status').innerText = statusText;
+                document.getElementById('budget-status').className = `text-[10px] font-bold ${statusColor}`;
+
+                const now = new Date();
+                if(now.getMonth()+1 === m && now.getFullYear() === y) {
+                    const tStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()), tEnd = new Date(now.getFullYear(), now.getMonth(), now.getDate()+1);
+                    const todayTxs = State.data.transactions.filter(t => { const d = getTxDate(t); return d >= tStart && d < tEnd; });
+                    const tInc = todayTxs.filter(t=>t.type==='income').reduce((a,b)=>a+(parseFloat(b.amount)||0),0);
+                    const tExp = todayTxs.filter(t=>t.type==='expense').reduce((a,b)=>a+(parseFloat(b.amount)||0),0);
+                    const tBal = tInc - tExp;
+                    document.getElementById('today-income').innerText = tInc.toLocaleString(); document.getElementById('today-expense').innerText = tExp.toLocaleString(); document.getElementById('today-balance').innerText = tBal.toLocaleString();
+                    document.getElementById('today-balance-container').className = `${tBal<0?'text-red-500':'text-blue-600'} font-medium border-l pl-2 border-gray-200`;
+                }
+            },
             renderInvestments: () => {
+                if(!document.getElementById('inv-list')) return;
+                const mVal = document.getElementById('inv-date-filter').value; const [yr, mn] = mVal ? mVal.split('-').map(Number) : [new Date().getFullYear(), new Date().getMonth()+1];
+                const startM = new Date(yr, mn-1, 1), endM = new Date(yr, mn, 0, 23, 59, 59);
+
                 const invs = State.data.investments.sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
                 const activeInvs = invs.filter(i => State.view.invTab === 'active' ? !i.isArchived : i.isArchived);
-                const container = document.getElementById('inv-list');
-                const pendingContainer = document.getElementById('inv-pending-list');
-                const pendingSection = document.getElementById('inv-pending-section');
-                
-                // Use temp string buffers
-                let containerHtml = '';
-                let pendingHtml = '';
-
-                if(!activeInvs.length) { container.innerHTML = '<div class="col-12 text-center text-muted py-5">無投資帳戶</div>'; }
-                
-                let allPending = [];
-                const today = new Date().setHours(0,0,0,0);
-                
-                activeInvs.forEach(i => {
+                let tv=0, tr=0, tc=0;
+                document.getElementById('inv-list').innerHTML = activeInvs.length ? activeInvs.map(i=>{
                     const subTxs = State.data.legacyTxs[i.id] || [];
                     const mainTxs = State.data.transactions.filter(t => t.project === i.name);
                     const linked = new Set(subTxs.map(t => t.mainTransactionId).filter(Boolean));
-                    const all = [...subTxs.filter(t=>!t.isPending), ...mainTxs.filter(t => !linked.has(t.id) && !t.isPending)];
-                    
-                    const pendingForThis = State.data.transactions.filter(t => t.project === i.name && t.isPending);
-                    pendingForThis.forEach(pt => allPending.push({...pt, invId: i.id}));
-
+                    const all = [...subTxs, ...mainTxs.filter(t => !linked.has(t.id))];
                     const inc = all.filter(t=>t.type==='income').reduce((a,b)=>a+parseFloat(b.amount),0);
                     const exp = all.filter(t=>t.type==='expense').reduce((a,b)=>a+parseFloat(b.amount),0);
-                    
-                    // NEW PROFIT LOGIC: MV + Income - Expense
-                    const mv = parseFloat(i.marketValue) || 0;
-                    const profit = mv + inc - exp; 
-                    
-                    const target = parseFloat(i.targetAmount) || 0;
-                    let targetHtml = '';
-                    if (target > 0) {
-                        const pct = Math.min((mv / target) * 100, 100);
-                        targetHtml = `<div class="mt-2 pt-2 border-top"><div class="d-flex justify-content-between small mb-1"><span class="text-muted">目標達成率</span><span class="fw-bold text-primary">${Math.round(pct)}%</span></div><div class="progress" style="height: 6px;"><div class="progress-bar bg-warning" role="progressbar" style="width: ${pct}%"></div></div><small class="text-muted d-block text-end mt-1" style="font-size:0.7rem">目標: $${target.toLocaleString()}</small></div>`;
-                    }
+                    const profit = inc - exp;
+                    if(State.view.invTab === 'active') { tv += (parseFloat(i.marketValue)||0); tc += exp; tr += profit; }
 
-                    const pendingIndicator = pendingForThis.length > 0 ? `<div class="pending-indicator text-warning" title="有 ${pendingForThis.length} 筆預定款項"><i class="fas fa-clock"></i></div>` : '';
+                    const mInc = all.filter(t => {
+                         const d = getTxDate(t);
+                         return t.type==='income' && d >= startM && d <= endM;
+                    }).reduce((s,t) => s + parseFloat(t.amount), 0);
+                    
+                    const mDisp = mInc > 0 ? `<span class="text-green-600 text-[10px] ml-2 font-bold">本月收益: +${mInc.toLocaleString()}</span>` : '<span class="text-gray-300 text-[10px] ml-2">本月收益: $0</span>';
 
-                    containerHtml += `
-                    <div class="col-md-6 col-lg-4">
-                        <div class="card-item" onclick="App.showDetails('investment', '${i.id}')" style="cursor:pointer;">
-                            ${pendingIndicator}
-                            <div class="card-item-header">
-                                <h5 class="fw-bold mb-0 text-dark"><i class="fas fa-chart-line text-primary me-2"></i>${i.name}</h5>
-                                <button onclick="event.stopPropagation();App.openModal('investmentModal','${i.id}')" class="btn btn-sm btn-link text-muted p-0"><i class="fas fa-pen"></i></button>
-                            </div>
-                            <div class="card-item-body">
-                                <div class="text-center mb-3"><small class="text-muted d-block">目前市值</small><h3 class="fw-bold text-dark">$${mv.toLocaleString()}</h3></div>
-                                <div class="row g-0 text-center bg-light rounded-3 p-2"><div class="col-6 border-end"><small class="text-muted d-block">總損益</small><span class="fw-bold ${profit>=0?'text-success':'text-danger'}">${profit>=0?'+':''}${profit.toLocaleString()}</span></div><div class="col-6"><small class="text-muted d-block">投入成本</small><span class="fw-bold text-secondary">$${exp.toLocaleString()}</span></div></div>
-                                ${targetHtml}
-                            </div>
-                        </div>
-                    </div>`;
-                });
+                    return `<div class="bg-white p-3 rounded-xl card-shadow flex justify-between items-center cursor-pointer" onclick="App.showDetails('investment', '${i.id}')"><div class="flex-1 min-w-0 mr-2"><h4 class="font-bold text-gray-800 text-sm">${i.name}</h4><p class="text-[10px] text-gray-400">成本: ${(parseFloat(i.initialValue)||0).toLocaleString()}</p></div><div class="text-right"><p class="font-bold text-sm">$${(parseFloat(i.marketValue)||0).toLocaleString()}</p><p class="text-[10px] font-bold ${profit>=0?'text-green-500':'text-red-500'}">總: ${profit.toLocaleString()}</p>${mDisp}</div><button onclick="event.stopPropagation();App.openModal('investment-modal', '${i.id}')" type="button" class="text-gray-300 hover:text-blue-500 ml-2"><i class="fa-solid fa-pen text-xs"></i></button></div>`;
+                }).join('') : '<div class="text-center text-gray-400 py-4 text-xs">無帳戶</div>';
                 
-                if(activeInvs.length) container.innerHTML = containerHtml;
-
-                if(allPending.length > 0) {
-                    pendingSection.classList.remove('d-none');
-                    allPending.sort((a,b) => getTxDate(a) - getTxDate(b)).forEach(t => {
-                        const txDate = getTxDate(t);
-                        const isOverdue = txDate < today;
-                        const dateClass = isOverdue ? 'text-danger fw-bold' : 'text-warning fw-bold';
-                        const iconHtml = isOverdue ? '<i class="fas fa-exclamation-circle me-1"></i>' : '<i class="fas fa-calendar me-1"></i>';
-                        
-                        pendingHtml += `
-                        <li class="list-group-item d-flex justify-content-between align-items-center">
-                            <div>
-                                <small class="${dateClass} d-block">${iconHtml}${txDate.toLocaleDateString()} - ${t.project}</small>
-                                <span class="fw-bold text-dark">${t.remarks||t.category}</span>
-                            </div>
-                            <div class="d-flex align-items-center">
-                                <span class="fw-bold me-3 ${t.type==='expense'?'text-danger':'text-success'}">$${formatMoney(t.amount)}</span>
-                                <button class="btn btn-sm btn-success rounded-circle shadow-sm" onclick="App.confirmPendingTransaction('${t.id}', '${t.invId}', 'investment')" title="確認執行"><i class="fas fa-check"></i></button>
-                                <button class="btn btn-sm btn-light rounded-circle shadow-sm ms-2" onclick="App.openModal('transactionModal','${t.id}', {isPending:true})"><i class="fas fa-pen"></i></button>
-                                <button class="btn btn-sm btn-light rounded-circle shadow-sm ms-2 text-danger" onclick="App.deleteTransaction('${t.id}', '${t.legacyInvId}')"><i class="fas fa-trash"></i></button>
-                            </div>
-                        </li>`;
-                    });
-                    pendingContainer.innerHTML = pendingHtml;
-                } else {
-                    pendingSection.classList.add('d-none');
-                }
+                const allInvIncome = App.getAllTransactions().filter(t => {
+                    const d = getTxDate(t);
+                    return t.type === 'income' && t.category.includes('投資') && d >= startM && d <= endM;
+                }).reduce((s, t) => s + parseFloat(t.amount), 0);
+                document.getElementById('inv-monthly-summary').innerText = `本月收益: $${allInvIncome.toLocaleString()}`;
+                
+                const roi = tc > 0 ? (tr / tc) * 100 : 0;
+                document.getElementById('inv-total-val').innerText = `$${tv.toLocaleString()}`; document.getElementById('inv-total-ret').innerText = `${tr>0?'+':''}${tr.toLocaleString()}`; document.getElementById('inv-roi').innerText = `${roi.toFixed(1)}%`;
+                document.getElementById('inv-budget-list').innerHTML = State.data.investmentBudgets.filter(b=>!b.isRealized).sort((a,b)=>(a.expectedDate?.seconds||0)-(b.expectedDate?.seconds||0)).map(b=>`<li class="flex justify-between items-center p-2 rounded-xl border card-shadow mb-1 ${b.expectedDate?.toDate()<new Date().setHours(0,0,0,0)?'bg-red-50 border-red-200':'bg-white border-gray-100'}"><div class="text-xs"><span class="font-bold text-gray-700">${(invs.find(i=>i.id===b.targetId)?.name)||'未知'}</span>: <span class="text-blue-600 font-medium">${b.description}</span> <span class="text-secondary">$${(parseFloat(b.amount)||0).toLocaleString()}</span><span class="text-[10px] ml-2 ${b.expectedDate?.toDate()<new Date().setHours(0,0,0,0)?'text-red-500 font-bold':'text-gray-400'}">${b.expectedDate?.toDate().toLocaleDateString()||''}</span></div><div class="flex gap-2"><button onclick="App.realizeBudget('investment','${b.id}')" class="text-secondary hover:text-green-700"><i class="fa-solid fa-check"></i></button><button onclick="App.openBudgetModal('investment','${b.id}')" class="text-gray-300 hover:text-blue-500"><i class="fa-solid fa-pen"></i></button><button onclick="App.deleteItem('investmentBudgets','${b.id}')" class="text-gray-300 hover:text-red-500"><i class="fa-solid fa-trash"></i></button></div></li>`).join('')||'<li class="text-xs text-gray-400 text-center py-2">無預算</li>';
             },
-
-            renderDebts: () => {
+            renderDebts: () => { if(!document.getElementById('debt-list')) return;
+                const mVal = document.getElementById('debt-date-filter').value; const [yr, mn] = mVal ? mVal.split('-').map(Number) : [new Date().getFullYear(), new Date().getMonth()+1];
+                const startM = new Date(yr, mn-1, 1), endM = new Date(yr, mn, 0, 23, 59, 59);
                 const debts = State.data.debts.sort((a,b)=>(b.createdAt?.seconds||0)-(a.createdAt?.seconds||0));
-                const container = document.getElementById('debt-list');
-                const pendingContainer = document.getElementById('debt-pending-list');
-                const pendingSection = document.getElementById('debt-pending-section');
-                
-                let containerHtml = '';
-                let pendingHtml = '';
-
-                if(!debts.length) { container.innerHTML = '<div class="col-12 text-center text-muted py-5">無負債項目</div>'; }
-                
-                let allPending = [];
-                const today = new Date().setHours(0,0,0,0);
-                
-                // For Monthly Repaid Calc
-                const now = new Date();
-                const startM = new Date(now.getFullYear(), now.getMonth(), 1);
-                const endM = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59);
-
-                debts.forEach(d => {
-                    const total = parseFloat(d.totalAmount); const rem = parseFloat(d.remainingAmount); const paid = total - rem; const pct = total > 0 ? Math.round((paid / total) * 100) : 0;
-                    
-                    const pendingForThis = State.data.transactions.filter(t => t.project === d.name && t.isPending);
-                    pendingForThis.forEach(pt => allPending.push({...pt, debtId: d.id}));
-
-                    const pendingIndicator = pendingForThis.length > 0 ? `<div class="pending-indicator text-warning" title="有 ${pendingForThis.length} 筆預定款項"><i class="fas fa-clock"></i></div>` : '';
-                    
-                    // Calc Monthly Repaid
-                    const mRepaid = State.data.transactions.filter(t => 
-                        !t.isPending &&
-                        t.type === 'expense' && 
-                        t.project === d.name && 
-                        getTxDate(t) >= startM && 
-                        getTxDate(t) <= endM
-                    ).reduce((sum, t) => sum + (parseFloat(t.amount)||0), 0);
-
-                    containerHtml += `
-                    <div class="col-md-6 col-lg-4">
-                        <div class="card-item" onclick="App.showDetails('debt', '${d.id}')" style="cursor:pointer;">
-                            ${pendingIndicator}
-                            <div class="card-item-header">
-                                <h6 class="fw-bold mb-0 text-dark"><i class="fas fa-file-invoice text-danger me-2"></i>${d.name}</h6>
-                                <span class="badge bg-light text-dark border">${pct}% 已還</span>
-                            </div>
-                            <div class="card-item-body">
-                                <div class="d-flex justify-content-between align-items-end mb-2">
-                                    <div><small class="text-muted">剩餘金額</small><h4 class="fw-bold text-danger mb-0">$${rem.toLocaleString()}</h4></div>
-                                    <div class="text-end"><small class="text-success fw-bold d-block">本月已還</small><span class="text-success fw-bold">+${mRepaid.toLocaleString()}</span></div>
-                                </div>
-                                <div class="progress mb-3" style="height: 8px; background-color: #ffebee;"><div class="progress-bar bg-success" role="progressbar" style="width: ${pct}%"></div></div>
-                                <div class="d-flex justify-content-end gap-2 align-items-center"><button onclick="event.stopPropagation();App.openModal('debtModal','${d.id}')" class="btn btn-sm btn-outline-secondary rounded-pill px-3"><i class="fas fa-pen"></i></button><button onclick="event.stopPropagation();App.deleteItem('debts','${d.id}')" class="btn btn-sm btn-outline-danger rounded-pill px-3"><i class="fas fa-trash"></i></button></div>
-                            </div>
-                        </div>
-                    </div>`;
-                });
-                
-                if(debts.length) container.innerHTML = containerHtml;
-
-                if(allPending.length > 0) {
-                    pendingSection.classList.remove('d-none');
-                    allPending.sort((a,b) => getTxDate(a) - getTxDate(b)).forEach(t => {
-                        const txDate = getTxDate(t);
-                        const isOverdue = txDate < today;
-                        const dateClass = isOverdue ? 'text-danger fw-bold' : 'text-warning fw-bold';
-                        const iconHtml = isOverdue ? '<i class="fas fa-exclamation-circle me-1"></i>' : '<i class="fas fa-calendar me-1"></i>';
-
-                        pendingHtml += `
-                        <li class="list-group-item d-flex justify-content-between align-items-center">
-                            <div>
-                                <small class="${dateClass} d-block">${iconHtml}${txDate.toLocaleDateString()} - ${t.project}</small>
-                                <span class="fw-bold text-dark">${t.remarks||t.category}</span>
-                            </div>
-                            <div class="d-flex align-items-center">
-                                <span class="fw-bold me-3 ${t.type==='expense'?'text-danger':'text-success'}">$${formatMoney(t.amount)}</span>
-                                <button class="btn btn-sm btn-success rounded-circle shadow-sm" onclick="App.confirmPendingTransaction('${t.id}', '${t.debtId}', 'debt')" title="確認執行"><i class="fas fa-check"></i></button>
-                                <button class="btn btn-sm btn-light rounded-circle shadow-sm ms-2" onclick="App.openModal('transactionModal','${t.id}', {isPending:true})"><i class="fas fa-pen"></i></button>
-                                <button class="btn btn-sm btn-light rounded-circle shadow-sm ms-2 text-danger" onclick="App.deleteTransaction('${t.id}', '${t.legacyInvId}')"><i class="fas fa-trash"></i></button>
-                            </div>
-                        </li>`;
-                    });
-                    pendingContainer.innerHTML = pendingHtml;
-                } else {
-                    pendingSection.classList.add('d-none');
-                }
+                let tr=0, totalMonthlyRepaid=0; 
+                document.getElementById('debt-list').innerHTML = debts.map(d=>{
+                    tr+=parseFloat(d.remainingAmount); const p=Math.round(((d.totalAmount-d.remainingAmount)/d.totalAmount)*100);
+                    // FIX: Relaxed filter for Debt Repayment
+                    const debtTxs = State.data.transactions.filter(t => 
+                         t.type === 'expense' && 
+                         t.project === d.name
+                    );
+                    const mRepaid = debtTxs.reduce((sum, t) => {
+                        const dt = getTxDate(t); 
+                        return (dt >= startM && dt <= endM) ? sum + (parseFloat(t.amount)||0) : sum;
+                    }, 0);
+                    totalMonthlyRepaid += mRepaid;
+                    const mDisp = mRepaid > 0 ? `<span class="text-[10px] text-green-600 font-medium ml-2">本月已還:$${mRepaid.toLocaleString()}</span>` : '';
+                    return `<div class="bg-white p-3 rounded-xl card-shadow cursor-pointer" onclick="App.showDetails('debt', '${d.id}')"><div class="flex justify-between mb-1"><span class="font-bold text-sm">${d.name}</span><button onclick="event.stopPropagation();App.openModal('debt-modal','${d.id}')" class="text-gray-300 hover:text-blue-500"><i class="fa-solid fa-pen text-xs"></i></button></div><div class="flex justify-between text-xs text-gray-500 mb-1"><span>剩 $${d.remainingAmount.toLocaleString()}</span>${mDisp}<span>${p}%</span></div><div class="w-full bg-gray-100 rounded-full h-1.5 mb-2"><div class="bg-primary h-1.5 rounded-full" style="width:${p}%"></div></div><div class="flex justify-end gap-2"><button onclick="event.stopPropagation();App.openRepayModal('${d.id}','${d.name}')" class="text-xs bg-green-50 px-2 py-0.5 rounded">還款</button><button onclick="event.stopPropagation();App.deleteItem('debts','${d.id}')" class="text-xs text-gray-300 px-1"><i class="fa-solid fa-trash"></i></button></div></div>`
+                }).join('');
+                document.getElementById('debt-total-remaining').innerText = `$${tr.toLocaleString()}`;
+                document.getElementById('debt-monthly-summary').innerText = `本月還款: $${totalMonthlyRepaid.toLocaleString()}`;
+                document.getElementById('debt-budget-list').innerHTML = State.data.debtBudgets.filter(b=>!b.isRealized).sort((a,b)=>(a.expectedDate?.seconds||0)-(b.expectedDate?.seconds||0)).map(b=>`<li class="flex justify-between items-center p-2 rounded-xl border card-shadow mb-1 ${b.expectedDate?.toDate()<new Date().setHours(0,0,0,0)?'bg-red-50 border-red-200':'bg-white border-gray-100'}"><div class="text-xs"><span class="font-bold text-gray-700">${(State.data.debts.find(d=>d.id===b.targetId)?.name)||'未知'}</span>: <span class="text-blue-600 font-medium">${b.description}</span> <span class="text-danger">$${(parseFloat(b.amount)||0).toLocaleString()}</span><span class="text-[10px] ml-2 ${b.expectedDate?.toDate()<new Date().setHours(0,0,0,0)?'text-red-500 font-bold':'text-gray-400'}">${b.expectedDate?.toDate().toLocaleDateString()||''}</span></div><div class="flex gap-2"><button onclick="App.realizeBudget('debt','${b.id}')" class="text-secondary hover:text-green-700"><i class="fa-solid fa-check"></i></button><button onclick="App.openBudgetModal('debt','${b.id}')" class="text-gray-300 hover:text-blue-500"><i class="fa-solid fa-pen"></i></button><button onclick="App.deleteItem('debtBudgets','${b.id}')" class="text-gray-300 hover:text-red-500"><i class="fa-solid fa-trash"></i></button></div></li>`).join('')||'<li class="text-xs text-gray-400 text-center py-2">無計畫項目</li>';
             },
-
-            renderEvents: () => {
-                const evs = State.data.events.sort((a,b) => getTxDate(b) - getTxDate(a));
-                const container = document.getElementById('event-list');
-                if(!evs.length) { container.innerHTML = '<div class="col-12 text-center text-muted py-5">無大事記</div>'; return; }
-                container.innerHTML = evs.map(e => `<div class="col-md-6 mb-3"><div class="card border-0 shadow-sm h-100" style="border-radius: 16px;"><div class="card-body"><div class="d-flex justify-content-between mb-2"><span class="badge bg-dark rounded-pill">${getTxDate(e).toLocaleDateString()}</span><button onclick="App.openModal('eventModal','${e.id}')" class="btn btn-sm btn-link text-muted p-0"><i class="fas fa-pen"></i></button></div><h5 class="card-title fw-bold text-dark">${e.title}</h5><p class="card-text text-muted small">${e.description || ''}</p></div></div></div>`).join('');
-            },
-
             renderReports: () => {
-                const allTxs = App.getAllTransactions(false);
-                const cSel=document.getElementById('report-category'); const curC=cSel.value;
-                const pSel=document.getElementById('report-project'); const curP=pSel.value;
-                const usedCats = [...new Set(allTxs.map(t=>t.category).filter(Boolean))];
-                const allCats = [...new Set([...State.categories.expense, ...State.categories.income, ...usedCats])].sort();
-                if(cSel.options.length <= 1) { cSel.innerHTML = '<option value="all">全部分類</option>'; allCats.forEach(c => cSel.innerHTML += `<option value="${c}">${c}</option>`); } cSel.value = curC;
-                const usedProjs = [...new Set(allTxs.map(t=>t.project).filter(Boolean))].sort();
-                if(pSel.options.length <= 1) { pSel.innerHTML = '<option value="all">全部帳戶</option>'; usedProjs.forEach(p => pSel.innerHTML += `<option value="${p}">${p}</option>`); } pSel.value = curP;
-                const yr = parseInt(document.getElementById('report-year').value);
-                const mnVal = document.getElementById('report-month-select').value;
+                if(!document.getElementById('report-project')) return;
+                const allTxs = App.getAllTransactions();
+                const pSel=document.getElementById('report-project'), cSel=document.getElementById('report-category');
+                const curP=pSel.value, curC=cSel.value;
+                const projs = [...new Set(allTxs.map(t=>t.project).filter(Boolean))].sort();
+                pSel.innerHTML = '<option value="all">全部專案</option>' + projs.map(p=>`<option value="${p}">${p}</option>`).join('');
+                if(projs.includes(curP)) pSel.value = curP;
+                const cats = [...new Set(allTxs.map(t=>t.category).filter(Boolean))].sort();
+                cSel.innerHTML = '<option value="all">全部分類</option>' + cats.map(c=>`<option value="${c}">${c}</option>`).join('');
+                if(cats.includes(curC)) cSel.value = curC;
+                const yr = parseInt(document.getElementById('report-year').value), mnVal = document.getElementById('report-month-select').value;
                 let start, end;
                 if(mnVal==='all') { start=new Date(yr,0,1); end=new Date(yr,11,31,23,59,59); } else { const m=parseInt(mnVal); start=new Date(yr,m-1,1); end=new Date(yr,m,0,23,59,59); }
-                const filtered = allTxs.filter(t => { const d = getTxDate(t); const matchTime = d>=start && d<=end; const matchCat = (curC==='all' || t.category===curC); const matchProj = (curP==='all' || t.project===curP); return matchTime && matchCat && matchProj; }).sort((a,b)=>getTxDate(b)-getTxDate(a));
+                const filtered = allTxs.filter(t => { const d = getTxDate(t); return d>=start && d<=end && (pSel.value==='all'||t.project===pSel.value) && (cSel.value==='all'||t.category===cSel.value); }).sort((a,b)=>getTxDate(b)-getTxDate(a));
                 if(State.chart) State.chart.destroy();
-                const map={}; filtered.filter(t=>t.type==='expense').forEach(t=>{ const c=t.category||'未分類'; map[c]=(map[c]||0)+parseFloat(t.amount); });
-                State.chart = new Chart(document.getElementById('expense-chart').getContext('2d'), { type: 'doughnut', data: { labels: Object.keys(map), datasets: [{ data: Object.values(map), backgroundColor: ['#3498db', '#e74c3c', '#f1c40f', '#2ecc71', '#9b59b6', '#34495e', '#e67e22'], borderWidth:1 }] }, options: { responsive:true, maintainAspectRatio:false, plugins:{ legend:{position:'right'} } } });
-                document.getElementById('report-stats').innerHTML = Object.entries(map).sort((a,b)=>b[1]-a[1]).map(([k,v]) => `<li class="list-group-item d-flex justify-content-between align-items-center px-0"><span>${k}</span><span class="fw-bold text-danger">$${v.toLocaleString()}</span></li>`).join('') || '<li class="list-group-item text-center text-muted">無支出資料</li>';
-                document.getElementById('report-details').innerHTML = filtered.slice(0, 100).map(t => `<tr><td class="small text-muted ps-3">${getTxDate(t).toLocaleDateString()}</td><td><div class="small fw-bold">${t.category}</div><div class="text-muted small text-truncate" style="max-width:100px">${t.remarks||t.project||''}</div></td><td class="text-end fw-bold pe-3 ${t.type==='expense'?'text-danger':'text-success'}">${t.type==='expense'?'-':'+'} ${formatMoney(t.amount)}</td></tr>`).join('');
+                const map={}, total=filtered.filter(t=>t.type==='expense').reduce((s,t)=>{const c=t.category||'未分類'; map[c]=(map[c]||0)+parseFloat(t.amount); return s+parseFloat(t.amount)},0);
+                State.chart = new Chart(document.getElementById('expense-chart').getContext('2d'), { type: 'doughnut', data: { labels: Object.keys(map), datasets: [{ data: Object.values(map), backgroundColor: ['#EF4444','#F59E0B','#10B981','#3B82F6','#6366F1','#8B5CF6','#EC4899','#6B7280'], borderWidth:0 }] }, options: {responsive:true, maintainAspectRatio:false, plugins:{legend:{position:'right',labels:{font:{size:10},boxWidth:10}}}} });
+                let statsHtml = '';
+                const incMap={}, expMap={}; let incTotal=0, expTotal=0;
+                filtered.forEach(t => { const amt = parseFloat(t.amount)||0; const c = t.category||'未分類'; if (t.type === 'expense') { expMap[c]=(expMap[c]||0)+amt; expTotal+=amt; } else { incMap[c]=(incMap[c]||0)+amt; incTotal+=amt; } });
+                if (incTotal > 0) { statsHtml += `<li class="text-xs font-bold text-green-600 mb-2 border-b border-gray-100 pb-1 mt-2">收入統計 (總計: $${incTotal.toLocaleString()})</li>` + Object.entries(incMap).sort((a,b)=>b[1]-a[1]).map(([k,v])=>`<li class="flex justify-between border-b border-gray-50 pb-1 last:border-0"><span>${k}</span><span class="font-bold text-green-600">$${v.toLocaleString()} <span class="text-[10px] text-gray-400 font-normal">(${((v/incTotal)*100).toFixed(1)}%)</span></span></li>`).join(''); }
+                if (expTotal > 0) { statsHtml += `<li class="text-xs font-bold text-red-500 mb-2 border-b border-gray-100 pb-1 mt-4">支出統計 (總計: $${expTotal.toLocaleString()})</li>` + Object.entries(expMap).sort((a,b)=>b[1]-a[1]).map(([k,v])=>`<li class="flex justify-between border-b border-gray-50 pb-1 last:border-0"><span>${k}</span><span class="font-bold text-red-500">$${v.toLocaleString()} <span class="text-[10px] text-gray-400 font-normal">(${((v/expTotal)*100).toFixed(1)}%)</span></span></li>`).join(''); }
+                if (incTotal === 0 && expTotal === 0) statsHtml = '<li class="text-center text-gray-400 py-4">無數據</li>';
+                document.getElementById('report-stats').innerHTML = statsHtml;
+                document.getElementById('report-details').innerHTML = filtered.length ? filtered.map(t => `<li class="flex justify-between items-center py-2 border-b border-gray-50 last:border-0 group cursor-pointer hover:bg-gray-50 p-1 rounded transition" onclick="App.openModal('transaction-modal', '${t.id}')"><div class="flex-1 min-w-0 mr-2"><p class="text-xs text-gray-500 mb-0.5">${getTxDate(t).toLocaleDateString()} <span class="font-medium text-gray-700">${t.category}</span></p><p class="text-[10px] text-gray-400 truncate">${t.remarks||''}</p></div><div class="flex items-center gap-2"><span class="text-xs font-bold ${t.type==='expense'?'text-red-500':'text-green-600'} whitespace-nowrap">${t.type==='expense'?'-':'+'} ${parseFloat(t.amount).toLocaleString()}</span><div class="flex gap-1"><button type="button" class="text-gray-400 hover:text-blue-500 z-10 relative" onclick="event.stopPropagation();App.openModal('transaction-modal','${t.id}')"><i class="fa-solid fa-pen text-xs"></i></button><button type="button" class="text-gray-400 hover:text-red-500 z-10 relative" onclick="event.stopPropagation();App.deleteTransaction('${t.id}', '${t.legacyInvId}')"><i class="fa-solid fa-trash-can text-xs"></i></button></div></div></li>`).join('') : '<li class="text-center text-xs text-gray-400 py-2">無交易紀錄</li>';
             },
+            renderEvents: () => {
+                if(!document.getElementById('event-list')) return;
+                const grouped = {};
+                State.data.events.sort((a,b) => getTxDate(b) - getTxDate(a)).forEach(e => { const k = getTxDate(e).toLocaleDateString('zh-TW', {year:'numeric', month:'long'}); if(!grouped[k]) grouped[k]=[]; grouped[k].push(e); });
+                document.getElementById('event-list').innerHTML = Object.keys(grouped).length ? Object.entries(grouped).map(([m, evs]) => `<div class="mb-6"><h3 class="text-xs font-bold text-gray-400 mb-3 border-b border-gray-200 pb-1">${m}</h3><div class="space-y-4">${evs.map(e => `<div class="relative pl-4 border-l-2 border-primary/30 pb-2 group"><div class="absolute -left-[5px] top-1.5 w-2.5 h-2.5 bg-primary rounded-full border-2 border-white shadow-sm"></div><div class="flex justify-between items-start"><div><p class="text-[10px] font-bold text-primary mb-0.5">${getTxDate(e).toLocaleDateString('zh-TW', {day:'numeric', weekday:'short'})}</p><h4 class="font-bold text-gray-800 text-sm">${e.title}</h4><p class="text-xs text-gray-500 mt-1 whitespace-pre-wrap">${e.description||''}</p></div><div class="flex gap-2 opacity-100"><button onclick="App.openModal('event-modal','${e.id}')" type="button" class="text-gray-300 hover:text-blue-500"><i class="fa-solid fa-pen text-xs"></i></button><button onclick="App.deleteItem('events','${e.id}')" type="button" class="text-gray-300 hover:text-red-500"><i class="fa-solid fa-trash-can text-xs"></i></button></div></div></div>`).join('')}</div></div>`).join('') : '<div class="text-center py-10 text-gray-400 text-xs">尚無大事記</div>';
+            },
+            // Modal Logic with proper ID population
+            openModal: (t, id, defaults = {}) => {
+                const c = document.getElementById('modal-content'); 
+                c.innerHTML = document.getElementById(`tpl-${t}`).innerHTML;
+                if(t==='transaction-modal') {
+                    renderDatalist(c.querySelector('#cat-list'), State.categories.expense);
+                    if(defaults.project) c.querySelector('[name=project]').value = defaults.project;
+                    if(defaults.category) c.querySelector('[name=category]').value = defaults.category;
+                }
+                if(id) {
+                    let item = State.data[t==='transaction-modal'?'transactions':t==='investment-modal'?'investments':t==='debt-modal'?'debts':t==='event-modal'?'events':[]].find(i=>i.id===id);
+                    // Fallback for legacy items in reports/details
+                    if(!item && t==='transaction-modal') item = App.getAllTransactions().find(i=>i.id===id);
 
-            openModal: (modalId, id, context) => {
-                try {
-                    const form = document.querySelector(`#${modalId} form`); if(form) form.reset();
-                    if(modalId==='transactionModal') {
-                        document.querySelector(`#${modalId} [name=date]`).value = new Date().toLocaleDateString('zh-CA');
-                        App.toggleTxType('expense');
-                        document.querySelector('#cat-list').innerHTML = State.categories.expense.map(v => `<option value="${v}">`).join('');
-                        
-                        if(context) {
-                            if(context.project) document.querySelector(`[name=project]`).value = context.project;
-                            if(context.category) document.querySelector(`[name=category]`).value = context.category;
-                            if(context.isPending) {
-                                form.querySelector('[name=is_pending]').value = "true";
-                                document.getElementById('tx-modal-title').innerText = "新增預定款項 (未實現)";
-                                document.getElementById('btn-save-tx').innerText = "儲存預定";
-                                document.getElementById('btn-save-tx').className = "btn btn-warning px-5 fw-bold ms-auto rounded-pill text-white";
-                            } else {
-                                form.querySelector('[name=is_pending]').value = "false";
-                                document.getElementById('tx-modal-title').innerText = "記一筆";
-                                document.getElementById('btn-save-tx').innerText = "儲存";
-                                document.getElementById('btn-save-tx').className = "btn btn-primary px-5 fw-bold ms-auto rounded-pill";
-                            }
-                        } else {
-                            form.querySelector('[name=is_pending]').value = "false";
-                            document.getElementById('tx-modal-title').innerText = "記一筆";
-                            document.getElementById('btn-save-tx').innerText = "儲存";
-                            document.getElementById('btn-save-tx').className = "btn btn-primary px-5 fw-bold ms-auto rounded-pill";
-                        }
-                        document.getElementById('btn-delete-tx').classList.add('d-none');
-                    }
-                    if(modalId==='eventModal') {
-                        document.querySelector(`#${modalId} [name=date]`).value = new Date().toLocaleDateString('zh-CA');
-                        document.getElementById('btn-delete-event').classList.add('d-none');
-                    }
-                    if(modalId==='budgetModal') {
-                        form.querySelector('[name=type]').value = context;
-                        const select = form.querySelector('[name=target_id]');
-                        select.innerHTML = '<option value="">請選擇項目</option>';
-                        const items = State.data[context === 'investment' ? 'investments' : 'debts'];
-                        if(!items || items.length === 0) { alert('請先新增項目，才能設定預算'); return; }
-                        items.forEach(i => { select.innerHTML += `<option value="${i.id}">${i.name}</option>`; });
-                    }
-
-                    if(id) {
-                        let item = State.data[modalId==='transactionModal'?'transactions':modalId==='investmentModal'?'investments':modalId==='debtModal'?'debts':modalId==='eventModal'?'events':[]].find(i=>i.id===id);
-                        if(!item && modalId==='transactionModal') item = App.getAllTransactions(true).find(i=>i.id===id);
-                        if(item) {
-                            form.querySelector('[name=id]').value = id;
-                            if(modalId==='transactionModal') {
-                                form.querySelector('[name=amount]').value = item.amount;
-                                form.querySelector('[name=date]').value = toDateStr(getTxDate(item));
-                                form.querySelector('[name=category]').value = item.category;
-                                form.querySelector('[name=remarks]').value = item.remarks;
-                                form.querySelector('[name=project]').value = item.project || '';
-                                form.querySelector('[name=is_pending]').value = item.isPending ? "true" : "false";
-                                if(item.legacyInvId) form.querySelector('[name=legacy_inv_id]').value = item.legacyInvId;
-                                if(item.type === 'expense') document.getElementById('type-expense').checked = true;
-                                else document.getElementById('type-income').checked = true;
-                                App.toggleTxType(item.type);
-                                const delBtn = document.getElementById('btn-delete-tx'); delBtn.classList.remove('d-none');
-                                delBtn.onclick = () => App.deleteTransaction(id, item.legacyInvId);
-                                
-                                if(item.isPending) {
-                                    document.getElementById('tx-modal-title').innerText = "編輯預定款項";
-                                    document.getElementById('btn-save-tx').innerText = "更新預定";
-                                    document.getElementById('btn-save-tx').className = "btn btn-warning px-5 fw-bold ms-auto rounded-pill text-white";
-                                }
-                            } else if (modalId==='investmentModal') {
-                                form.querySelector('[name=name]').value = item.name;
-                                form.querySelector('[name=initial]').value = item.initialValue;
-                                form.querySelector('[name=target]').value = item.targetAmount || '';
-                                if(form.querySelector('[name=isArchived]')) form.querySelector('[name=isArchived]').checked = item.isArchived;
-                            } else if (modalId==='debtModal') {
-                                form.querySelector('[name=name]').value = item.name;
-                                form.querySelector('[name=total]').value = item.totalAmount;
-                                form.querySelector('[name=remaining]').value = item.remainingAmount;
-                            } else if (modalId==='eventModal') {
-                                form.querySelector('[name=title]').value = item.title;
-                                form.querySelector('[name=desc]').value = item.description;
-                                form.querySelector('[name=date]').value = toDateStr(getTxDate(item));
-                                const delBtn = document.getElementById('btn-delete-event'); delBtn.classList.remove('d-none');
-                                delBtn.onclick = () => { if(confirm('刪除?')) { App.deleteItem('events', id); bsModals['eventModal'].hide(); } };
-                            }
+                    if(item) {
+                        c.querySelector('[name=id]').value = id;
+                        if(t==='transaction-modal') {
+                            c.querySelector('[name=amount]').value = item.amount;
+                            c.querySelector('[name=date]').value = toDateStr(getTxDate(item));
+                            c.querySelector('[name=category]').value = item.category;
+                            c.querySelector('[name=remarks]').value = item.remarks;
+                            c.querySelector('[name=project]').value = item.project || '';
+                            if(item.isLegacy && item.legacyInvId) c.querySelector('[name=legacy_inv_id]').value = item.legacyInvId; 
+                            App.toggleTxType(item.type);
+                        } else if (t==='investment-modal') {
+                            c.querySelector('[name=name]').value = item.name;
+                            c.querySelector('[name=initial]').value = item.initialValue;
+                            if(c.querySelector('[name=isArchived]')) c.querySelector('[name=isArchived]').checked = item.isArchived;
+                        } else if (t==='debt-modal') {
+                            c.querySelector('[name=name]').value = item.name;
+                            c.querySelector('[name=total]').value = item.totalAmount;
+                        } else if (t==='event-modal') {
+                            c.querySelector('[name=title]').value = item.title;
+                            c.querySelector('[name=desc]').value = item.description;
+                            c.querySelector('[name=date]').value = toDateStr(getTxDate(item));
                         }
                     }
-                    bsModals[modalId].show();
-                } catch(e) { console.error(e); alert("開啟視窗失敗，請重整頁面試試"); }
+                } else if(t==='transaction-modal' || t==='event-modal') c.querySelector('[name=date]').value = new Date().toLocaleDateString('zh-CA');
+                
+                if(t==='transaction-modal' && id) {
+                     const delBtn = c.querySelector('#btn-delete-tx');
+                     delBtn.classList.remove('hidden');
+                     let legacyInvId = undefined;
+                     const item = App.getAllTransactions().find(i=>i.id===id);
+                     if(item && item.legacyInvId) legacyInvId = item.legacyInvId;
+                     delBtn.onclick = () => App.deleteTransaction(id, legacyInvId);
+                }
+                if(t==='event-modal' && id) {
+                     const delBtn = c.querySelector('#btn-delete-event');
+                     if(delBtn) {
+                         delBtn.classList.remove('hidden');
+                         delBtn.onclick = () => { if(confirm('刪除?')) { App.deleteItem('events', id); App.closeModal(); } };
+                     }
+                }
+                document.getElementById('modal-overlay').classList.remove('hidden'); 
+                document.getElementById('modal-overlay').classList.add('flex');
             },
-            
+            closeModal: () => document.getElementById('modal-overlay').classList.add('hidden'),
+            openRepayModal: (id,n) => { const c=document.getElementById('modal-content'); c.innerHTML=document.getElementById('tpl-repay-form').innerHTML; c.querySelector('#repay-id').value=id; c.querySelector('#repay-debt-name').innerText=n; c.querySelector('[name=date]').value=new Date().toLocaleDateString('zh-CA'); document.getElementById('modal-overlay').classList.remove('hidden'); document.getElementById('modal-overlay').classList.add('flex'); },
+            openBudgetModal: (ctx, id=null) => {
+                const c=document.getElementById('modal-content'); c.innerHTML=document.getElementById('tpl-budget-form').innerHTML; const isEdit = !!id;
+                c.querySelector('#budget-modal-title').innerText = (isEdit?'編輯':'新增')+(ctx==='investment'?'投資預算':'還款計畫');
+                c.querySelector('#budget-context').value = ctx; const sel = c.querySelector('#budget-target');
+                (ctx==='investment'?State.data.investments:State.data.debts).forEach(i => sel.innerHTML+=`<option value="${i.id}">${i.name}</option>`);
+                if(isEdit) {
+                    const list = ctx==='investment' ? State.data.investmentBudgets : State.data.debtBudgets;
+                    const item = list.find(i => i.id === id);
+                    if(item) { c.querySelector('[name=id]').value = id; sel.value = item.targetId || ''; c.querySelector('[name=amount]').value = item.amount; c.querySelector('[name=date]').value = toDateStr(getTxDate({timestamp:item.expectedDate})); c.querySelector('[name=desc]').value = item.description; }
+                } else { c.querySelector('[name=date]').value = new Date().toLocaleDateString('zh-CA'); }
+                document.getElementById('modal-overlay').classList.remove('hidden'); document.getElementById('modal-overlay').classList.add('flex');
+            },
             showDetails: async (type, id) => {
                 const item = State.data[type + 's'].find(i => i.id === id); if (!item) return;
-                const modal = document.getElementById('detailsModal');
-                modal.querySelector('.details-title').innerText = item.name;
-                const actionsDiv = modal.querySelector('.details-actions'); actionsDiv.innerHTML = '';
-                const btnAdd = document.createElement('button'); btnAdd.className = "btn btn-primary fw-bold rounded-pill";
-                btnAdd.innerHTML = '<i class="fas fa-plus"></i> 新增交易';
-                btnAdd.onclick = () => { bsModals['detailsModal'].hide(); App.openModal('transactionModal',null,{project:item.name, category:type==='investment'?'投資':'負債還款'}); };
-                actionsDiv.appendChild(btnAdd);
-                const btnPlan = document.createElement('button'); btnPlan.className = "btn btn-warning fw-bold text-white rounded-pill";
-                btnPlan.innerHTML = '<i class="fas fa-clock"></i> 新增預定款項';
-                btnPlan.onclick = () => { bsModals['detailsModal'].hide(); App.openModal('transactionModal',null,{project:item.name, category:type==='investment'?'投資':'負債還款', isPending: true}); };
-                actionsDiv.appendChild(btnPlan);
-                if(type === 'investment') { const btnUpd = document.createElement('button'); btnUpd.className = "btn btn-outline-info fw-bold rounded-pill"; btnUpd.innerHTML = '更新市值'; btnUpd.onclick = () => App.updateMarketValue(id, item.marketValue); actionsDiv.appendChild(btnUpd); }
+                const tpl = document.getElementById('tpl-details-modal').innerHTML;
+                const content = document.getElementById('modal-content'); content.innerHTML = tpl;
+                content.querySelector('.details-title').innerText = item.name;
+                document.getElementById('modal-overlay').classList.remove('hidden'); document.getElementById('modal-overlay').classList.add('flex');
+
                 let relatedTxs = [];
-                if (type === 'investment') { const subTxs = State.data.legacyTxs[id] || []; const mainTxs = State.data.transactions.filter(t => t.project === item.name); const linkedIds = new Set(subTxs.map(t => t.mainTransactionId).filter(Boolean)); relatedTxs = [...subTxs, ...mainTxs.filter(t => !linkedIds.has(t.id))]; } else { relatedTxs = State.data.transactions.filter(t => t.project === item.name); }
-                const realTxs = relatedTxs.filter(t => !t.isPending).sort((a,b)=>getTxDate(b)-getTxDate(a));
-                const pendingTxs = relatedTxs.filter(t => t.isPending).sort((a,b)=>getTxDate(b)-getTxDate(a));
-                const pendList = modal.querySelector('.pending-list'); const pendSec = document.getElementById('pending-section');
+                if (type === 'investment') {
+                    const subTxs = State.data.legacyTxs[id] || [];
+                    const mainTxs = State.data.transactions.filter(t => t.project === item.name);
+                    const linkedIds = new Set(subTxs.map(t => t.mainTransactionId).filter(Boolean));
+                    relatedTxs = [...subTxs, ...mainTxs.filter(t => !linkedIds.has(t.id))];
+                    const btn = document.createElement('button'); btn.className="w-full bg-blue-50 text-blue-600 py-2.5 rounded-xl font-bold text-xs mt-3 shadow-sm"; btn.innerText="更新目前市值"; btn.onclick=()=>App.updateMarketValue(id,item.marketValue); content.querySelector('.details-actions').appendChild(btn);
+                } else { relatedTxs = State.data.transactions.filter(t => t.project === item.name); }
                 
-                let pendingHtml = '';
-                const today = new Date().setHours(0,0,0,0);
+                const addTxBtn = document.createElement('button'); addTxBtn.className="w-full bg-primary text-white py-2.5 rounded-xl font-bold text-xs mt-2 shadow-lg mb-2"; addTxBtn.innerText="+ 新增交易"; addTxBtn.onclick=()=>App.openModal('transaction-modal',null,{project:item.name, category:type==='investment'?'投資':'負債還款'});
+                content.querySelector('.details-actions').insertBefore(addTxBtn, content.querySelector('.details-actions').firstChild);
 
-                if(pendingTxs.length > 0) { 
-                    pendSec.classList.remove('d-none'); 
-                    pendingTxs.forEach(t => {
-                        const txDate = getTxDate(t);
-                        const isOverdue = txDate < today;
-                        const dateClass = isOverdue ? 'text-danger fw-bold' : 'text-warning fw-bold';
-                        const iconHtml = isOverdue ? '<i class="fas fa-exclamation-circle me-1"></i>' : '';
-
-                        pendingHtml += `<li class="list-group-item d-flex justify-content-between align-items-center px-0 border-light bg-light mb-1 rounded"><div class="ms-2"><small class="${dateClass} d-block">${iconHtml}${txDate.toLocaleDateString()}</small><span class="fw-bold">${t.remarks||t.category}</span></div><div class="d-flex align-items-center"><span class="fw-bold me-3 text-muted">$${formatMoney(t.amount)}</span><button class="btn btn-sm btn-success rounded-circle" onclick="App.confirmPendingTransaction('${t.id}', '${item.id}', '${type}')" title="確認執行"><i class="fas fa-check"></i></button><button class="btn btn-sm btn-link text-muted ms-1" onclick="App.openModal('transactionModal','${t.id}', {isPending:true})"><i class="fas fa-pen"></i></button></div></li>`;
-                    });
-                    pendList.innerHTML = pendingHtml;
-                } else { pendSec.classList.add('d-none'); }
-                const list = modal.querySelector('.details-list'); list.innerHTML = realTxs.map(t => `<li class="list-group-item d-flex justify-content-between align-items-center px-0"><div><small class="text-muted d-block">${getTxDate(t).toLocaleDateString()}</small><span class="fw-bold">${t.remarks||t.category}</span></div><span class="fw-bold ${t.type==='expense'?'text-danger':'text-success'}">${t.type==='expense'?'-':'+'} ${formatMoney(t.amount)}</span></li>`).join('') || '<li class="list-group-item text-center text-muted">無已實現紀錄</li>';
-                bsModals['detailsModal'].show();
+                content.querySelector('.details-list').innerHTML = relatedTxs.sort((a,b)=>getTxDate(b)-getTxDate(a)).map(t => `<li class="flex justify-between items-center py-3 px-3 rounded-xl mb-2 ${t.type==='expense'?'bg-red-50':'bg-green-50'}"><div><p class="text-[10px] text-gray-500 mb-0.5">${getTxDate(t).toLocaleDateString()}</p><p class="text-xs font-bold text-gray-700">${t.remarks||t.category}</p></div><div class="flex items-center gap-3"><span class="text-sm font-bold ${t.type==='expense'?'text-red-500':'text-green-600'}">${t.type==='expense'?'-':'+'} ${parseFloat(t.amount).toLocaleString()}</span><div class="flex gap-1"><button onclick="App.openModal('transaction-modal', '${t.id}')" class="text-gray-400 hover:text-blue-500 p-1"><i class="fa-solid fa-pen text-xs"></i></button><button onclick="App.deleteTransaction('${t.id}', '${t.legacyInvId}')" class="text-gray-400 hover:text-red-500 p-1"><i class="fa-solid fa-xmark text-xs"></i></button></div></div></li>`).join('') || '<li class="text-center text-xs text-gray-400 py-4">無相關紀錄</li>';
             },
-
-            handleSaveTransaction: async (e) => { e.preventDefault(); try { const f=e.target, uid=State.user.uid, id=f.id.value, lid=f.legacy_inv_id.value; const dateVal = f.date.value; if(!dateVal) throw new Error("日期錯誤"); const localDate = new Date(dateVal + 'T12:00:00'); const type = f.querySelector('[name=type]:checked').value; const amount = parseFloat(f.amount.value); if(isNaN(amount) || amount <= 0) throw new Error("請輸入有效金額"); const project = f.project.value; const isPending = f.is_pending.value === "true"; const d = { type, amount, category: f.category.value, remarks: f.remarks.value, timestamp: Timestamp.fromDate(localDate), project, isPending }; const batch = writeBatch(db); if (!isPending && type === 'expense' && project && !id) { const debt = State.data.debts.find(db => db.name === project); if (debt) batch.update(doc(db, `users/${uid}/debts`, debt.id), { remainingAmount: increment(-amount) }); } if (lid && id) { const newRef = doc(collection(db, `users/${uid}/transactions`)); batch.set(newRef, d); batch.delete(doc(db, `users/${uid}/investments/${lid}/transactions`, id)); } else { id ? await updateDoc(doc(db, `users/${uid}/transactions`, id), d) : await addDoc(collection(db, `users/${uid}/transactions`), d); } await batch.commit(); bsModals['transactionModal'].hide(); } catch(err) { alert(err.message); } },
-            confirmPendingTransaction: async (txId, itemId, type) => { if(!confirm("確定此款項已發生？系統將計入正式帳務。")) return; try { const uid = State.user.uid; const txRef = doc(db, `users/${uid}/transactions`, txId); const txSnap = await getDoc(txRef); if(!txSnap.exists()) return; const txData = txSnap.data(); const batch = writeBatch(db); batch.update(txRef, { isPending: false, timestamp: Timestamp.now() }); if (type === 'debt' && txData.type === 'expense') { batch.update(doc(db, `users/${uid}/debts`, itemId), { remainingAmount: increment(-txData.amount) }); } await batch.commit(); } catch(e) { console.error(e); alert("更新失敗"); } },
-            handleSaveInvestment: async (e) => { e.preventDefault(); try { const f=e.target; const d={name:f.name.value, initialValue:parseFloat(f.initial.value)||0, isArchived:f.isArchived.checked}; if(!f.id.value){d.marketValue=d.initialValue;d.createdAt=Timestamp.now();} f.id.value?await updateDoc(doc(db,`users/${State.user.uid}/investments`,f.id.value),d):(await addDoc(collection(db,`users/${State.user.uid}/investments`),d) && d.initialValue>0 && await addDoc(collection(db,`users/${State.user.uid}/transactions`),{type:'expense',amount:d.initialValue,category:'投資',project:f.name.value,remarks:'初始投入',timestamp:Timestamp.now(), isPending:false})); bsModals['investmentModal'].hide(); } catch(e){console.error(e);} },
-            handleSaveDebt: async (e) => { e.preventDefault(); try { const f=e.target, uid=State.user.uid; const d={name:f.name.value, totalAmount:parseFloat(f.total.value)}; if (f.remaining && f.remaining.value) d.remainingAmount = parseFloat(f.remaining.value); else if(!f.id.value) { d.remainingAmount = parseFloat(f.total.value); d.createdAt = Timestamp.now(); } f.id.value?await updateDoc(doc(db,`users/${uid}/debts`,f.id.value),d):await addDoc(collection(db,`users/${uid}/debts`),d); bsModals['debtModal'].hide(); } catch(e){console.error(e);} },
-            handleSaveEvent: async(e) => { e.preventDefault(); try { const f=e.target, uid=State.user.uid; const d = { title:f.title.value, description:f.desc.value, date:Timestamp.fromDate(new Date(f.date.value)) }; f.id.value?await updateDoc(doc(db,`users/${uid}/events`,f.id.value),d):await addDoc(collection(db,`users/${uid}/events`),d); bsModals['eventModal'].hide(); } catch(e){console.error(e);} },
-            handleSaveBudget: async (e) => { e.preventDefault(); try { const f = e.target; const type = f.type.value; const id = f.target_id.value; const amt = parseFloat(f.amount.value); if(!id) throw new Error("請選擇項目"); if(isNaN(amt) || amt <= 0) throw new Error("請輸入有效金額"); const collectionName = type === 'investment' ? 'investments' : 'debts'; const fieldName = type === 'investment' ? 'targetAmount' : 'totalAmount'; await updateDoc(doc(db, `users/${State.user.uid}/${collectionName}`, id), { [fieldName]: amt }); bsModals['budgetModal'].hide(); } catch(err) { alert(err.message); } },
-            handleDeleteBudget: async () => { const f = document.querySelector('#budgetModal form'); const type = f.type.value; const id = f.target_id.value; if(!id) { alert("請選擇項目"); return; } if(!confirm("確定要移除此項目的目標/預算設定嗎？")) return; const collectionName = type === 'investment' ? 'investments' : 'debts'; const fieldName = type === 'investment' ? 'targetAmount' : 'totalAmount'; try { await updateDoc(doc(db, `users/${State.user.uid}/${collectionName}`, id), { [fieldName]: 0 }); bsModals['budgetModal'].hide(); } catch(e) { console.error(e); alert("移除失敗"); } },
-            deleteTransaction: async (id, legacyInvId) => { if (!confirm('確定刪除?')) return; const uid = State.user.uid; let path = `users/${uid}/transactions/${id}`; if (legacyInvId && legacyInvId !== 'undefined') path = `users/${uid}/investments/${legacyInvId}/transactions/${id}`; const docRef = doc(db, path); const docSnap = await getDoc(docRef); if (docSnap.exists()) { const txData = docSnap.data(); const batch = writeBatch(db); if (!txData.isPending && txData.type === 'expense' && txData.project) { const debt = State.data.debts.find(d => d.name === txData.project); if (debt) batch.update(doc(db, `users/${uid}/debts`, debt.id), { remainingAmount: increment(txData.amount) }); } batch.delete(docRef); await batch.commit(); if (legacyInvId && State.data.legacyTxs[legacyInvId]) State.data.legacyTxs[legacyInvId] = State.data.legacyTxs[legacyInvId].filter(t => t.id !== id); } bsModals['transactionModal'].hide(); },
-            deleteItem: async (c,id) => { if(confirm('刪除?')) await deleteDoc(doc(db, `users/${State.user.uid}/${c}`, id)); },
-            updateMarketValue: async (id,old) => { const v=prompt("目前市值:",old); if(v&&!isNaN(v)) { await updateDoc(doc(db, `users/${State.user.uid}/investments`, id), {marketValue:parseFloat(v)}); bsModals['detailsModal'].hide(); } },
-            toggleTxType: (t) => { document.querySelector('#cat-list').innerHTML = State.categories[t].map(v => `<option value="${v}">`).join(''); },
-            openCategorySelector: () => { const type = document.querySelector('[name=type]:checked').value; document.getElementById('category-chips').innerHTML = State.categories[type].map(c => `<button class="btn btn-outline-dark btn-sm m-1" onclick="App.pickCategory('${c}')">${c}</button>`).join(''); bsModals['categoryModal'].show(); },
-            pickCategory: (val) => { document.querySelector('[name=category]').value = val; bsModals['categoryModal'].hide(); },
-            exportReport: () => { if(!confirm("匯出 CSV?"))return; const csv="\uFEFFDate,Category,Project,Note,Type,Amount\n"+App.getAllTransactions().map(t=>`${toDateStr(t.timestamp)},${t.category},${t.project||''},"${(t.remarks||'').replace(/"/g,'""')}",${t.type},${t.amount}`).join("\n"); const l=document.createElement("a"); l.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'})); l.download="report.csv"; l.click(); },
-            exportEvents: () => { const txt = State.data.events.sort((a,b) => getTxDate(b) - getTxDate(a)).map(e => `${toDateStr(getTxDate(e))} - ${e.title}\n${e.description || ''}\n-------------------------`).join("\n"); const l = document.createElement("a"); l.href = URL.createObjectURL(new Blob([txt], {type:'text/plain;charset=utf-8;'})); l.download = "events.txt"; l.click(); }
+            toggleTxType: (t) => { document.getElementById('tx-type').value=t; const e=document.getElementById('btn-expense'), i=document.getElementById('btn-income'); if(t==='expense'){e.classList.add('bg-white','shadow','text-danger');e.classList.remove('text-gray-500');i.classList.remove('bg-white','shadow','text-primary');i.classList.add('text-gray-500'); renderDatalist(document.getElementById('cat-list'), State.categories.expense);}else{i.classList.add('bg-white','shadow','text-primary');i.classList.remove('text-gray-500');e.classList.remove('bg-white','shadow','text-danger');e.classList.add('text-gray-500');renderDatalist(document.getElementById('cat-list'), State.categories.income);} }
         };
-        App.init();
+        window.App = App; App.init();
     </script>
 </body>
 </html>
