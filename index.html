@@ -155,7 +155,6 @@
     <!-- Auth View -->
     <div id="login-view" class="fixed inset-0 z-50 bg-white flex flex-col justify-center items-center p-8 animate-fade-in max-w-md mx-auto h-full">
         <div class="mb-12 text-center w-full">
-            <!-- LOGO Updated: Increased size -->
             <div class="w-full max-w-[320px] mx-auto mb-8">
                 <img src="https://i.ibb.co/PvVffGgL/image.png" alt="App Logo" class="w-full h-auto object-contain drop-shadow-xl">
             </div>
@@ -178,9 +177,8 @@
         <!-- Header -->
         <header class="bg-white/80 backdrop-blur-md sticky top-0 px-5 py-3 flex justify-between items-center z-20 shrink-0 border-b border-slate-100/50">
             <h1 class="font-bold text-slate-800 flex items-center gap-2.5 text-lg tracking-tight">
-                <!-- LOGO Updated: Increased size for visibility -->
                 <img id="header-icon" src="https://i.ibb.co/PvVffGgL/image.png" class="h-10 w-auto object-contain">
-                <span id="page-title" class="hidden">總覽</span> <!-- Hidden title to give logo more space if needed, or keep text -->
+                <span id="page-title" class="hidden">總覽</span>
             </h1>
             <div class="flex items-center gap-4">
                 <div id="user-info" class="text-xs font-bold text-slate-400 bg-slate-100 px-2 py-1 rounded-lg"></div>
@@ -258,8 +256,8 @@
                 </div>
                 
                 <div class="flex flex-col items-center mb-6">
-                     <span class="text-indigo-100 text-xs mb-1">本月結餘</span>
-                     <span id="monthly-balance" class="text-4xl font-bold tracking-tight text-white drop-shadow-sm">0</span>
+                      <span class="text-indigo-100 text-xs mb-1">本月結餘</span>
+                      <span id="monthly-balance" class="text-4xl font-bold tracking-tight text-white drop-shadow-sm">0</span>
                 </div>
 
                 <div class="grid grid-cols-2 gap-4">
@@ -354,7 +352,7 @@
                     <p id="debt-total-remaining" class="text-3xl font-bold text-slate-800 tracking-tight">--</p>
                 </div>
                 <div class="text-right">
-                    <p class="text-[10px] text-slate-400 mb-1">還款進度</p>
+                    <p class="text-[10px] text-slate-400 mb-1">整體還款進度</p>
                     <p id="debt-progress-text" class="text-xl font-bold text-warning">0%</p>
                 </div>
             </div>
@@ -470,7 +468,8 @@
                     <div>
                         <label class="text-[10px] font-bold text-slate-400 ml-1 mb-1 block">分類</label>
                         <div class="flex gap-2">
-                            <input name="category" class="input-box w-full rounded-xl px-4 py-3 text-sm font-medium text-slate-700" placeholder="分類..." required readonly onclick="App.openCategorySelector()">
+                            <!-- Updated: Removed readonly, added ability to type or select -->
+                            <input name="category" class="input-box w-full rounded-xl px-4 py-3 text-sm font-medium text-slate-700" placeholder="分類..." required>
                             <button type="button" onclick="App.openCategorySelector()" class="w-12 h-11 bg-indigo-50 rounded-xl flex items-center justify-center text-primary hover:bg-indigo-100 transition shrink-0 mt-[1px]"><i class="fa-solid fa-list-ul"></i></button>
                         </div>
                     </div>
@@ -500,7 +499,14 @@
     </template>
 
     <template id="tpl-investment-modal">
-        <div class="flex justify-between items-center mb-6"><h3 class="text-xl font-bold text-slate-800">投資帳戶</h3><button type="button" onclick="App.closeModal()" class="w-9 h-9 rounded-full bg-slate-100 flex items-center justify-center text-slate-500"><i class="fa-solid fa-xmark"></i></button></div>
+        <div class="flex justify-between items-center mb-6">
+            <h3 class="text-xl font-bold text-slate-800">投資帳戶</h3>
+            <!-- Updated: Added Delete Button -->
+            <div class="flex items-center gap-3">
+                <button type="button" id="btn-delete-inv" class="hidden w-9 h-9 rounded-full bg-rose-50 text-rose-500 flex items-center justify-center hover:bg-rose-100 transition"><i class="fa-solid fa-trash-can text-sm"></i></button>
+                <button type="button" onclick="App.closeModal()" class="w-9 h-9 rounded-full bg-slate-100 flex items-center justify-center text-slate-500"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+        </div>
         <form onsubmit="App.handleSaveInvestment(event)" class="space-y-5">
             <input type="hidden" name="id">
             <div>
@@ -520,7 +526,14 @@
     </template>
 
     <template id="tpl-debt-modal">
-        <div class="flex justify-between items-center mb-6"><h3 class="text-xl font-bold text-slate-800">負債項目</h3><button type="button" onclick="App.closeModal()" class="w-9 h-9 rounded-full bg-slate-100 flex items-center justify-center text-slate-500"><i class="fa-solid fa-xmark"></i></button></div>
+        <div class="flex justify-between items-center mb-6">
+            <h3 class="text-xl font-bold text-slate-800">負債項目</h3>
+            <!-- Updated: Added Delete Button -->
+            <div class="flex items-center gap-3">
+                <button type="button" id="btn-delete-debt" class="hidden w-9 h-9 rounded-full bg-rose-50 text-rose-500 flex items-center justify-center hover:bg-rose-100 transition"><i class="fa-solid fa-trash-can text-sm"></i></button>
+                <button type="button" onclick="App.closeModal()" class="w-9 h-9 rounded-full bg-slate-100 flex items-center justify-center text-slate-500"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+        </div>
         <form onsubmit="App.handleSaveDebt(event)" class="space-y-5">
             <input type="hidden" name="id">
             <div><label class="text-[10px] font-bold text-slate-400 ml-1 block mb-1">名稱</label><input type="text" name="name" class="input-box w-full rounded-xl p-3 text-sm" placeholder="例如: 房貸, 學貸" required></div>
@@ -537,7 +550,6 @@
         <form onsubmit="App.handleSaveBudget(event)" class="space-y-5">
             <input type="hidden" name="id"><input type="hidden" name="context" id="budget-context">
             
-            <!-- Added Investment Budget Type Toggle -->
             <div id="budget-type-selector" class="flex bg-slate-100 p-1.5 rounded-2xl relative mb-2 hidden">
                 <button type="button" class="flex-1 py-2.5 rounded-xl text-xs font-bold text-slate-500 transition-all z-10" onclick="App.toggleBudgetType('expense')" id="btn-budget-expense">預計投入</button>
                 <button type="button" class="flex-1 py-2.5 rounded-xl text-xs font-bold text-slate-500 transition-all z-10" onclick="App.toggleBudgetType('income')" id="btn-budget-income">預期獲利</button>
@@ -656,7 +668,7 @@
                 const headerIcon = document.getElementById('header-icon');
                 if(tab==='accounting') { 
                     headerIcon.src = 'https://i.ibb.co/PvVffGgL/image.png';
-                    headerIcon.className = 'h-20 w-auto object-contain'; // Consistent Logo Size
+                    headerIcon.className = 'h-20 w-auto object-contain'; 
                 }
                 App.refreshCurrentView();
             },
@@ -672,7 +684,9 @@
             handleSaveEvent: async(e) => { e.preventDefault(); const f=e.target, uid=State.user.uid; const d = { title:f.title.value, description:f.desc.value, date:Timestamp.fromDate(new Date(f.date.value)) }; f.id.value?await updateDoc(doc(db,`users/${uid}/events`,f.id.value),d):await addDoc(collection(db,`users/${uid}/events`),d); App.closeModal(); },
             
             deleteTransaction: async (id, legacyInvId) => { if (!confirm('確定刪除?')) return; const uid = State.user.uid; let path = `users/${uid}/transactions/${id}`; let isLegacy = false; if (legacyInvId && legacyInvId !== 'undefined') { path = `users/${uid}/investments/${legacyInvId}/transactions/${id}`; isLegacy = true; } const docRef = doc(db, path); try { const docSnap = await getDoc(docRef); if (!docSnap.exists()) { alert("找不到該筆資料"); return; } const txData = docSnap.data(); const batch = writeBatch(db); if (!isLegacy && txData.type === 'expense' && txData.project) { const debt = State.data.debts.find(d => d.name === txData.project); if (debt) { const debtRef = doc(db, `users/${uid}/debts`, debt.id); batch.update(debtRef, { remainingAmount: increment(txData.amount) }); } } batch.delete(docRef); await batch.commit(); if (isLegacy && State.data.legacyTxs[legacyInvId]) { State.data.legacyTxs[legacyInvId] = State.data.legacyTxs[legacyInvId].filter(t => t.id !== id); } App.closeModal(); } catch (e) { console.error(e); alert("刪除失敗"); } },
-            deleteItem: async (c,id) => { if(confirm('刪除?')) await deleteDoc(doc(db, `users/${State.user.uid}/${c}`, id)); },
+            // Updated: Generic delete with close modal
+            deleteItem: async (c,id) => { if(confirm('確定刪除此項目?')) { await deleteDoc(doc(db, `users/${State.user.uid}/${c}`, id)); App.closeModal(); } },
+            
             updateMarketValue: async (id,old) => { const v=prompt("目前市值:",old); if(v&&!isNaN(v)) await updateDoc(doc(db, `users/${State.user.uid}/investments`, id), {marketValue:parseFloat(v)}); },
             realizeBudget: async(ctx, id) => { if(!confirm("執行預算?"))return; const col=ctx==='investment'?'investmentBudgets':'debtBudgets'; const b=State.data[col].find(i=>i.id===id); const acc=(ctx==='investment'?State.data.investments:State.data.debts).find(a=>a.id===b.targetId); const batch=writeBatch(db); batch.update(doc(db,`users/${State.user.uid}/${col}`,id),{isRealized:true}); const txType = (ctx==='investment' && b.type) ? b.type : (ctx==='investment'?'income':'expense'); batch.set(doc(collection(db,`users/${State.user.uid}/transactions`)),{type:txType,amount:b.amount,category:ctx==='investment'?'投資':'負債還款',project:acc.name,remarks:`預算執行: ${b.description}`,timestamp:Timestamp.now()}); if(ctx!=='investment') batch.update(doc(db,`users/${State.user.uid}/debts`,acc.id),{remainingAmount:increment(-b.amount)}); await batch.commit(); },
             exportReport: () => { if(!confirm("匯出?"))return; const csv="Date,Category,Project,Note,Type,Amount\n"+App.getAllTransactions().map(t=>`${toDateStr(t.timestamp)},${t.category},${t.project||''},${t.remarks||''},${t.type},${t.amount}`).join("\n"); const l=document.createElement("a"); l.href=URL.createObjectURL(new Blob(["\uFEFF"+csv],{type:'text/csv'})); l.download="report.csv"; l.click(); },
@@ -688,11 +702,9 @@
                 if(t==='expense'){
                     e.classList.add('bg-white','shadow-md','text-rose-500'); e.classList.remove('text-slate-500'); 
                     i.classList.remove('bg-white','shadow-md','text-emerald-500'); i.classList.add('text-slate-500'); 
-                    renderDatalist(document.getElementById('cat-list'), State.categories.expense);
                 }else{
                     i.classList.add('bg-white','shadow-md','text-emerald-500'); i.classList.remove('text-slate-500'); 
                     e.classList.remove('bg-white','shadow-md','text-rose-500'); e.classList.add('text-slate-500'); 
-                    renderDatalist(document.getElementById('cat-list'), State.categories.income);
                 } 
             },
             toggleBudgetType: (t) => {
@@ -708,19 +720,24 @@
             },
             openModal: (t, id, defaults = {}) => {
                 const c = document.getElementById('modal-content'); c.innerHTML = document.getElementById(`tpl-${t}`).innerHTML;
-                if(t==='transaction-modal') { renderDatalist(c.querySelector('#cat-list'), State.categories.expense); if(defaults.project) c.querySelector('[name=project]').value = defaults.project; if(defaults.category) c.querySelector('[name=category]').value = defaults.category; }
+                if(t==='transaction-modal') { if(defaults.project) c.querySelector('[name=project]').value = defaults.project; if(defaults.category) c.querySelector('[name=category]').value = defaults.category; }
                 if(id) {
                     let item = State.data[t==='transaction-modal'?'transactions':t==='investment-modal'?'investments':t==='debt-modal'?'debts':t==='event-modal'?'events':[]].find(i=>i.id===id); if(!item && t==='transaction-modal') item = App.getAllTransactions().find(i=>i.id===id);
                     if(item) {
                         c.querySelector('[name=id]').value = id;
                         if(t==='transaction-modal') { c.querySelector('[name=amount]').value = item.amount; c.querySelector('[name=date]').value = toDateStr(getTxDate(item)); c.querySelector('[name=category]').value = item.category; c.querySelector('[name=remarks]').value = item.remarks; c.querySelector('[name=project]').value = item.project || ''; if(item.isLegacy && item.legacyInvId) c.querySelector('[name=legacy_inv_id]').value = item.legacyInvId; App.toggleTxType(item.type); } 
                         else if (t==='investment-modal') { c.querySelector('[name=name]').value = item.name; c.querySelector('[name=initial]').value = item.initialValue; if(c.querySelector('[name=isArchived]')) c.querySelector('[name=isArchived]').checked = item.isArchived; } 
-                        else if (t==='debt-modal') { c.querySelector('[name=name]').value = item.name; c.querySelector('[name=total]').value = item.totalAmount; } 
+                        else if (t==='debt-modal') { c.querySelector('[name=name]').value = item.name; c.querySelector('[name=total]').value = item.totalAmount; c.querySelector('[name=remaining]').value = item.remainingAmount; } 
                         else if (t==='event-modal') { c.querySelector('[name=title]').value = item.title; c.querySelector('[name=desc]').value = item.description; c.querySelector('[name=date]').value = toDateStr(getTxDate(item)); }
                     }
                 } else if(t==='transaction-modal' || t==='event-modal') c.querySelector('[name=date]').value = new Date().toLocaleDateString('zh-CA');
+                
+                // Handlers for Delete Buttons
                 if(t==='transaction-modal' && id) { const delBtn = c.querySelector('#btn-delete-tx'); delBtn.classList.remove('hidden'); let legacyInvId = undefined; const item = App.getAllTransactions().find(i=>i.id===id); if(item && item.legacyInvId) legacyInvId = item.legacyInvId; delBtn.onclick = () => App.deleteTransaction(id, legacyInvId); }
-                if(t==='event-modal' && id) { const delBtn = c.querySelector('#btn-delete-event'); if(delBtn) { delBtn.classList.remove('hidden'); delBtn.onclick = () => { if(confirm('刪除?')) { App.deleteItem('events', id); App.closeModal(); } }; } }
+                if(t==='event-modal' && id) { const delBtn = c.querySelector('#btn-delete-event'); if(delBtn) { delBtn.classList.remove('hidden'); delBtn.onclick = () => App.deleteItem('events', id); } }
+                if(t==='investment-modal' && id) { const delBtn = c.querySelector('#btn-delete-inv'); if(delBtn) { delBtn.classList.remove('hidden'); delBtn.onclick = () => App.deleteItem('investments', id); } }
+                if(t==='debt-modal' && id) { const delBtn = c.querySelector('#btn-delete-debt'); if(delBtn) { delBtn.classList.remove('hidden'); delBtn.onclick = () => App.deleteItem('debts', id); } }
+                
                 document.getElementById('modal-overlay').classList.remove('hidden'); document.getElementById('modal-overlay').classList.add('flex');
             },
             closeModal: () => document.getElementById('modal-overlay').classList.add('hidden'),
@@ -729,7 +746,9 @@
                 const c=document.getElementById('modal-content'); c.innerHTML=document.getElementById('tpl-budget-form').innerHTML; const isEdit = !!id; 
                 c.querySelector('#budget-modal-title').innerText = (isEdit?'編輯':'新增')+(ctx==='investment'?'投資預算':'還款計畫'); 
                 c.querySelector('#budget-context').value = ctx; 
-                const sel = c.querySelector('#budget-target'); (ctx==='investment'?State.data.investments:State.data.debts).forEach(i => sel.innerHTML+=`<option value="${i.id}">${i.name}</option>`); 
+                const sel = c.querySelector('#budget-target'); 
+                // Updated: Filter out archived investments
+                (ctx==='investment' ? State.data.investments.filter(i => !i.isArchived) : State.data.debts).forEach(i => sel.innerHTML+=`<option value="${i.id}">${i.name}</option>`); 
                 if (ctx === 'investment') { document.getElementById('budget-type-selector').classList.remove('hidden'); App.toggleBudgetType('expense'); }
                 if(isEdit) { 
                     const list = ctx==='investment' ? State.data.investmentBudgets : State.data.debtBudgets; const item = list.find(i => i.id === id); 
@@ -800,7 +819,15 @@
                 const mVal = document.getElementById('debt-date-filter').value; const [yr, mn] = mVal ? mVal.split('-').map(Number) : [new Date().getFullYear(), new Date().getMonth()+1];
                 const startM = new Date(yr, mn-1, 1), endM = new Date(yr, mn, 0, 23, 59, 59);
                 const debts = State.data.debts.sort((a,b)=>(b.createdAt?.seconds||0)-(a.createdAt?.seconds||0));
-                let tr=0, totalMonthlyRepaid=0; 
+                
+                // Updated: Logic to calculate global debt progress
+                let tr=0, totalMonthlyRepaid=0, totalOrig=0, totalRem=0; 
+                debts.forEach(d => {
+                     totalOrig += parseFloat(d.totalAmount) || 0;
+                     totalRem += parseFloat(d.remainingAmount) || 0;
+                });
+                const globalP = totalOrig > 0 ? Math.round(((totalOrig - totalRem) / totalOrig) * 100) : 0;
+                
                 document.getElementById('debt-list').innerHTML = debts.map(d=>{
                     tr+=parseFloat(d.remainingAmount); const p=Math.round(((d.totalAmount-d.remainingAmount)/d.totalAmount)*100);
                     const debtTxs = State.data.transactions.filter(t => t.type === 'expense' && t.project === d.name);
@@ -811,6 +838,11 @@
                 }).join('');
                 document.getElementById('debt-total-remaining').innerText = `$${tr.toLocaleString()}`;
                 document.getElementById('debt-monthly-summary').innerText = `本月還款: $${totalMonthlyRepaid.toLocaleString()}`;
+                
+                // Update global progress bar
+                document.getElementById('debt-progress-text').innerText = `${globalP}%`;
+                document.getElementById('debt-progress-bar').style.width = `${globalP}%`;
+
                 document.getElementById('debt-budget-list').innerHTML = State.data.debtBudgets.filter(b=>!b.isRealized).sort((a,b)=>(a.expectedDate?.seconds||0)-(b.expectedDate?.seconds||0)).map(b=>`<li class="flex justify-between items-center p-3 rounded-xl border shadow-soft mb-2 ${b.expectedDate?.toDate()<new Date().setHours(0,0,0,0)?'bg-rose-50 border-rose-100':'bg-white border-slate-50'}"><div class="flex items-center gap-3"><div class="w-1 bg-warning h-8 rounded-full"></div><div><span class="font-bold text-slate-700 text-xs block">${(State.data.debts.find(d=>d.id===b.targetId)?.name)||'未知'}</span><div class="flex gap-2 text-[10px] text-slate-400"><span>${b.description}</span><span class="font-bold text-rose-500">$${(parseFloat(b.amount)||0).toLocaleString()}</span></div></div></div><div class="flex gap-2"><button onclick="App.realizeBudget('debt','${b.id}')" class="w-8 h-8 rounded-full bg-emerald-50 text-emerald-600 hover:bg-emerald-100 flex items-center justify-center transition"><i class="fa-solid fa-check text-xs"></i></button><button onclick="App.openBudgetModal('debt','${b.id}')" class="w-8 h-8 rounded-full bg-slate-50 text-slate-400 hover:bg-slate-100 flex items-center justify-center transition"><i class="fa-solid fa-pen text-xs"></i></button><button onclick="App.deleteItem('debtBudgets','${b.id}')" class="w-8 h-8 rounded-full bg-rose-50 text-rose-400 hover:bg-rose-100 flex items-center justify-center transition"><i class="fa-solid fa-trash text-xs"></i></button></div></li>`).join('')||'<li class="text-xs text-slate-300 text-center py-4 border-2 border-dashed border-slate-100 rounded-xl">尚無還款計畫</li>';
             },
             renderReports: () => {
@@ -843,7 +875,6 @@
                 State.data.events.sort((a,b) => getTxDate(b) - getTxDate(a)).forEach(e => { const k = getTxDate(e).toLocaleDateString('zh-TW', {year:'numeric', month:'long'}); if(!grouped[k]) grouped[k]=[]; grouped[k].push(e); });
                 document.getElementById('event-list').innerHTML = `<div class="absolute left-[19px] top-0 bottom-0 w-0.5 bg-slate-100 z-0"></div>` + (Object.keys(grouped).length ? Object.entries(grouped).map(([m, evs]) => `<div class="mb-8 relative z-10"><h3 class="text-xs font-bold text-slate-400 mb-4 bg-[#f8fafc] inline-block pr-2 sticky top-0">${m}</h3><div class="space-y-6">${evs.map(e => `<div class="relative pl-8 group cursor-pointer" onclick="App.openModal('event-modal','${e.id}')"><div class="absolute left-3 top-1.5 w-4 h-4 rounded-full border-[3px] border-[#f8fafc] bg-indigo-300 group-hover:bg-primary group-hover:scale-125 transition shadow-sm"></div><div class="bg-white p-4 rounded-2xl shadow-soft border border-slate-50 hover:shadow-md transition active:scale-[0.99]"><div class="flex justify-between items-start mb-1"><span class="text-[10px] font-bold text-primary bg-indigo-50 px-2 py-0.5 rounded-lg">${getTxDate(e).toLocaleDateString('zh-TW', {day:'numeric', weekday:'short'})}</span><div class="opacity-0 group-hover:opacity-100 transition"><i class="fa-solid fa-pen text-slate-300 text-xs"></i></div></div><h4 class="font-bold text-slate-800 text-sm mb-1">${e.title}</h4><p class="text-xs text-slate-500 leading-relaxed whitespace-pre-wrap">${e.description||''}</p></div></div>`).join('')}</div></div>`).join('') : '<div class="text-center py-20"><div class="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-3 text-slate-300"><i class="fa-solid fa-camera-retro text-xl"></i></div><p class="text-slate-400 text-xs">這裡空空的，記錄一點生活吧？</p></div>');
             },
-            // Improved Type Toggle for Visuals
             toggleTxType: (t) => { 
                 document.getElementById('tx-type').value=t; 
                 const e=document.getElementById('btn-expense'), i=document.getElementById('btn-income'); 
@@ -857,7 +888,6 @@
                     renderDatalist(document.getElementById('cat-list'), State.categories.income);
                 } 
             },
-            // ... Keep existing modal logic intact ...
             openModal: (t, id, defaults = {}) => {
                 const c = document.getElementById('modal-content'); c.innerHTML = document.getElementById(`tpl-${t}`).innerHTML;
                 if(t==='transaction-modal') { renderDatalist(c.querySelector('#cat-list'), State.categories.expense); if(defaults.project) c.querySelector('[name=project]').value = defaults.project; if(defaults.category) c.querySelector('[name=category]').value = defaults.category; }
@@ -867,17 +897,35 @@
                         c.querySelector('[name=id]').value = id;
                         if(t==='transaction-modal') { c.querySelector('[name=amount]').value = item.amount; c.querySelector('[name=date]').value = toDateStr(getTxDate(item)); c.querySelector('[name=category]').value = item.category; c.querySelector('[name=remarks]').value = item.remarks; c.querySelector('[name=project]').value = item.project || ''; if(item.isLegacy && item.legacyInvId) c.querySelector('[name=legacy_inv_id]').value = item.legacyInvId; App.toggleTxType(item.type); } 
                         else if (t==='investment-modal') { c.querySelector('[name=name]').value = item.name; c.querySelector('[name=initial]').value = item.initialValue; if(c.querySelector('[name=isArchived]')) c.querySelector('[name=isArchived]').checked = item.isArchived; } 
-                        else if (t==='debt-modal') { c.querySelector('[name=name]').value = item.name; c.querySelector('[name=total]').value = item.totalAmount; } 
+                        else if (t==='debt-modal') { c.querySelector('[name=name]').value = item.name; c.querySelector('[name=total]').value = item.totalAmount; c.querySelector('[name=remaining]').value = item.remainingAmount; } 
                         else if (t==='event-modal') { c.querySelector('[name=title]').value = item.title; c.querySelector('[name=desc]').value = item.description; c.querySelector('[name=date]').value = toDateStr(getTxDate(item)); }
                     }
                 } else if(t==='transaction-modal' || t==='event-modal') c.querySelector('[name=date]').value = new Date().toLocaleDateString('zh-CA');
+                
+                // Handlers for Delete Buttons
                 if(t==='transaction-modal' && id) { const delBtn = c.querySelector('#btn-delete-tx'); delBtn.classList.remove('hidden'); let legacyInvId = undefined; const item = App.getAllTransactions().find(i=>i.id===id); if(item && item.legacyInvId) legacyInvId = item.legacyInvId; delBtn.onclick = () => App.deleteTransaction(id, legacyInvId); }
-                if(t==='event-modal' && id) { const delBtn = c.querySelector('#btn-delete-event'); if(delBtn) { delBtn.classList.remove('hidden'); delBtn.onclick = () => { if(confirm('刪除?')) { App.deleteItem('events', id); App.closeModal(); } }; } }
+                if(t==='event-modal' && id) { const delBtn = c.querySelector('#btn-delete-event'); if(delBtn) { delBtn.classList.remove('hidden'); delBtn.onclick = () => App.deleteItem('events', id); } }
+                if(t==='investment-modal' && id) { const delBtn = c.querySelector('#btn-delete-inv'); if(delBtn) { delBtn.classList.remove('hidden'); delBtn.onclick = () => App.deleteItem('investments', id); } }
+                if(t==='debt-modal' && id) { const delBtn = c.querySelector('#btn-delete-debt'); if(delBtn) { delBtn.classList.remove('hidden'); delBtn.onclick = () => App.deleteItem('debts', id); } }
+                
                 document.getElementById('modal-overlay').classList.remove('hidden'); document.getElementById('modal-overlay').classList.add('flex');
             },
             closeModal: () => document.getElementById('modal-overlay').classList.add('hidden'),
             openRepayModal: (id,n) => { const c=document.getElementById('modal-content'); c.innerHTML=document.getElementById('tpl-repay-form').innerHTML; c.querySelector('#repay-id').value=id; c.querySelector('#repay-debt-name').innerText=n; c.querySelector('[name=date]').value=new Date().toLocaleDateString('zh-CA'); document.getElementById('modal-overlay').classList.remove('hidden'); document.getElementById('modal-overlay').classList.add('flex'); },
-            openBudgetModal: (ctx, id=null) => { const c=document.getElementById('modal-content'); c.innerHTML=document.getElementById('tpl-budget-form').innerHTML; const isEdit = !!id; c.querySelector('#budget-modal-title').innerText = (isEdit?'編輯':'新增')+(ctx==='investment'?'投資預算':'還款計畫'); c.querySelector('#budget-context').value = ctx; const sel = c.querySelector('#budget-target'); (ctx==='investment'?State.data.investments:State.data.debts).forEach(i => sel.innerHTML+=`<option value="${i.id}">${i.name}</option>`); if (ctx === 'investment') { document.getElementById('budget-type-selector').classList.remove('hidden'); App.toggleBudgetType('expense'); } if(isEdit) { const list = ctx==='investment' ? State.data.investmentBudgets : State.data.debtBudgets; const item = list.find(i => i.id === id); if(item) { c.querySelector('[name=id]').value = id; sel.value = item.targetId || ''; c.querySelector('[name=amount]').value = item.amount; c.querySelector('[name=date]').value = toDateStr(getTxDate({timestamp:item.expectedDate})); c.querySelector('[name=desc]').value = item.description; if(item.type && ctx==='investment') App.toggleBudgetType(item.type); } } else { c.querySelector('[name=date]').value = new Date().toLocaleDateString('zh-CA'); } document.getElementById('modal-overlay').classList.remove('hidden'); document.getElementById('modal-overlay').classList.add('flex'); },
+            openBudgetModal: (ctx, id=null) => { 
+                const c=document.getElementById('modal-content'); c.innerHTML=document.getElementById('tpl-budget-form').innerHTML; const isEdit = !!id; 
+                c.querySelector('#budget-modal-title').innerText = (isEdit?'編輯':'新增')+(ctx==='investment'?'投資預算':'還款計畫'); 
+                c.querySelector('#budget-context').value = ctx; 
+                const sel = c.querySelector('#budget-target'); 
+                // Updated: Filter out archived investments
+                (ctx==='investment' ? State.data.investments.filter(i => !i.isArchived) : State.data.debts).forEach(i => sel.innerHTML+=`<option value="${i.id}">${i.name}</option>`); 
+                if (ctx === 'investment') { document.getElementById('budget-type-selector').classList.remove('hidden'); App.toggleBudgetType('expense'); }
+                if(isEdit) { 
+                    const list = ctx==='investment' ? State.data.investmentBudgets : State.data.debtBudgets; const item = list.find(i => i.id === id); 
+                    if(item) { c.querySelector('[name=id]').value = id; sel.value = item.targetId || ''; c.querySelector('[name=amount]').value = item.amount; c.querySelector('[name=date]').value = toDateStr(getTxDate({timestamp:item.expectedDate})); c.querySelector('[name=desc]').value = item.description; if(item.type && ctx==='investment') App.toggleBudgetType(item.type); } 
+                } else { c.querySelector('[name=date]').value = new Date().toLocaleDateString('zh-CA'); } 
+                document.getElementById('modal-overlay').classList.remove('hidden'); document.getElementById('modal-overlay').classList.add('flex'); 
+            },
             showDetails: async (type, id) => {
                 const item = State.data[type + 's'].find(i => i.id === id); if (!item) return;
                 const tpl = document.getElementById('tpl-details-modal').innerHTML; const content = document.getElementById('modal-content'); content.innerHTML = tpl; content.querySelector('.details-title').innerText = item.name; document.getElementById('modal-overlay').classList.remove('hidden'); document.getElementById('modal-overlay').classList.add('flex');
