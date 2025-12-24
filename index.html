@@ -29,8 +29,7 @@
                     },
                     animation: {
                         'slide-up': 'slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1)',
-                        'fade-in': 'fadeIn 0.2s ease-out',
-                        'spin-slow': 'spin 1.5s linear infinite'
+                        'fade-in': 'fadeIn 0.2s ease-out'
                     },
                     keyframes: {
                         slideUp: {
@@ -156,7 +155,7 @@
     <!-- Auth View -->
     <div id="login-view" class="fixed inset-0 z-50 bg-white flex flex-col justify-center items-center p-8 animate-fade-in max-w-md mx-auto h-full">
         <div class="mb-12 text-center w-full">
-            <!-- LOGO: Max size -->
+            <!-- LOGO Updated: Increased size -->
             <div class="w-full max-w-[320px] mx-auto mb-8">
                 <img src="https://i.ibb.co/PvVffGgL/image.png" alt="App Logo" class="w-full h-auto object-contain drop-shadow-xl">
             </div>
@@ -177,11 +176,11 @@
     <!-- Main App Frame -->
     <div id="app-container" class="hidden app-frame">
         <!-- Header -->
-        <header class="bg-white/80 backdrop-blur-md sticky top-0 px-5 py-2 flex justify-between items-center z-20 shrink-0 border-b border-slate-100/50">
+        <header class="bg-white/80 backdrop-blur-md sticky top-0 px-5 py-3 flex justify-between items-center z-20 shrink-0 border-b border-slate-100/50">
             <h1 class="font-bold text-slate-800 flex items-center gap-2.5 text-lg tracking-tight">
-                <!-- LOGO: h-20 -->
-                <img id="header-icon" src="https://i.ibb.co/PvVffGgL/image.png" class="h-20 w-auto object-contain">
-                <span id="page-title" class="hidden">總覽</span>
+                <!-- LOGO Updated: Increased size for visibility -->
+                <img id="header-icon" src="https://i.ibb.co/PvVffGgL/image.png" class="h-10 w-auto object-contain">
+                <span id="page-title" class="hidden">總覽</span> <!-- Hidden title to give logo more space if needed, or keep text -->
             </h1>
             <div class="flex items-center gap-4">
                 <div id="user-info" class="text-xs font-bold text-slate-400 bg-slate-100 px-2 py-1 rounded-lg"></div>
@@ -321,18 +320,18 @@
         </div>
         
         <div class="flex justify-between items-center mb-3">
-             <div class="bg-white p-1 rounded-xl shadow-sm inline-flex overflow-x-auto hide-scrollbar">
-                <button class="tab-pill px-4 py-1.5 rounded-lg text-xs font-bold text-slate-500 transition-all duration-300 active bg-indigo-50 text-primary whitespace-nowrap" onclick="App.switchInvTab('general', this)">一般</button>
-                <button class="tab-pill px-4 py-1.5 rounded-lg text-xs font-bold text-slate-500 transition-all duration-300 hover:text-slate-700 whitespace-nowrap" onclick="App.switchInvTab('stock', this)">股票</button>
-                <button class="tab-pill px-4 py-1.5 rounded-lg text-xs font-bold text-slate-500 transition-all duration-300 hover:text-slate-700 whitespace-nowrap" onclick="App.switchInvTab('archived', this)">已結案</button>
+             <div class="bg-white p-1 rounded-xl shadow-sm inline-flex">
+                <button class="tab-pill px-4 py-1.5 rounded-lg text-xs font-bold text-slate-500 transition-all duration-300 active bg-indigo-50 text-primary" onclick="App.switchInvTab('active', this)">進行中</button>
+                <button class="tab-pill px-4 py-1.5 rounded-lg text-xs font-bold text-slate-500 transition-all duration-300 hover:text-slate-700" onclick="App.switchInvTab('archived', this)">已結案</button>
             </div>
-            <button onclick="App.openModal('investment-modal')" class="text-primary text-xs font-bold bg-indigo-50 px-3 py-2 rounded-xl hover:bg-indigo-100 transition flex items-center gap-1 flex-shrink-0"><i class="fa-solid fa-plus"></i> 新增</button>
+            <button onclick="App.openModal('investment-modal')" class="text-primary text-xs font-bold bg-indigo-50 px-3 py-2 rounded-xl hover:bg-indigo-100 transition flex items-center gap-1"><i class="fa-solid fa-plus"></i> 新增帳戶</button>
         </div>
 
         <span id="inv-monthly-summary" class="block text-center text-xs text-slate-400 mb-3 bg-white/50 py-1 rounded-lg">本月收益: $0</span>
 
         <div id="inv-list" class="grid gap-3"></div>
 
+        <!-- Budget Section -->
         <div class="mt-6">
             <div class="flex justify-between items-center px-1 mb-3">
                 <span class="text-xs font-bold text-slate-400 uppercase tracking-wider">定期定額 / 目標</span>
@@ -504,24 +503,10 @@
         <div class="flex justify-between items-center mb-6"><h3 class="text-xl font-bold text-slate-800">投資帳戶</h3><button type="button" onclick="App.closeModal()" class="w-9 h-9 rounded-full bg-slate-100 flex items-center justify-center text-slate-500"><i class="fa-solid fa-xmark"></i></button></div>
         <form onsubmit="App.handleSaveInvestment(event)" class="space-y-5">
             <input type="hidden" name="id">
-            
-            <div class="flex bg-slate-100 p-1.5 rounded-2xl relative">
-                <button type="button" class="flex-1 py-2.5 rounded-xl text-xs font-bold text-slate-500 transition-all z-10" onclick="App.toggleInvType('general')" id="btn-inv-general">一般投資</button>
-                <button type="button" class="flex-1 py-2.5 rounded-xl text-xs font-bold text-slate-500 transition-all z-10" onclick="App.toggleInvType('stock')" id="btn-inv-stock">股票</button>
-            </div>
-            <input type="hidden" name="type" id="inv-type" value="general">
-
             <div>
                 <label class="text-[10px] font-bold text-slate-400 ml-1 mb-1 block">帳戶名稱</label>
                 <input type="text" name="name" class="input-box w-full rounded-xl p-3 text-sm" placeholder="例如: 0050, 比特幣" required>
             </div>
-            
-            <!-- NEW: Stock Symbol Field (Hidden by default) -->
-            <div id="field-symbol" class="hidden">
-                 <label class="text-[10px] font-bold text-slate-400 ml-1 mb-1 block">股票代號 (選填)</label>
-                 <input type="text" name="symbol" class="input-box w-full rounded-xl p-3 text-sm font-bold text-primary placeholder-primary/30" placeholder="例如: 2330, AAPL, NVDA">
-            </div>
-
             <div>
                  <label class="text-[10px] font-bold text-slate-400 ml-1 mb-1 block">初始投入成本</label>
                  <input type="number" name="initial" class="input-box w-full rounded-xl p-3 text-sm" placeholder="0">
@@ -552,6 +537,7 @@
         <form onsubmit="App.handleSaveBudget(event)" class="space-y-5">
             <input type="hidden" name="id"><input type="hidden" name="context" id="budget-context">
             
+            <!-- Added Investment Budget Type Toggle -->
             <div id="budget-type-selector" class="flex bg-slate-100 p-1.5 rounded-2xl relative mb-2 hidden">
                 <button type="button" class="flex-1 py-2.5 rounded-xl text-xs font-bold text-slate-500 transition-all z-10" onclick="App.toggleBudgetType('expense')" id="btn-budget-expense">預計投入</button>
                 <button type="button" class="flex-1 py-2.5 rounded-xl text-xs font-bold text-slate-500 transition-all z-10" onclick="App.toggleBudgetType('income')" id="btn-budget-income">預期獲利</button>
@@ -617,36 +603,6 @@
         <div class="details-actions mt-4 pt-4 border-t border-slate-100 flex flex-col gap-2 sticky bottom-0 bg-white pb-2"></div>
     </template>
 
-    <!-- NEW: Modal for updating market value -->
-    <template id="tpl-update-value-modal">
-        <div class="flex justify-between items-center mb-6">
-            <h3 class="text-xl font-bold text-slate-800">更新市值</h3>
-            <button type="button" onclick="App.closeModal()" class="w-9 h-9 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 hover:bg-slate-200"><i class="fa-solid fa-xmark"></i></button>
-        </div>
-        <form onsubmit="App.handleUpdateMarketValue(event)" class="space-y-6">
-            <input type="hidden" name="id">
-            <input type="hidden" name="symbol">
-            <div class="text-center">
-                 <p class="text-xs text-slate-400 mb-2">請輸入目前總市值</p>
-                 <div class="relative inline-flex items-center w-full justify-center gap-2">
-                    <span class="text-2xl text-slate-300 font-bold">$</span>
-                    <input type="number" name="marketValue" class="w-48 text-4xl font-bold text-slate-800 border-none bg-transparent text-center focus:outline-none placeholder-slate-200" placeholder="0" required inputmode="decimal" step="any">
-                    <button type="button" id="btn-auto-fetch" onclick="App.fetchStockPrice()" class="w-10 h-10 rounded-xl bg-indigo-50 text-primary flex items-center justify-center shadow-sm hover:bg-indigo-100 transition hidden" title="自動抓取股價">
-                        <i class="fa-solid fa-bolt"></i>
-                    </button>
-                </div>
-                <p id="fetch-status" class="text-[10px] text-slate-400 mt-2 h-4"></p>
-                <!-- Link Container -->
-                <div id="update-modal-link" class="mt-4 hidden">
-                    <a href="#" target="_blank" class="inline-flex items-center gap-1.5 text-xs font-bold text-primary bg-indigo-50 px-3 py-2 rounded-xl hover:bg-indigo-100 transition">
-                        <i class="fa-solid fa-arrow-up-right-from-square"></i> 查詢股價
-                    </a>
-                </div>
-            </div>
-            <button type="submit" class="w-full bg-primary text-white py-3.5 rounded-2xl font-bold shadow-lg shadow-indigo-200 text-sm hover:bg-primaryDark transition active:scale-[0.98]">確認更新</button>
-        </form>
-    </template>
-
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, signInAnonymously, onAuthStateChanged, GoogleAuthProvider, signInWithPopup, signOut } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
@@ -654,13 +610,13 @@
 
         const app = initializeApp({ apiKey: "AIzaSyAqFHm6Bn35m8xauc50ZvNNy_rxIZzCMTE", authDomain: "moneyw-f8105.firebaseapp.com", projectId: "moneyw-f8105", storageBucket: "moneyw-f8105.appspot.com", messagingSenderId: "155586195799", appId: "1:155586195799:web:302184fbf613f032a88e12" });
         const auth = getAuth(app); const db = getFirestore(app);
-        const State = { user: null, data: { transactions: [], debts: [], investments: [], events: [], investmentBudgets: [], debtBudgets: [], legacyTxs: {} }, listeners: [], chart: null, categories: { expense: ['飲食', '交通', '居住', '娛樂', '購物', '醫療', '教育', '投資', '其他'], income: ['薪資', '獎金', '投資', '兼職', '其他'] }, view: { invTab: 'general', currentTab: 'accounting' } };
+        const State = { user: null, data: { transactions: [], debts: [], investments: [], events: [], investmentBudgets: [], debtBudgets: [], legacyTxs: {} }, listeners: [], chart: null, categories: { expense: ['飲食', '交通', '居住', '娛樂', '購物', '醫療', '教育', '投資', '其他'], income: ['薪資', '獎金', '投資', '兼職', '其他'] }, view: { invTab: 'active', currentTab: 'accounting' } };
 
         const getTxDate = (tx) => { if (!tx) return new Date(); try { if (tx.timestamp && typeof tx.timestamp.toDate === 'function') return tx.timestamp.toDate(); if (tx.date) { if (typeof tx.date.toDate === 'function') return tx.date.toDate(); const d = new Date(tx.date); if (!isNaN(d.getTime())) return d; } if (tx.timestamp && tx.timestamp.seconds) return new Date(tx.timestamp.seconds * 1000); } catch (e) {} return new Date(); };
         const toDateStr = (dateObj) => { const d = (dateObj instanceof Date) ? dateObj : getTxDate({timestamp: dateObj}); const year = d.getFullYear(); const month = String(d.getMonth() + 1).padStart(2, '0'); const day = String(d.getDate()).padStart(2, '0'); return `${year}-${month}-${day}`; };
         const renderDatalist = (e, i) => { if(e) e.innerHTML = i.map(v => `<option value="${v}">`).join(''); };
 
-        const App = {
+        window.App = {
             init: () => onAuthStateChanged(auth, u => {
                 State.user = u;
                 document.getElementById('login-view').classList.toggle('hidden', !!u);
@@ -696,17 +652,11 @@
                 else if(tab === 'debt') document.getElementById('debt-date-filter').value = new Date().toISOString().slice(0, 7);
                 else if(tab === 'reports') { const yrSel = document.getElementById('report-year'); const curYr = new Date().getFullYear(); yrSel.innerHTML = ''; for(let y=curYr-2; y<=curYr+1; y++) yrSel.innerHTML += `<option value="${y}" ${y===curYr?'selected':''}>${y}年</option>`; document.getElementById('report-month-select').value = (new Date().getMonth()+1).toString(); }
                 document.querySelectorAll('.nav-item').forEach(e => e.classList.remove('active')); if(btn) btn.classList.add('active');
-                
-                // FIX: Check if element exists before setting innerText
-                const pageTitleEl = document.getElementById('page-title');
-                if (pageTitleEl) {
-                    pageTitleEl.innerText = {accounting:'總覽', investment:'投資組合', debt:'負債管理', reports:'分析報表', events:'生活大事'}[tab];
-                }
-                
+                document.getElementById('page-title').innerText = {accounting:'總覽', investment:'投資組合', debt:'負債管理', reports:'分析報表', events:'生活大事'}[tab];
                 const headerIcon = document.getElementById('header-icon');
                 if(tab==='accounting') { 
                     headerIcon.src = 'https://i.ibb.co/PvVffGgL/image.png';
-                    headerIcon.className = 'h-20 w-auto object-contain'; 
+                    headerIcon.className = 'h-20 w-auto object-contain'; // Consistent Logo Size
                 }
                 App.refreshCurrentView();
             },
@@ -715,107 +665,12 @@
             switchInvTab: (tab, btn) => { State.view.invTab = tab; document.querySelectorAll('.tab-pill').forEach(e => { e.classList.remove('active', 'bg-indigo-50', 'text-primary'); e.classList.add('hover:text-slate-700'); }); btn.classList.add('active', 'bg-indigo-50', 'text-primary'); btn.classList.remove('hover:text-slate-700'); App.renderInvestments(); },
 
             handleSaveTransaction: async (e) => { e.preventDefault(); const f=e.target, uid=State.user.uid, id=f.id.value, lid=f.legacy_inv_id.value; const localDate = new Date(f.date.value + 'T12:00:00'); const type = f.type.value; const amount = parseFloat(f.amount.value); const project = f.project.value; const d = { type: type, amount: amount, category: f.category.value, remarks: f.remarks.value, timestamp: Timestamp.fromDate(localDate), project: project }; const batch = writeBatch(db); if (type === 'expense' && project && !id) { const debt = State.data.debts.find(db => db.name === project); if (debt) { const debtRef = doc(db, `users/${uid}/debts`, debt.id); batch.update(debtRef, { remainingAmount: increment(-amount) }); } } if (lid && id) { const newRef = doc(collection(db, `users/${uid}/transactions`)); batch.set(newRef, d); batch.delete(doc(db, `users/${uid}/investments/${lid}/transactions`, id)); if (State.data.legacyTxs[lid]) { State.data.legacyTxs[lid] = State.data.legacyTxs[lid].filter(t => t.id !== id); } } else { id ? await updateDoc(doc(db, `users/${uid}/transactions`, id), d) : await addDoc(collection(db, `users/${uid}/transactions`), d); } await batch.commit(); App.closeModal(); },
-            handleSaveInvestment: async (e) => { e.preventDefault(); const f=e.target; const d={name:f.name.value, initialValue:parseFloat(f.initial.value)||0, isArchived:f.isArchived.checked, type: f.type.value || 'general', symbol: f.symbol.value || ''}; if(!f.id.value){d.marketValue=d.initialValue;d.createdAt=Timestamp.now();} f.id.value?await updateDoc(doc(db,`users/${State.user.uid}/investments`,f.id.value),d):(await addDoc(collection(db,`users/${State.user.uid}/investments`),d) && d.initialValue>0 && await addDoc(collection(db,`users/${State.user.uid}/transactions`),{type:'expense',amount:d.initialValue,category:'投資',project:f.name.value,remarks:'初始投入',timestamp:Timestamp.now()})); App.closeModal(); },
+            handleSaveInvestment: async (e) => { e.preventDefault(); const f=e.target; const d={name:f.name.value, initialValue:parseFloat(f.initial.value)||0, isArchived:f.isArchived.checked}; if(!f.id.value){d.marketValue=d.initialValue;d.createdAt=Timestamp.now();} f.id.value?await updateDoc(doc(db,`users/${State.user.uid}/investments`,f.id.value),d):(await addDoc(collection(db,`users/${State.user.uid}/investments`),d) && d.initialValue>0 && await addDoc(collection(db,`users/${State.user.uid}/transactions`),{type:'expense',amount:d.initialValue,category:'投資',project:f.name.value,remarks:'初始投入',timestamp:Timestamp.now()})); App.closeModal(); },
             handleSaveDebt: async (e) => { e.preventDefault(); const f=e.target, uid=State.user.uid; const d={name:f.name.value, totalAmount:parseFloat(f.total.value)}; if (f.remaining && f.remaining.value) d.remainingAmount = parseFloat(f.remaining.value); else if(!f.id.value) { d.remainingAmount = parseFloat(f.total.value); d.createdAt = Timestamp.now(); } f.id.value?await updateDoc(doc(db,`users/${uid}/debts`,f.id.value),d):await addDoc(collection(db,`users/${uid}/debts`),d); App.closeModal(); },
             handleSaveBudget: async (e) => { e.preventDefault(); const f=e.target, uid=State.user.uid, ctx=f.context.value; const d = { targetId: f.targetId.value,amount:parseFloat(f.amount.value),expectedDate:Timestamp.fromDate(new Date(f.date.value)),description:f.desc.value, type: f.type.value || 'expense' }; if(!f.id.value){d.isRealized=false;d.createdAt=Timestamp.now();} f.id.value?await updateDoc(doc(db,`users/${State.user.uid}/${f.context.value==='investment'?'investmentBudgets':'debtBudgets'}`,f.id.value),d):await addDoc(collection(db,`users/${State.user.uid}/${f.context.value==='investment'?'investmentBudgets':'debtBudgets'}`),d); App.closeModal(); },
             handleRepayDebt: async (e) => { e.preventDefault(); const f=e.target, amt=parseFloat(f.amount.value), uid=State.user.uid; const debt=State.data.debts.find(d=>d.id===f.id.value); const batch=writeBatch(db); batch.update(doc(db,`users/${State.user.uid}/debts`,f.id.value),{remainingAmount:increment(-amt)}); batch.set(doc(collection(db,`users/${State.user.uid}/transactions`)),{type:'expense',amount:amt,category:'負債還款',project:debt.name,remarks:`償還: ${debt.name}`,timestamp:Timestamp.fromDate(new Date(f.date.value))}); await batch.commit(); App.closeModal(); },
             handleSaveEvent: async(e) => { e.preventDefault(); const f=e.target, uid=State.user.uid; const d = { title:f.title.value, description:f.desc.value, date:Timestamp.fromDate(new Date(f.date.value)) }; f.id.value?await updateDoc(doc(db,`users/${uid}/events`,f.id.value),d):await addDoc(collection(db,`users/${uid}/events`),d); App.closeModal(); },
             
-            // New Handler for Market Value Update
-            handleUpdateMarketValue: async (e) => { 
-                e.preventDefault(); 
-                const f = e.target;
-                const newVal = parseFloat(f.marketValue.value);
-                if (!isNaN(newVal)) {
-                    await updateDoc(doc(db, `users/${State.user.uid}/investments`, f.id.value), { marketValue: newVal });
-                }
-                App.closeModal();
-            },
-
-            // Opens the new Modal for updating value
-            openUpdateValueModal: (id, currentVal, symbol) => {
-                const c = document.getElementById('modal-content');
-                c.innerHTML = document.getElementById('tpl-update-value-modal').innerHTML;
-                c.querySelector('[name=id]').value = id;
-                if(currentVal) c.querySelector('[name=marketValue]').value = currentVal;
-                
-                const btnFetch = c.querySelector('#btn-auto-fetch');
-                const symbolInput = c.querySelector('[name=symbol]');
-                if(symbolInput) symbolInput.value = symbol || '';
-                
-                if (symbol && btnFetch) {
-                    btnFetch.classList.remove('hidden');
-                } else if (btnFetch) {
-                    btnFetch.classList.add('hidden');
-                }
-
-                document.getElementById('modal-overlay').classList.remove('hidden'); 
-                document.getElementById('modal-overlay').classList.add('flex');
-            },
-            
-            fetchStockPrice: async () => {
-                const c = document.getElementById('modal-content');
-                const symbolInput = c.querySelector('[name=symbol]');
-                const valInput = c.querySelector('[name=marketValue]');
-                const status = c.querySelector('#fetch-status');
-                const btn = c.querySelector('#btn-auto-fetch');
-                let symbol = symbolInput.value.trim().toUpperCase(); // Auto uppercase
-                
-                if (!symbol) { status.innerText = '無股票代號'; return; }
-                
-                // Auto-append .TW if only numbers
-                if (/^\d+$/.test(symbol)) symbol += '.TW';
-                
-                status.innerText = '抓取中...';
-                status.className = 'text-[10px] text-primary mt-2 h-4 font-bold animate-pulse';
-                btn.classList.add('animate-spin-slow'); // Add spin animation
-
-                try {
-                    // Using AllOrigins as CORS Proxy to fetch Yahoo Finance Chart API (JSON)
-                    const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(`https://query1.finance.yahoo.com/v8/finance/chart/${symbol}?interval=1d&t=${new Date().getTime()}`)}`;
-                    
-                    const response = await fetch(proxyUrl);
-                    if (!response.ok) throw new Error("Network response was not ok");
-                    
-                    const data = await response.json();
-                    
-                    if (data.contents) {
-                        const json = JSON.parse(data.contents);
-                        if (json.chart && json.chart.result && json.chart.result[0] && json.chart.result[0].meta) {
-                            const price = json.chart.result[0].meta.regularMarketPrice;
-                            valInput.value = price;
-                            status.innerText = `已更新: ${price} (Yahoo)`;
-                            status.className = 'text-[10px] text-emerald-500 mt-2 h-4 font-bold';
-                        } else {
-                            throw new Error("Format error");
-                        }
-                    } else {
-                         throw new Error("No content");
-                    }
-                } catch (e) {
-                    console.warn("Fetch failed, trying fallback...", e);
-                    // Update UI to show error and manual link
-                    status.innerHTML = '<span class="text-rose-500">自動抓取失敗</span>';
-                    status.className = 'text-[10px] mt-2 h-4 font-bold';
-                    
-                    const linkContainer = c.querySelector('#update-modal-link');
-                    if (linkContainer) {
-                        linkContainer.classList.remove('hidden');
-                        const link = linkContainer.querySelector('a');
-                        const linkSymbol = symbol.replace('.TW', ''); 
-                        
-                        if (symbol.includes('.TW') || /^\d+$/.test(linkSymbol)) {
-                             link.href = `https://tw.stock.yahoo.com/quote/${linkSymbol}`;
-                        } else {
-                             link.href = `https://finance.yahoo.com/quote/${symbol}`;
-                        }
-                        link.innerHTML = `<i class="fa-solid fa-arrow-up-right-from-square"></i> 前往 Yahoo 股市查詢`;
-                    }
-                } finally {
-                    btn.classList.remove('animate-spin-slow');
-                }
-            },
-
             deleteTransaction: async (id, legacyInvId) => { if (!confirm('確定刪除?')) return; const uid = State.user.uid; let path = `users/${uid}/transactions/${id}`; let isLegacy = false; if (legacyInvId && legacyInvId !== 'undefined') { path = `users/${uid}/investments/${legacyInvId}/transactions/${id}`; isLegacy = true; } const docRef = doc(db, path); try { const docSnap = await getDoc(docRef); if (!docSnap.exists()) { alert("找不到該筆資料"); return; } const txData = docSnap.data(); const batch = writeBatch(db); if (!isLegacy && txData.type === 'expense' && txData.project) { const debt = State.data.debts.find(d => d.name === txData.project); if (debt) { const debtRef = doc(db, `users/${uid}/debts`, debt.id); batch.update(debtRef, { remainingAmount: increment(txData.amount) }); } } batch.delete(docRef); await batch.commit(); if (isLegacy && State.data.legacyTxs[legacyInvId]) { State.data.legacyTxs[legacyInvId] = State.data.legacyTxs[legacyInvId].filter(t => t.id !== id); } App.closeModal(); } catch (e) { console.error(e); alert("刪除失敗"); } },
             deleteItem: async (c,id) => { if(confirm('刪除?')) await deleteDoc(doc(db, `users/${State.user.uid}/${c}`, id)); },
             updateMarketValue: async (id,old) => { const v=prompt("目前市值:",old); if(v&&!isNaN(v)) await updateDoc(doc(db, `users/${State.user.uid}/investments`, id), {marketValue:parseFloat(v)}); },
@@ -851,21 +706,6 @@
                     e.classList.remove('bg-white', 'shadow', 'text-rose-500'); e.classList.add('text-slate-500');
                 }
             },
-            toggleInvType: (t) => {
-                document.getElementById('inv-type').value = t;
-                const g = document.getElementById('btn-inv-general'), s = document.getElementById('btn-inv-stock');
-                const field = document.getElementById('field-symbol');
-                
-                if(t === 'general') {
-                    g.classList.add('bg-white', 'shadow', 'text-primary'); g.classList.remove('text-slate-500');
-                    s.classList.remove('bg-white', 'shadow', 'text-primary'); s.classList.add('text-slate-500');
-                    field.classList.add('hidden');
-                } else {
-                    s.classList.add('bg-white', 'shadow', 'text-primary'); s.classList.remove('text-slate-500');
-                    g.classList.remove('bg-white', 'shadow', 'text-primary'); g.classList.add('text-slate-500');
-                    field.classList.remove('hidden');
-                }
-            },
             openModal: (t, id, defaults = {}) => {
                 const c = document.getElementById('modal-content'); c.innerHTML = document.getElementById(`tpl-${t}`).innerHTML;
                 if(t==='transaction-modal') { renderDatalist(c.querySelector('#cat-list'), State.categories.expense); if(defaults.project) c.querySelector('[name=project]').value = defaults.project; if(defaults.category) c.querySelector('[name=category]').value = defaults.category; }
@@ -874,12 +714,7 @@
                     if(item) {
                         c.querySelector('[name=id]').value = id;
                         if(t==='transaction-modal') { c.querySelector('[name=amount]').value = item.amount; c.querySelector('[name=date]').value = toDateStr(getTxDate(item)); c.querySelector('[name=category]').value = item.category; c.querySelector('[name=remarks]').value = item.remarks; c.querySelector('[name=project]').value = item.project || ''; if(item.isLegacy && item.legacyInvId) c.querySelector('[name=legacy_inv_id]').value = item.legacyInvId; App.toggleTxType(item.type); } 
-                        else if (t==='investment-modal') { 
-                            c.querySelector('[name=name]').value = item.name; c.querySelector('[name=initial]').value = item.initialValue; 
-                            if(c.querySelector('[name=isArchived]')) c.querySelector('[name=isArchived]').checked = item.isArchived; 
-                            if(c.querySelector('[name=symbol]')) c.querySelector('[name=symbol]').value = item.symbol || '';
-                            if(item.type) App.toggleInvType(item.type);
-                        } 
+                        else if (t==='investment-modal') { c.querySelector('[name=name]').value = item.name; c.querySelector('[name=initial]').value = item.initialValue; if(c.querySelector('[name=isArchived]')) c.querySelector('[name=isArchived]').checked = item.isArchived; } 
                         else if (t==='debt-modal') { c.querySelector('[name=name]').value = item.name; c.querySelector('[name=total]').value = item.totalAmount; } 
                         else if (t==='event-modal') { c.querySelector('[name=title]').value = item.title; c.querySelector('[name=desc]').value = item.description; c.querySelector('[name=date]').value = toDateStr(getTxDate(item)); }
                     }
@@ -890,20 +725,23 @@
             },
             closeModal: () => document.getElementById('modal-overlay').classList.add('hidden'),
             openRepayModal: (id,n) => { const c=document.getElementById('modal-content'); c.innerHTML=document.getElementById('tpl-repay-form').innerHTML; c.querySelector('#repay-id').value=id; c.querySelector('#repay-debt-name').innerText=n; c.querySelector('[name=date]').value=new Date().toLocaleDateString('zh-CA'); document.getElementById('modal-overlay').classList.remove('hidden'); document.getElementById('modal-overlay').classList.add('flex'); },
-            openBudgetModal: (ctx, id=null) => { const c=document.getElementById('modal-content'); c.innerHTML=document.getElementById('tpl-budget-form').innerHTML; const isEdit = !!id; c.querySelector('#budget-modal-title').innerText = (isEdit?'編輯':'新增')+(ctx==='investment'?'投資預算':'還款計畫'); c.querySelector('#budget-context').value = ctx; const sel = c.querySelector('#budget-target'); (ctx==='investment'?State.data.investments:State.data.debts).forEach(i => sel.innerHTML+=`<option value="${i.id}">${i.name}</option>`); if (ctx === 'investment') { document.getElementById('budget-type-selector').classList.remove('hidden'); App.toggleBudgetType('expense'); } if(isEdit) { const list = ctx==='investment' ? State.data.investmentBudgets : State.data.debtBudgets; const item = list.find(i => i.id === id); if(item) { c.querySelector('[name=id]').value = id; sel.value = item.targetId || ''; c.querySelector('[name=amount]').value = item.amount; c.querySelector('[name=date]').value = toDateStr(getTxDate({timestamp:item.expectedDate})); c.querySelector('[name=desc]').value = item.description; if(item.type && ctx==='investment') App.toggleBudgetType(item.type); } } else { c.querySelector('[name=date]').value = new Date().toLocaleDateString('zh-CA'); } document.getElementById('modal-overlay').classList.remove('hidden'); document.getElementById('modal-overlay').classList.add('flex'); },
+            openBudgetModal: (ctx, id=null) => { 
+                const c=document.getElementById('modal-content'); c.innerHTML=document.getElementById('tpl-budget-form').innerHTML; const isEdit = !!id; 
+                c.querySelector('#budget-modal-title').innerText = (isEdit?'編輯':'新增')+(ctx==='investment'?'投資預算':'還款計畫'); 
+                c.querySelector('#budget-context').value = ctx; 
+                const sel = c.querySelector('#budget-target'); (ctx==='investment'?State.data.investments:State.data.debts).forEach(i => sel.innerHTML+=`<option value="${i.id}">${i.name}</option>`); 
+                if (ctx === 'investment') { document.getElementById('budget-type-selector').classList.remove('hidden'); App.toggleBudgetType('expense'); }
+                if(isEdit) { 
+                    const list = ctx==='investment' ? State.data.investmentBudgets : State.data.debtBudgets; const item = list.find(i => i.id === id); 
+                    if(item) { c.querySelector('[name=id]').value = id; sel.value = item.targetId || ''; c.querySelector('[name=amount]').value = item.amount; c.querySelector('[name=date]').value = toDateStr(getTxDate({timestamp:item.expectedDate})); c.querySelector('[name=desc]').value = item.description; if(item.type && ctx==='investment') App.toggleBudgetType(item.type); } 
+                } else { c.querySelector('[name=date]').value = new Date().toLocaleDateString('zh-CA'); } 
+                document.getElementById('modal-overlay').classList.remove('hidden'); document.getElementById('modal-overlay').classList.add('flex'); 
+            },
             showDetails: async (type, id) => {
                 const item = State.data[type + 's'].find(i => i.id === id); if (!item) return;
                 const tpl = document.getElementById('tpl-details-modal').innerHTML; const content = document.getElementById('modal-content'); content.innerHTML = tpl; content.querySelector('.details-title').innerText = item.name; document.getElementById('modal-overlay').classList.remove('hidden'); document.getElementById('modal-overlay').classList.add('flex');
-                let relatedTxs = []; if (type === 'investment') { const subTxs = State.data.legacyTxs[id] || []; const mainTxs = State.data.transactions.filter(t => t.project === item.name); const linkedIds = new Set(subTxs.map(t => t.mainTransactionId).filter(Boolean)); relatedTxs = [...subTxs, ...mainTxs.filter(t => !linkedIds.has(t.id))]; const btn = document.createElement('button'); btn.className="w-full bg-slate-50 text-slate-600 py-3 rounded-xl font-bold text-xs mt-3 shadow-sm hover:bg-slate-100 transition"; btn.innerText="更新目前市值"; btn.onclick=()=>App.openUpdateValueModal(id,item.marketValue, item.symbol); content.querySelector('.details-actions').appendChild(btn); } else { relatedTxs = State.data.transactions.filter(t => t.project === item.name); }
-                const addTxBtn = document.createElement('button'); 
-                addTxBtn.className="w-full bg-primary text-white py-3 rounded-xl font-bold text-xs mt-2 shadow-lg shadow-indigo-200 mb-2 active:scale-[0.98] transition"; 
-                addTxBtn.innerText="+ 新增交易"; 
-                addTxBtn.onclick=()=>App.openModal('transaction-modal',null,{
-                    project:item.name, 
-                    category:type==='investment'?'投資':'負債還款',
-                    type: item.type // Pass type (general or stock)
-                }); 
-                content.querySelector('.details-actions').insertBefore(addTxBtn, content.querySelector('.details-actions').firstChild);
+                let relatedTxs = []; if (type === 'investment') { const subTxs = State.data.legacyTxs[id] || []; const mainTxs = State.data.transactions.filter(t => t.project === item.name); const linkedIds = new Set(subTxs.map(t => t.mainTransactionId).filter(Boolean)); relatedTxs = [...subTxs, ...mainTxs.filter(t => !linkedIds.has(t.id))]; const btn = document.createElement('button'); btn.className="w-full bg-slate-50 text-slate-600 py-3 rounded-xl font-bold text-xs mt-3 shadow-sm hover:bg-slate-100 transition"; btn.innerText="更新目前市值"; btn.onclick=()=>App.updateMarketValue(id,item.marketValue); content.querySelector('.details-actions').appendChild(btn); } else { relatedTxs = State.data.transactions.filter(t => t.project === item.name); }
+                const addTxBtn = document.createElement('button'); addTxBtn.className="w-full bg-primary text-white py-3 rounded-xl font-bold text-xs mt-2 shadow-lg shadow-indigo-200 mb-2 active:scale-[0.98] transition"; addTxBtn.innerText="+ 新增交易"; addTxBtn.onclick=()=>App.openModal('transaction-modal',null,{project:item.name, category:type==='investment'?'投資':'負債還款'}); content.querySelector('.details-actions').insertBefore(addTxBtn, content.querySelector('.details-actions').firstChild);
                 content.querySelector('.details-list').innerHTML = relatedTxs.sort((a,b)=>getTxDate(b)-getTxDate(a)).map(t => `<li class="flex justify-between items-center py-3 px-3 rounded-xl mb-2 ${t.type==='expense'?'bg-rose-50/50':'bg-emerald-50/50'}"><div><p class="text-[10px] text-slate-400 mb-0.5">${getTxDate(t).toLocaleDateString()}</p><p class="text-xs font-bold text-slate-700">${t.remarks||t.category}</p></div><div class="flex items-center gap-3"><span class="text-sm font-bold ${t.type==='expense'?'text-rose-500':'text-emerald-500'}">${t.type==='expense'?'-':'+'} ${parseFloat(t.amount).toLocaleString()}</span><div class="flex gap-2"><button onclick="App.openModal('transaction-modal', '${t.id}')" class="w-7 h-7 bg-white rounded-full text-slate-400 hover:text-primary flex items-center justify-center shadow-sm"><i class="fa-solid fa-pen text-[10px]"></i></button><button onclick="App.deleteTransaction('${t.id}', '${t.legacyInvId}')" class="w-7 h-7 bg-white rounded-full text-slate-400 hover:text-rose-500 flex items-center justify-center shadow-sm"><i class="fa-solid fa-xmark text-[10px]"></i></button></div></div></li>`).join('') || '<li class="text-center text-xs text-slate-300 py-6 border-2 border-dashed border-slate-100 rounded-xl">無相關紀錄</li>';
             },
             renderTransactions: () => {
@@ -915,7 +753,7 @@
                 txs.forEach(t => { const k = getTxDate(t).toLocaleDateString('zh-TW',{month:'numeric',day:'numeric',weekday:'short'}); if(!grouped[k]) grouped[k]={list:[],inc:0,exp:0}; grouped[k].list.push(t); if(t.type==='income') grouped[k].inc+=parseFloat(t.amount); else grouped[k].exp+=parseFloat(t.amount); });
                 document.getElementById('tx-list').innerHTML = Object.entries(grouped).map(([k, v]) => {
                     const bal = v.inc - v.exp; 
-                    return `<div class="mb-4 animate-fade-in"><div class="flex justify-between items-center text-xs font-bold text-slate-400 mb-2 px-2"><div class="flex items-center gap-2"><span>${k}</span><span class="${bal < 0 ? 'text-rose-500 bg-rose-50' : 'text-slate-500 bg-slate-100'} px-1.5 py-0.5 rounded text-[10px] font-bold">${bal < 0 ? '-' : '+'} $${Math.abs(bal).toLocaleString()}</span></div><div class="flex gap-3"><span class="text-emerald-500 bg-emerald-50/50 px-1.5 rounded">+${v.inc.toLocaleString()}</span><span class="text-rose-400 bg-rose-50/50 px-1.5 rounded">-${v.exp.toLocaleString()}</span></div></div><div class="bg-white rounded-2xl shadow-soft border border-slate-50 overflow-hidden">${v.list.map(t => `<div class="flex justify-between items-center py-4 px-4 border-b border-slate-50 hover:bg-slate-50 cursor-pointer transition active:scale-[0.99]" onclick="App.openModal('transaction-modal', '${t.id}')"><div class="flex items-center gap-4"><div class="w-10 h-10 rounded-2xl flex items-center justify-center text-sm font-bold shadow-sm ${t.type==='expense'?'bg-rose-50 text-rose-500':'bg-emerald-50 text-emerald-500'}">${(t.category||'未')[0]}</div><div class="min-w-0"><p class="font-bold text-slate-700 text-sm mb-0.5">${t.category||'未分類'}</p><p class="text-[10px] text-slate-400 truncate max-w-[120px]">${t.remarks||''}</p></div></div><div class="flex flex-col items-end"><span class="font-bold text-sm ${t.type==='expense'?'text-slate-700':'text-emerald-500'}">${t.type==='expense'?'-':'+'} ${parseFloat(t.amount).toLocaleString()}</span><span class="text-[10px] text-slate-300">${t.project||''}</span></div></div>`).join('')}</div></div>`
+                    return `<div class="mb-4 animate-fade-in"><div class="flex justify-between items-center text-xs font-bold text-slate-400 mb-2 px-2"><span>${k}</span><div class="flex gap-3"><span class="text-emerald-500 bg-emerald-50/50 px-1.5 rounded">+${v.inc.toLocaleString()}</span><span class="text-rose-400 bg-rose-50/50 px-1.5 rounded">-${v.exp.toLocaleString()}</span></div></div><div class="bg-white rounded-2xl shadow-soft border border-slate-50 overflow-hidden">${v.list.map(t => `<div class="flex justify-between items-center py-4 px-4 border-b border-slate-50 hover:bg-slate-50 cursor-pointer transition active:scale-[0.99]" onclick="App.openModal('transaction-modal', '${t.id}')"><div class="flex items-center gap-4"><div class="w-10 h-10 rounded-2xl flex items-center justify-center text-sm font-bold shadow-sm ${t.type==='expense'?'bg-rose-50 text-rose-500':'bg-emerald-50 text-emerald-500'}">${(t.category||'未')[0]}</div><div class="min-w-0"><p class="font-bold text-slate-700 text-sm mb-0.5">${t.category||'未分類'}</p><p class="text-[10px] text-slate-400 truncate max-w-[120px]">${t.remarks||''}</p></div></div><div class="flex flex-col items-end"><span class="font-bold text-sm ${t.type==='expense'?'text-slate-700':'text-emerald-500'}">${t.type==='expense'?'-':'+'} ${parseFloat(t.amount).toLocaleString()}</span><span class="text-[10px] text-slate-300">${t.project||''}</span></div></div>`).join('')}</div></div>`
                 }).join('') || '<div class="text-center py-16"><div class="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-3 text-slate-300 text-2xl"><i class="fa-solid fa-receipt"></i></div><p class="text-slate-400 text-xs">本月尚無紀錄</p></div>';
             },
             updateDashboard: () => {
@@ -942,30 +780,16 @@
                 if(!document.getElementById('inv-list')) return;
                 const mVal = document.getElementById('inv-date-filter').value; const [yr, mn] = mVal ? mVal.split('-').map(Number) : [new Date().getFullYear(), new Date().getMonth()+1];
                 const startM = new Date(yr, mn-1, 1), endM = new Date(yr, mn, 0, 23, 59, 59);
-                
                 const invs = State.data.investments.sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
-                
-                const currentTab = State.view.invTab; 
-                const activeInvs = invs.filter(i => {
-                    if (currentTab === 'archived') {
-                        return i.isArchived;
-                    } else {
-                        if (i.isArchived) return false;
-                        const itemType = i.type || 'general';
-                        return itemType === currentTab;
-                    }
-                });
-
+                const activeInvs = invs.filter(i => State.view.invTab === 'active' ? !i.isArchived : i.isArchived);
                 let tv=0, tr=0, tc=0;
                 document.getElementById('inv-list').innerHTML = activeInvs.length ? activeInvs.map(i=>{
                     const subTxs = State.data.legacyTxs[i.id] || []; const mainTxs = State.data.transactions.filter(t => t.project === i.name); const linked = new Set(subTxs.map(t => t.mainTransactionId).filter(Boolean)); const all = [...subTxs, ...mainTxs.filter(t => !linked.has(t.id))]; const inc = all.filter(t=>t.type==='income').reduce((a,b)=>a+parseFloat(b.amount),0); const exp = all.filter(t=>t.type==='expense').reduce((a,b)=>a+parseFloat(b.amount),0); const profit = inc - exp;
                     if(State.view.invTab === 'active') { tv += (parseFloat(i.marketValue)||0); tc += exp; tr += profit; }
-                    
                     const mInc = all.filter(t => { const d = getTxDate(t); return t.type==='income' && d >= startM && d <= endM; }).reduce((s,t) => s + parseFloat(t.amount), 0);
                     const mDisp = mInc > 0 ? `<div class="mt-2 pt-2 border-t border-slate-50 flex justify-between items-center"><span class="text-[10px] text-slate-400">本月實現</span><span class="text-xs font-bold text-emerald-500">+$${mInc.toLocaleString()}</span></div>` : '';
                     return `<div class="bg-white p-4 rounded-2xl shadow-soft border border-slate-50 cursor-pointer hover:shadow-md transition active:scale-[0.99] group" onclick="App.showDetails('investment', '${i.id}')"><div class="flex justify-between items-start mb-2"><div class="flex items-center gap-3"><div class="w-10 h-10 rounded-xl bg-indigo-50 text-primary flex items-center justify-center font-bold text-lg shadow-sm">${i.name[0]}</div><div><h4 class="font-bold text-slate-800 text-sm">${i.name}</h4><p class="text-[10px] text-slate-400">成本: $${(parseFloat(i.initialValue)||0).toLocaleString()}</p></div></div><div class="text-right"><p class="font-bold text-base text-slate-800">$${(parseFloat(i.marketValue)||0).toLocaleString()}</p><p class="text-[10px] font-bold ${profit>=0?'text-emerald-500':'text-rose-500'}">${profit>=0?'+':''}${profit.toLocaleString()}</p></div></div>${mDisp}<div class="absolute top-4 right-4 opacity-0 group-hover:opacity-100 transition"><button onclick="event.stopPropagation();App.openModal('investment-modal', '${i.id}')" type="button" class="w-6 h-6 rounded-full bg-slate-100 text-slate-400 hover:text-primary flex items-center justify-center"><i class="fa-solid fa-pen text-[10px]"></i></button></div></div>`;
                 }).join('') : '<div class="text-center text-slate-400 py-10 text-xs">尚無投資帳戶</div>';
-                
                 const allInvIncome = App.getAllTransactions().filter(t => { const d = getTxDate(t); return t.type === 'income' && t.category.includes('投資') && d >= startM && d <= endM; }).reduce((s, t) => s + parseFloat(t.amount), 0);
                 document.getElementById('inv-monthly-summary').innerText = `本月總收益: $${allInvIncome.toLocaleString()}`;
                 const roi = tc > 0 ? (tr / tc) * 100 : 0;
@@ -1018,6 +842,48 @@
                 const grouped = {};
                 State.data.events.sort((a,b) => getTxDate(b) - getTxDate(a)).forEach(e => { const k = getTxDate(e).toLocaleDateString('zh-TW', {year:'numeric', month:'long'}); if(!grouped[k]) grouped[k]=[]; grouped[k].push(e); });
                 document.getElementById('event-list').innerHTML = `<div class="absolute left-[19px] top-0 bottom-0 w-0.5 bg-slate-100 z-0"></div>` + (Object.keys(grouped).length ? Object.entries(grouped).map(([m, evs]) => `<div class="mb-8 relative z-10"><h3 class="text-xs font-bold text-slate-400 mb-4 bg-[#f8fafc] inline-block pr-2 sticky top-0">${m}</h3><div class="space-y-6">${evs.map(e => `<div class="relative pl-8 group cursor-pointer" onclick="App.openModal('event-modal','${e.id}')"><div class="absolute left-3 top-1.5 w-4 h-4 rounded-full border-[3px] border-[#f8fafc] bg-indigo-300 group-hover:bg-primary group-hover:scale-125 transition shadow-sm"></div><div class="bg-white p-4 rounded-2xl shadow-soft border border-slate-50 hover:shadow-md transition active:scale-[0.99]"><div class="flex justify-between items-start mb-1"><span class="text-[10px] font-bold text-primary bg-indigo-50 px-2 py-0.5 rounded-lg">${getTxDate(e).toLocaleDateString('zh-TW', {day:'numeric', weekday:'short'})}</span><div class="opacity-0 group-hover:opacity-100 transition"><i class="fa-solid fa-pen text-slate-300 text-xs"></i></div></div><h4 class="font-bold text-slate-800 text-sm mb-1">${e.title}</h4><p class="text-xs text-slate-500 leading-relaxed whitespace-pre-wrap">${e.description||''}</p></div></div>`).join('')}</div></div>`).join('') : '<div class="text-center py-20"><div class="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-3 text-slate-300"><i class="fa-solid fa-camera-retro text-xl"></i></div><p class="text-slate-400 text-xs">這裡空空的，記錄一點生活吧？</p></div>');
+            },
+            // Improved Type Toggle for Visuals
+            toggleTxType: (t) => { 
+                document.getElementById('tx-type').value=t; 
+                const e=document.getElementById('btn-expense'), i=document.getElementById('btn-income'); 
+                if(t==='expense'){
+                    e.classList.add('bg-white','shadow-md','text-rose-500'); e.classList.remove('text-slate-500'); 
+                    i.classList.remove('bg-white','shadow-md','text-emerald-500'); i.classList.add('text-slate-500'); 
+                    renderDatalist(document.getElementById('cat-list'), State.categories.expense);
+                }else{
+                    i.classList.add('bg-white','shadow-md','text-emerald-500'); i.classList.remove('text-slate-500'); 
+                    e.classList.remove('bg-white','shadow-md','text-rose-500'); e.classList.add('text-slate-500'); 
+                    renderDatalist(document.getElementById('cat-list'), State.categories.income);
+                } 
+            },
+            // ... Keep existing modal logic intact ...
+            openModal: (t, id, defaults = {}) => {
+                const c = document.getElementById('modal-content'); c.innerHTML = document.getElementById(`tpl-${t}`).innerHTML;
+                if(t==='transaction-modal') { renderDatalist(c.querySelector('#cat-list'), State.categories.expense); if(defaults.project) c.querySelector('[name=project]').value = defaults.project; if(defaults.category) c.querySelector('[name=category]').value = defaults.category; }
+                if(id) {
+                    let item = State.data[t==='transaction-modal'?'transactions':t==='investment-modal'?'investments':t==='debt-modal'?'debts':t==='event-modal'?'events':[]].find(i=>i.id===id); if(!item && t==='transaction-modal') item = App.getAllTransactions().find(i=>i.id===id);
+                    if(item) {
+                        c.querySelector('[name=id]').value = id;
+                        if(t==='transaction-modal') { c.querySelector('[name=amount]').value = item.amount; c.querySelector('[name=date]').value = toDateStr(getTxDate(item)); c.querySelector('[name=category]').value = item.category; c.querySelector('[name=remarks]').value = item.remarks; c.querySelector('[name=project]').value = item.project || ''; if(item.isLegacy && item.legacyInvId) c.querySelector('[name=legacy_inv_id]').value = item.legacyInvId; App.toggleTxType(item.type); } 
+                        else if (t==='investment-modal') { c.querySelector('[name=name]').value = item.name; c.querySelector('[name=initial]').value = item.initialValue; if(c.querySelector('[name=isArchived]')) c.querySelector('[name=isArchived]').checked = item.isArchived; } 
+                        else if (t==='debt-modal') { c.querySelector('[name=name]').value = item.name; c.querySelector('[name=total]').value = item.totalAmount; } 
+                        else if (t==='event-modal') { c.querySelector('[name=title]').value = item.title; c.querySelector('[name=desc]').value = item.description; c.querySelector('[name=date]').value = toDateStr(getTxDate(item)); }
+                    }
+                } else if(t==='transaction-modal' || t==='event-modal') c.querySelector('[name=date]').value = new Date().toLocaleDateString('zh-CA');
+                if(t==='transaction-modal' && id) { const delBtn = c.querySelector('#btn-delete-tx'); delBtn.classList.remove('hidden'); let legacyInvId = undefined; const item = App.getAllTransactions().find(i=>i.id===id); if(item && item.legacyInvId) legacyInvId = item.legacyInvId; delBtn.onclick = () => App.deleteTransaction(id, legacyInvId); }
+                if(t==='event-modal' && id) { const delBtn = c.querySelector('#btn-delete-event'); if(delBtn) { delBtn.classList.remove('hidden'); delBtn.onclick = () => { if(confirm('刪除?')) { App.deleteItem('events', id); App.closeModal(); } }; } }
+                document.getElementById('modal-overlay').classList.remove('hidden'); document.getElementById('modal-overlay').classList.add('flex');
+            },
+            closeModal: () => document.getElementById('modal-overlay').classList.add('hidden'),
+            openRepayModal: (id,n) => { const c=document.getElementById('modal-content'); c.innerHTML=document.getElementById('tpl-repay-form').innerHTML; c.querySelector('#repay-id').value=id; c.querySelector('#repay-debt-name').innerText=n; c.querySelector('[name=date]').value=new Date().toLocaleDateString('zh-CA'); document.getElementById('modal-overlay').classList.remove('hidden'); document.getElementById('modal-overlay').classList.add('flex'); },
+            openBudgetModal: (ctx, id=null) => { const c=document.getElementById('modal-content'); c.innerHTML=document.getElementById('tpl-budget-form').innerHTML; const isEdit = !!id; c.querySelector('#budget-modal-title').innerText = (isEdit?'編輯':'新增')+(ctx==='investment'?'投資預算':'還款計畫'); c.querySelector('#budget-context').value = ctx; const sel = c.querySelector('#budget-target'); (ctx==='investment'?State.data.investments:State.data.debts).forEach(i => sel.innerHTML+=`<option value="${i.id}">${i.name}</option>`); if (ctx === 'investment') { document.getElementById('budget-type-selector').classList.remove('hidden'); App.toggleBudgetType('expense'); } if(isEdit) { const list = ctx==='investment' ? State.data.investmentBudgets : State.data.debtBudgets; const item = list.find(i => i.id === id); if(item) { c.querySelector('[name=id]').value = id; sel.value = item.targetId || ''; c.querySelector('[name=amount]').value = item.amount; c.querySelector('[name=date]').value = toDateStr(getTxDate({timestamp:item.expectedDate})); c.querySelector('[name=desc]').value = item.description; if(item.type && ctx==='investment') App.toggleBudgetType(item.type); } } else { c.querySelector('[name=date]').value = new Date().toLocaleDateString('zh-CA'); } document.getElementById('modal-overlay').classList.remove('hidden'); document.getElementById('modal-overlay').classList.add('flex'); },
+            showDetails: async (type, id) => {
+                const item = State.data[type + 's'].find(i => i.id === id); if (!item) return;
+                const tpl = document.getElementById('tpl-details-modal').innerHTML; const content = document.getElementById('modal-content'); content.innerHTML = tpl; content.querySelector('.details-title').innerText = item.name; document.getElementById('modal-overlay').classList.remove('hidden'); document.getElementById('modal-overlay').classList.add('flex');
+                let relatedTxs = []; if (type === 'investment') { const subTxs = State.data.legacyTxs[id] || []; const mainTxs = State.data.transactions.filter(t => t.project === item.name); const linkedIds = new Set(subTxs.map(t => t.mainTransactionId).filter(Boolean)); relatedTxs = [...subTxs, ...mainTxs.filter(t => !linkedIds.has(t.id))]; const btn = document.createElement('button'); btn.className="w-full bg-slate-50 text-slate-600 py-3 rounded-xl font-bold text-xs mt-3 shadow-sm hover:bg-slate-100 transition"; btn.innerText="更新目前市值"; btn.onclick=()=>App.updateMarketValue(id,item.marketValue); content.querySelector('.details-actions').appendChild(btn); } else { relatedTxs = State.data.transactions.filter(t => t.project === item.name); }
+                const addTxBtn = document.createElement('button'); addTxBtn.className="w-full bg-primary text-white py-3 rounded-xl font-bold text-xs mt-2 shadow-lg shadow-indigo-200 mb-2 active:scale-[0.98] transition"; addTxBtn.innerText="+ 新增交易"; addTxBtn.onclick=()=>App.openModal('transaction-modal',null,{project:item.name, category:type==='investment'?'投資':'負債還款'}); content.querySelector('.details-actions').insertBefore(addTxBtn, content.querySelector('.details-actions').firstChild);
+                content.querySelector('.details-list').innerHTML = relatedTxs.sort((a,b)=>getTxDate(b)-getTxDate(a)).map(t => `<li class="flex justify-between items-center py-3 px-3 rounded-xl mb-2 ${t.type==='expense'?'bg-rose-50/50':'bg-emerald-50/50'}"><div><p class="text-[10px] text-slate-400 mb-0.5">${getTxDate(t).toLocaleDateString()}</p><p class="text-xs font-bold text-slate-700">${t.remarks||t.category}</p></div><div class="flex items-center gap-3"><span class="text-sm font-bold ${t.type==='expense'?'text-rose-500':'text-emerald-500'}">${t.type==='expense'?'-':'+'} ${parseFloat(t.amount).toLocaleString()}</span><div class="flex gap-2"><button onclick="App.openModal('transaction-modal', '${t.id}')" class="w-7 h-7 bg-white rounded-full text-slate-400 hover:text-primary flex items-center justify-center shadow-sm"><i class="fa-solid fa-pen text-[10px]"></i></button><button onclick="App.deleteTransaction('${t.id}', '${t.legacyInvId}')" class="w-7 h-7 bg-white rounded-full text-slate-400 hover:text-rose-500 flex items-center justify-center shadow-sm"><i class="fa-solid fa-xmark text-[10px]"></i></button></div></div></li>`).join('') || '<li class="text-center text-xs text-slate-300 py-6 border-2 border-dashed border-slate-100 rounded-xl">無相關紀錄</li>';
             }
         };
         window.App = App; App.init();
