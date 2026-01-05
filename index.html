@@ -564,9 +564,17 @@
 
             <div>
                 <label class="text-[10px] font-bold text-slate-400 ml-1 block mb-1" id="budget-target-label">目標項目</label>
-                <div class="relative">
-                    <select name="targetId" id="budget-target" class="input-box w-full rounded-xl p-3 text-sm appearance-none" required></select>
+                
+                <!-- Select for Debt/Investment -->
+                <div class="relative" id="budget-target-select-container">
+                    <select name="targetId_select" id="budget-target-select" class="input-box w-full rounded-xl p-3 text-sm appearance-none"></select>
                     <i class="fa-solid fa-chevron-down absolute right-3 top-1/2 -translate-y-1/2 text-xs text-slate-400 pointer-events-none"></i>
+                </div>
+
+                <!-- Input for Accounting -->
+                <div class="hidden" id="budget-target-input-container">
+                     <input type="text" name="targetId_input" id="budget-target-input" class="input-box w-full rounded-xl p-3 text-sm" placeholder="輸入分類..." list="budget-categories-list">
+                     <datalist id="budget-categories-list"></datalist>
                 </div>
             </div>
             <div class="grid grid-cols-2 gap-4">
@@ -695,7 +703,11 @@
             handleSaveBudget: async (e) => { 
                 e.preventDefault(); const f=e.target, uid=State.user.uid, ctx=f.context.value; 
                 let colName = ''; if(ctx==='investment') colName='investmentBudgets'; else if(ctx==='debt') colName='debtBudgets'; else colName='accountingBudgets';
-                const d = { targetId: f.targetId.value, amount:parseFloat(f.amount.value), expectedDate:Timestamp.fromDate(new Date(f.date.value)), description:f.desc.value, type: f.type.value || 'expense' }; 
+                
+                const targetVal = ctx === 'accounting' ? f.targetId_input.value : f.targetId_select.value;
+                if(!targetVal) { alert('請輸入或選擇目標項目'); return; }
+
+                const d = { targetId: targetVal, amount:parseFloat(f.amount.value), expectedDate:Timestamp.fromDate(new Date(f.date.value)), description:f.desc.value, type: f.type.value || 'expense' }; 
                 if(!f.id.value){d.isRealized=false;d.createdAt=Timestamp.now();} 
                 f.id.value ? await updateDoc(doc(db,`users/${State.user.uid}/${colName}`,f.id.value),d) : await addDoc(collection(db,`users/${State.user.uid}/${colName}`),d); 
                 App.closeModal(); 
@@ -764,6 +776,14 @@
                 document.getElementById('budget-type').value = t;
                 const e = document.getElementById('btn-budget-expense'), i = document.getElementById('btn-budget-income');
                 const ctx = document.getElementById('budget-context').value;
+                
+                // Update datalist if accounting context
+                if (ctx === 'accounting') {
+                     const list = document.getElementById('budget-categories-list');
+                     const opts = t==='expense' ? State.categories.expense : State.categories.income;
+                     if(list) list.innerHTML = opts.map(c => `<option value="${c}">`).join('');
+                }
+
                 if(t === 'expense') {
                     e.classList.add('bg-white', 'shadow', 'text-rose-500'); e.classList.remove('text-slate-500');
                     i.classList.remove('bg-white', 'shadow', 'text-emerald-500'); i.classList.add('text-slate-500');
@@ -772,13 +792,6 @@
                     i.classList.add('bg-white', 'shadow', 'text-emerald-500'); i.classList.remove('text-slate-500');
                     e.classList.remove('bg-white', 'shadow', 'text-rose-500'); e.classList.add('text-slate-500');
                     i.innerText = ctx==='investment' ? '預期獲利' : '收入';
-                }
-                
-                // Update select options if accounting context
-                if (ctx === 'accounting') {
-                     const sel = document.getElementById('budget-target');
-                     const opts = t==='expense' ? State.categories.expense : State.categories.income;
-                     sel.innerHTML = opts.map(c => `<option value="${c}">${c}</option>`).join('');
                 }
             },
             openModal: (t, id, defaults = {}) => {
@@ -810,15 +823,26 @@
                 c.querySelector('#budget-modal-title').innerText = (isEdit?'編輯':'新增')+(ctx==='investment'?'投資預算':(ctx==='debt'?'還款計畫':'預算/排程')); 
                 c.querySelector('#budget-context').value = ctx; 
                 
-                const sel = c.querySelector('#budget-target'); 
+                const selDiv = document.getElementById('budget-target-select-container');
+                const inpDiv = document.getElementById('budget-target-input-container');
+                const sel = document.getElementById('budget-target-select');
+                const inp = document.getElementById('budget-target-input');
+                
+                sel.innerHTML = ''; // Reset select
+
                 if (ctx === 'investment') {
+                    selDiv.classList.remove('hidden'); inpDiv.classList.add('hidden');
                     State.data.investments.filter(i => !i.isArchived).forEach(i => sel.innerHTML+=`<option value="${i.id}">${i.name}</option>`); 
                 } else if (ctx === 'debt') {
+                    selDiv.classList.remove('hidden'); inpDiv.classList.add('hidden');
                     State.data.debts.forEach(i => sel.innerHTML+=`<option value="${i.id}">${i.name}</option>`);
                 } else {
-                    // Accounting Context: Populate categories
+                    // Accounting Context: Use Input with Datalist
+                    selDiv.classList.add('hidden'); inpDiv.classList.remove('hidden');
                     document.getElementById('budget-target-label').innerText = "分類";
-                    State.categories.expense.forEach(i => sel.innerHTML+=`<option value="${i}">${i}</option>`);
+                    // Populate datalist is handled by toggleBudgetType called below, but we can init here too
+                    const list = document.getElementById('budget-categories-list');
+                    list.innerHTML = State.categories.expense.map(c => `<option value="${c}">`).join('');
                 }
 
                 if (ctx === 'investment' || ctx === 'accounting') { 
@@ -842,8 +866,10 @@
                         c.querySelector('[name=date]').value = toDateStr(getTxDate({timestamp:item.expectedDate})); 
                         c.querySelector('[name=desc]').value = item.description; 
                         if(item.type && (ctx==='investment' || ctx==='accounting')) App.toggleBudgetType(item.type); 
-                        // Delay value setting slightly to ensure options are populated in toggleBudgetType if needed
-                        setTimeout(() => { if(sel) sel.value = item.targetId || ''; }, 0);
+                        
+                        // Set value based on type
+                        if (ctx === 'accounting') inp.value = item.targetId || '';
+                        else sel.value = item.targetId || '';
                     } 
                 } else { c.querySelector('[name=date]').value = new Date().toLocaleDateString('zh-CA'); } 
                 document.getElementById('modal-overlay').classList.remove('hidden'); document.getElementById('modal-overlay').classList.add('flex'); 
