@@ -341,7 +341,7 @@
     </template>
 
     <template id="tpl-category-selector">
-        <div class="flex justify-between items-center mb-6"><h3 class="text-lg font-bold text-slate-800">選擇分類</h3><button onclick="App.closeSubModal()" class="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-500"><i class="fa-solid fa-xmark"></i></button></div>
+        <div class="flex justify-between items-center mb-6"><h3 class="text-lg font-bold text-slate-800">選擇分類</h3><button onclick="App.closeSubModal()" class="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 hover:bg-slate-200"><i class="fa-solid fa-xmark"></i></button></div>
         <div id="category-chips" class="flex flex-wrap gap-2 pb-4"></div>
     </template>
 
@@ -412,7 +412,7 @@
                 const [y, m] = document.getElementById('date-filter').value.split('-').map(Number);
                 const txs = State.data.transactions.filter(t => { const d = getTxDate(t); return d.getFullYear()===y && d.getMonth()+1===m; }).sort((a,b)=>getTxDate(b)-getTxDate(a));
                 const grouped = {}; txs.forEach(t=>{ const k=getTxDate(t).toLocaleDateString('zh-TW',{month:'numeric',day:'numeric',weekday:'short'}); if(!grouped[k])grouped[k]={list:[],inc:0,exp:0}; grouped[k].list.push(t); t.type==='income'?grouped[k].inc+=t.amount:grouped[k].exp+=t.amount; });
-                list.innerHTML = Object.entries(grouped).map(([k,v])=>`<div class="mb-4 animate-fade-in"><div class="flex justify-between text-xs font-bold text-slate-400 mb-2 px-2"><span>${k}</span><div class="flex gap-2"><span class="text-emerald-500">+${v.inc.toLocaleString()}</span><span class="text-rose-400">-${v.exp.toLocaleString()}</span></div></div><div class="bg-white rounded-2xl shadow-soft overflow-hidden">${v.list.map(t=>`<div class="flex justify-between items-center py-3.5 px-4 border-b border-slate-50 last:border-0" onclick="App.openModal('transaction-modal','${t.id}')"><div class="flex items-center gap-3"><div class="w-9 h-9 rounded-xl flex items-center justify-center font-bold ${t.type==='expense'?'bg-rose-50 text-rose-500':'bg-emerald-50 text-emerald-500'}">${(t.category||'未')[0]}</div><div><p class="font-bold text-slate-700 text-sm">${t.category||'未分類'}</p><p class="text-[10px] text-slate-400">${t.remarks||''}</p></div></div><span class="font-bold text-sm ${t.type==='expense'?'text-slate-700':'text-emerald-500'}">${t.type==='expense'?'-':'+'} ${t.amount.toLocaleString()}</span></div>`).join('')}</div></div>`).join('') || '<p class="text-center py-10 text-slate-300">本月尚無紀錄</p>';
+                list.innerHTML = Object.entries(grouped).map(([k,v])=>`<div class="mb-4 animate-fade-in"><div class="flex justify-between text-xs font-bold text-slate-400 mb-2 px-2"><span>${k}</span><div class="flex gap-2"><span class="text-emerald-500">+${v.inc.toLocaleString()}</span><span class="text-rose-400">-${v.exp.toLocaleString()}</span></div></div><div class="bg-white rounded-2xl shadow-soft overflow-hidden">${v.list.map(t=>`<div class="flex justify-between items-center py-3.5 px-4 border-b border-slate-50 last:border-0" onclick="App.openModal('transaction-modal','${t.id}')"><div class="flex items-center gap-3"><div class="w-9 h-9 rounded-xl flex items-center justify-center font-bold ${t.type==='expense'?'bg-rose-50 text-rose-500':'bg-emerald-50 text-emerald-500'}">${(t.category||'未')[0]}</div><div><p class="font-bold text-slate-700 text-sm">${t.category||'未分類'}</p><p class="text-[10px] text-slate-400">${t.remarks||''}</p></div></div><span class="font-bold text-sm ${t.type==='expense'?'text-rose-500':'text-emerald-500'}">${t.type==='expense'?'-':'+'} ${t.amount.toLocaleString()}</span></div>`).join('')}</div></div>`).join('') || '<p class="text-center py-10 text-slate-300">本月尚無紀錄</p>';
             },
             renderAccountingBudgets: () => {
                 const list = document.getElementById('accounting-budget-list'); if(!list) return;
@@ -457,9 +457,10 @@
 
                 document.getElementById('debt-budget-list').innerHTML = State.data.debtBudgets.filter(b=>!b.isRealized).sort((a,b)=>(a.expectedDate?.seconds||0)-(b.expectedDate?.seconds||0)).map(b => {
                     const isToday = toDateStr(b.expectedDate) === todayStr;
-                    const name = State.data.debts.find(d=>d.id===b.targetId)?.name || '未知';
-                    const bgClass = isToday ? 'bg-amber-50 border-amber-100' : 'bg-white border-slate-50';
+                    const isPast = b.expectedDate?.toDate() < new Date().setHours(0,0,0,0);
+                    const bgClass = isPast ? 'bg-rose-50 border-rose-100' : isToday ? 'bg-amber-50 border-amber-100' : 'bg-white border-slate-50';
                     const hint = isToday ? '<i class="fa-solid fa-bell text-warning animate-pulse ml-1"></i>' : '';
+                    const name = State.data.debts.find(d=>d.id===b.targetId)?.name || '未知';
                     return `<li class="flex justify-between items-center p-3 rounded-xl border shadow-soft mb-2 ${bgClass}"><div class="flex items-center gap-3"><div><span class="font-bold text-xs">${name}${hint}</span><p class="text-[10px] text-slate-400">${toDateStr(b.expectedDate)} 還款 $${b.amount.toLocaleString()}</p></div></div><button onclick="App.realizeBudget('debt','${b.id}')" class="w-7 h-7 bg-emerald-50 text-emerald-600 rounded-full flex items-center justify-center"><i class="fa-solid fa-check text-[10px]"></i></button></li>`;
                 }).join('') || '<p class="text-center py-4 text-xs text-slate-300">無計畫</p>';
                 
@@ -521,7 +522,8 @@
                 else if(ctx==='investment') State.data.investments.forEach(i=>sel.innerHTML+=`<option value="${i.id}">${i.name}</option>`);
                 else if(ctx==='debt') State.data.debts.forEach(d=>sel.innerHTML+=`<option value="${d.id}">${d.name}</option>`);
                 c.querySelector('[name=date]').value = toDateStr(new Date());
-                document.getElementById('modal-overlay').classList.remove('hidden'); document.getElementById('modal-overlay').classList.add('flex');
+                document.getElementById('modal-overlay').classList.remove('hidden'); document.getElementById('monthly-balance').innerText; // placeholder
+                document.getElementById('modal-overlay').classList.add('flex');
             },
             toggleTxType: (t) => {
                 document.getElementById('tx-type').value=t; 
