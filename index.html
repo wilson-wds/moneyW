@@ -701,38 +701,59 @@
                 const today = new Date();
                 today.setHours(0,0,0,0);
 
+                // Filter out existing penalties to use for checking duplicates
+                const existingPenalties = list.filter(b => b.isPenalty);
+
                 for (const b of list) {
-                    if (b.isRealized || !b.enablePenalty || !b.dailyPenalty) continue;
+                    // Skip if it's a penalty itself, realized, disabled, or no daily penalty
+                    if (b.isPenalty || b.isRealized || !b.enablePenalty || !b.dailyPenalty) continue;
 
-                    // Determine the last covered date
-                    let lastCovered = b.lastPenaltyDate ? getTxDate({timestamp: b.lastPenaltyDate}) : getTxDate({timestamp: b.expectedDate});
-                    lastCovered.setHours(0,0,0,0);
+                    const expected = getTxDate({timestamp: b.expectedDate});
+                    expected.setHours(0,0,0,0);
 
-                    // If today is strictly after the last covered date
-                    if (today > lastCovered) {
-                        let cursor = new Date(lastCovered);
-                        cursor.setDate(cursor.getDate() + 1);
+                    // If expected date is in the future or today, no penalty yet (penalty starts day after)
+                    if (today <= expected) continue;
 
-                        while (cursor <= today) {
+                    // Loop from day after expected date until today
+                    let cursor = new Date(expected);
+                    cursor.setDate(cursor.getDate() + 1);
+
+                    while (cursor <= today) {
+                        const cursorTime = cursor.getTime();
+                        
+                        // Check if penalty exists for this specific day and parent budget
+                        const alreadyExists = existingPenalties.some(p => {
+                            const pDate = getTxDate({timestamp: p.expectedDate});
+                            pDate.setHours(0,0,0,0);
+                            const dateMatch = pDate.getTime() === cursorTime;
+                            
+                            // Exact match via ID
+                            if (p.parentBudgetId === b.id && dateMatch) return true;
+
+                            // Heuristic match for legacy items (no parentBudgetId)
+                            if (!p.parentBudgetId && p.targetId === b.targetId && p.isPenalty && dateMatch) {
+                                return p.description.includes(b.description); 
+                            }
+                            return false;
+                        });
+
+                        if (!alreadyExists) {
                             const newRef = doc(collection(db, `users/${State.user.uid}/investmentBudgets`));
                             const pDate = new Date(cursor);
                             batch.set(newRef, {
                                 targetId: b.targetId,
+                                parentBudgetId: b.id, // Link to parent
                                 amount: parseFloat(b.dailyPenalty),
                                 expectedDate: Timestamp.fromDate(pDate),
                                 description: `[罰金] ${b.description} (${pDate.toLocaleDateString('zh-TW', {month:'numeric', day:'numeric'})})`,
-                                type: 'income',
+                                type: 'income', // Penalty income
                                 isRealized: false,
                                 isPenalty: true,
                                 createdAt: Timestamp.now()
                             });
-                            cursor.setDate(cursor.getDate() + 1);
                             hasUpdates = true;
                         }
-
-                        const parentRef = doc(db, `users/${State.user.uid}/investmentBudgets`, b.id);
-                        batch.update(parentRef, { lastPenaltyDate: Timestamp.fromDate(today) });
-                        hasUpdates = true;
+                        cursor.setDate(cursor.getDate() + 1);
                     }
                 }
 
