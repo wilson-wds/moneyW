@@ -89,7 +89,7 @@
                 <i class="fa-solid fa-hand-holding-dollar text-xl mb-0.5"></i> 放款
             </button>
             <button onclick="App.switchTab('debt', this)" class="nav-item flex flex-col items-center gap-1.5 p-2 min-w-[3rem]">
-                <i class="fa-solid fa-file-invoice-dollar text-xl mb-0.5"></i> 債務
+                <i class="fa-solid fa-file-invoice-dollar text-xl mb-0.5"></i> 負債
             </button>
             <div class="relative -top-8 mx-1">
                 <button onclick="App.openModal('transaction-modal')" class="fab-btn w-12 h-12 rounded-full text-white text-xl flex items-center justify-center">
@@ -97,10 +97,10 @@
                 </button>
             </div>
             <button onclick="App.switchTab('events', this)" class="nav-item flex flex-col items-center gap-1.5 p-2 min-w-[3rem]">
-                <i class="fa-solid fa-calendar-check text-xl mb-0.5"></i> 日誌
+                <i class="fa-solid fa-calendar-check text-xl mb-0.5"></i> 大事
             </button>
             <button onclick="App.switchTab('reports', this)" class="nav-item flex flex-col items-center gap-1.5 p-2 min-w-[3rem]">
-                <i class="fa-solid fa-chart-line text-xl mb-0.5"></i> 帳冊
+                <i class="fa-solid fa-chart-line text-xl mb-0.5"></i> 報表
             </button>
         </nav>
     </div>
@@ -121,31 +121,31 @@
                 <input type="month" id="date-filter" class="bg-white/20 text-white border-none rounded-lg px-3 py-1 text-xs font-bold" onchange="App.renderTransactions()">
             </div>
             <div class="flex flex-col items-center mb-6">
-                <span class="text-indigo-100 text-xs mb-1">本月結餘 (利潤)</span>
+                <span class="text-indigo-100 text-xs mb-1">本月結餘 (純利)</span>
                 <span id="monthly-balance" class="text-4xl font-bold text-white tracking-tight">$0</span>
             </div>
             <div class="grid grid-cols-2 gap-4">
                 <div class="bg-white/10 backdrop-blur-sm rounded-xl p-3 border border-white/10">
-                    <p class="text-[10px] text-emerald-300">總收款</p>
+                    <p class="text-[10px] text-emerald-300">本月總收</p>
                     <p id="monthly-income" class="text-lg font-bold">0</p>
                 </div>
                 <div class="bg-white/10 backdrop-blur-sm rounded-xl p-3 border border-white/10">
-                    <p class="text-[10px] text-rose-300">總支出</p>
+                    <p class="text-[10px] text-rose-300">本月總支</p>
                     <p id="monthly-expense" class="text-lg font-bold">0</p>
                 </div>
             </div>
         </div>
-        <div class="flex items-center justify-between px-2 mb-2">
-            <span class="text-xs font-bold text-slate-400">流水明細</span>
-            <div class="flex gap-2 text-[10px] font-bold">
-                 <span class="bg-emerald-50 text-emerald-600 px-2 py-0.5 rounded">今日收 <span id="today-income">0</span></span>
-                 <span class="bg-rose-50 text-rose-500 px-2 py-0.5 rounded">今日支 <span id="today-expense">0</span></span>
+        <div class="flex items-center justify-between px-2 pt-2 mb-2">
+            <span class="text-xs font-bold text-slate-400">本日小計</span>
+            <div class="flex gap-3 text-xs font-medium">
+                 <span class="text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded">收 <span id="today-income">0</span></span>
+                 <span class="text-rose-500 bg-rose-50 px-2 py-0.5 rounded">支 <span id="today-expense">0</span></span>
             </div>
         </div>
         <ul id="tx-list" class="space-y-4 pb-6"></ul>
         <div class="mt-8 pb-4">
-            <div class="flex justify-between items-center mb-3 px-1">
-                <span class="text-xs font-bold text-slate-400 uppercase">預算 / 排程計畫</span>
+            <div class="flex justify-between items-center px-1 mb-3">
+                <span class="text-xs font-bold text-slate-400 uppercase">預算 / 排程排定</span>
                 <button onclick="App.openBudgetModal('accounting')" class="text-primary text-[10px] font-bold bg-indigo-50 px-2 py-1 rounded-lg hover:bg-indigo-100 transition"><i class="fa-solid fa-plus"></i> 新增</button>
             </div>
             <ul id="accounting-budget-list" class="space-y-2"></ul>
@@ -160,27 +160,27 @@
         <div class="bg-dark text-white rounded-3xl p-5 shadow-lg relative overflow-hidden mb-4">
             <div class="absolute right-0 top-0 w-40 h-40 bg-indigo-500/20 rounded-full blur-3xl"></div>
             <div class="relative z-10">
-                <p class="text-slate-400 text-xs font-medium mb-1">總外部本金</p>
-                <h2 id="inv-total-val" class="text-3xl font-bold tracking-tight mb-4">--</h2>
+                <p class="text-slate-400 text-xs font-medium mb-1">目前外部總本金</p>
+                <h2 id="inv-total-val" class="text-3xl font-bold tracking-tight mb-4 text-white">--</h2>
                 <div class="flex gap-8 border-t border-white/10 pt-4">
-                    <div><span class="text-slate-400 text-[10px] block mb-0.5">總收益 (利息)</span><span id="inv-total-ret" class="font-bold text-base">--</span></div>
-                    <div><span class="text-slate-400 text-[10px] block mb-0.5">預估投報</span><span id="inv-roi" class="font-bold text-base text-emerald-400">--</span></div>
+                    <div><span class="text-slate-400 text-[10px] block mb-0.5">累計利息獲利</span><span id="inv-total-ret" class="font-bold text-base">--</span></div>
+                    <div><span class="text-slate-400 text-[10px] block mb-0.5">平均報酬率</span><span id="inv-roi" class="font-bold text-base text-emerald-400">--</span></div>
                 </div>
             </div>
         </div>
         <div class="flex justify-between items-center mb-3 px-1">
             <div class="bg-white p-1 rounded-xl shadow-sm inline-flex">
                 <button class="tab-pill px-4 py-1.5 rounded-lg text-xs font-bold active bg-indigo-50 text-primary" onclick="App.switchInvTab('active', this)">收息中</button>
-                <button class="tab-pill px-4 py-1.5 rounded-lg text-xs font-bold text-slate-500" onclick="App.switchInvTab('archived', this)">已結案</button>
+                <button class="tab-pill px-4 py-1.5 rounded-lg text-xs font-bold text-slate-500" onclick="App.switchInvTab('archived', this)">已結清</button>
             </div>
-            <button onclick="App.openModal('investment-modal')" class="text-primary text-xs font-bold bg-indigo-50 px-3 py-2 rounded-xl hover:bg-indigo-100 transition"><i class="fa-solid fa-plus"></i> 新增放款</button>
+            <button onclick="App.openModal('investment-modal')" class="text-primary text-xs font-bold bg-indigo-50 px-3 py-2 rounded-xl hover:bg-indigo-100 transition"><i class="fa-solid fa-plus"></i> 新案件</button>
         </div>
-        <span id="inv-monthly-summary" class="block text-center text-[10px] text-slate-400 mb-3 bg-white/50 py-1 rounded-lg">本月結利: $0</span>
+        <span id="inv-monthly-summary" class="block text-center text-[10px] text-slate-400 mb-3 bg-white/50 py-1 rounded-lg">本月結息: $0</span>
         <div id="inv-list" class="grid gap-3"></div>
         <div class="mt-6">
             <div class="flex justify-between items-center px-1 mb-3">
                 <span class="text-xs font-bold text-slate-400 uppercase">預定收款 / 罰金計畫</span>
-                <button onclick="App.openBudgetModal('investment')" class="text-secondary text-[10px] font-bold bg-emerald-50 px-2 py-1 rounded-lg hover:bg-emerald-100 transition"><i class="fa-solid fa-plus"></i> 新增</button>
+                <button onclick="App.openBudgetModal('investment')" class="text-secondary text-[10px] font-bold bg-emerald-50 px-2 py-1 rounded-lg hover:bg-emerald-100 transition"><i class="fa-solid fa-plus"></i> 新增計畫</button>
             </div>
             <ul id="inv-budget-list" class="space-y-2"></ul>
         </div>
@@ -188,19 +188,19 @@
 
     <template id="tpl-debt">
          <div class="sticky top-0 z-10 bg-[#f8fafc]/90 backdrop-blur-md pb-2 pt-2 flex justify-between items-center mb-2 px-1">
-            <h3 class="text-lg font-bold text-slate-700">負債/欠款管理</h3>
+            <h3 class="text-lg font-bold text-slate-700">負債管理</h3>
             <input type="month" id="debt-date-filter" class="bg-white border-none rounded-lg px-2 py-1.5 text-xs font-bold shadow-sm" onchange="App.renderDebts()">
         </div>
         <div class="bg-white p-5 rounded-3xl shadow-soft border-l-4 border-warning mb-4">
              <div class="flex justify-between items-end mb-4">
                 <div><p class="text-xs text-slate-400 font-medium mb-1">剩餘總欠款</p><p id="debt-total-remaining" class="text-3xl font-bold text-slate-800 tracking-tight">--</p></div>
-                <div class="text-right"><p class="text-[10px] text-slate-400 mb-1">整體還款進度</p><p id="debt-progress-text" class="text-xl font-bold text-warning">0%</p></div>
+                <div class="text-right"><p class="text-[10px] text-slate-400 mb-1">總體進度</p><p id="debt-progress-text" class="text-xl font-bold text-warning">0%</p></div>
             </div>
             <div class="w-full bg-slate-100 rounded-full h-3 overflow-hidden"><div id="debt-progress-bar" class="bg-warning h-full rounded-full transition-all duration-1000" style="width: 0%"></div></div>
         </div>
         <div id="debt-list" class="space-y-3"></div>
         <div class="mt-6">
-            <div class="flex justify-between items-center mb-3 px-1">
+            <div class="flex justify-between items-center px-1 mb-3">
                 <span class="text-xs font-bold text-slate-400 uppercase">還款計畫</span>
                 <button onclick="App.openBudgetModal('debt')" class="text-danger text-[10px] font-bold bg-rose-50 px-2 py-1 rounded-lg"><i class="fa-solid fa-plus"></i> 新增</button>
             </div>
@@ -211,23 +211,24 @@
     <template id="tpl-reports">
         <div class="bg-white p-4 rounded-2xl shadow-soft mb-4 space-y-3">
             <div class="flex gap-3">
-                <select id="report-year" class="flex-1 bg-slate-50 rounded-xl px-3 py-2 text-xs font-bold" onchange="App.renderReports()"></select>
-                <select id="report-month-select" class="flex-1 bg-slate-50 rounded-xl px-3 py-2 text-xs font-bold" onchange="App.renderReports()">
+                <select id="report-year" class="flex-1 bg-slate-50 rounded-xl px-3 py-2 text-xs font-bold appearance-none" onchange="App.renderReports()"></select>
+                <select id="report-month-select" class="flex-1 bg-slate-50 rounded-xl px-3 py-2 text-xs font-bold appearance-none" onchange="App.renderReports()">
                     <option value="all">全年度</option><option value="1">1月</option><option value="2">2月</option><option value="3">3月</option><option value="4">4月</option><option value="5">5月</option><option value="6">6月</option>
                     <option value="7">7月</option><option value="8">8月</option><option value="9">9月</option><option value="10">10月</option><option value="11">11月</option><option value="12">12月</option>
                 </select>
             </div>
             <div class="flex gap-2">
                 <select id="report-project" class="bg-slate-50 rounded-lg px-3 py-1.5 text-xs font-medium flex-1" onchange="App.renderReports()"><option value="all">全部專案</option></select>
-                <button onclick="App.exportReport()" class="bg-indigo-50 w-8 h-8 flex items-center justify-center rounded-lg text-primary hover:bg-indigo-100"><i class="fa-solid fa-file-export"></i></button>
+                <button onclick="App.exportReport()" class="bg-indigo-50 w-8 h-8 flex items-center justify-center rounded-lg text-primary hover:bg-indigo-100 transition"><i class="fa-solid fa-file-export"></i></button>
             </div>
         </div>
         <div class="bg-white p-5 rounded-3xl shadow-soft">
-            <h3 class="font-bold mb-6 text-center text-xs text-slate-400 uppercase tracking-widest">獲利分析</h3>
+            <h3 class="font-bold mb-6 text-center text-xs text-slate-400 uppercase tracking-widest">獲利分佈</h3>
             <div class="h-56 relative"><canvas id="expense-chart"></canvas></div>
         </div>
         <div class="bg-white p-5 rounded-3xl shadow-soft mt-4">
-            <ul id="report-stats" class="space-y-3 text-xs mb-6"></ul>
+            <h3 class="font-bold mb-4 text-xs text-slate-400 uppercase tracking-widest">詳細明細</h3>
+            <ul id="report-stats" class="space-y-3 text-xs mb-6 bg-slate-50 p-3 rounded-xl"></ul>
             <ul id="report-details" class="space-y-3"></ul>
         </div>
     </template>
@@ -235,7 +236,7 @@
     <template id="tpl-events">
         <div class="flex gap-3 mb-6 px-1">
              <button onclick="App.openModal('event-modal')" class="flex-1 py-4 border-2 border-dashed border-slate-300 rounded-2xl text-slate-400 font-bold hover:border-primary hover:text-primary transition text-xs flex flex-col items-center gap-1">
-                 <i class="fa-solid fa-pen-fancy text-lg"></i><span>生活/生意大事</span>
+                 <i class="fa-solid fa-pen-fancy text-lg"></i><span>生活大事 / 借貸紀錄</span>
              </button>
              <button onclick="App.exportEvents()" class="w-14 flex items-center justify-center bg-white shadow-soft rounded-2xl text-slate-400 hover:text-primary"><i class="fa-solid fa-file-export"></i></button>
         </div>
@@ -244,29 +245,21 @@
 
     <!-- Modals -->
     <template id="tpl-transaction-modal">
-        <div class="flex justify-between items-center mb-6">
-            <h3 class="text-xl font-bold text-slate-800" id="tx-modal-title">手動記帳</h3>
-            <div class="flex items-center gap-3">
-                 <button type="button" id="btn-delete-tx" class="hidden w-9 h-9 rounded-full bg-rose-50 text-rose-500 flex items-center justify-center"><i class="fa-solid fa-trash-can text-sm"></i></button>
-                 <button type="button" onclick="App.closeModal()" class="w-9 h-9 rounded-full bg-slate-100 flex items-center justify-center text-slate-500"><i class="fa-solid fa-xmark"></i></button>
-            </div>
-        </div>
+        <div class="flex justify-between items-center mb-6"><h3 class="text-xl font-bold text-slate-800" id="tx-modal-title">入帳/出帳</h3><div class="flex items-center gap-3"><button type="button" id="btn-delete-tx" class="hidden w-9 h-9 rounded-full bg-rose-50 text-rose-500 flex items-center justify-center"><i class="fa-solid fa-trash-can text-sm"></i></button><button type="button" onclick="App.closeModal()" class="w-9 h-9 rounded-full bg-slate-100 flex items-center justify-center text-slate-500"><i class="fa-solid fa-xmark"></i></button></div></div>
         <form onsubmit="App.handleSaveTransaction(event)" class="space-y-5">
             <input type="hidden" name="id">
             <div class="flex bg-slate-100 p-1.5 rounded-2xl">
-                <button type="button" class="flex-1 py-2.5 rounded-xl text-xs font-bold text-slate-500 transition-all" onclick="App.toggleTxType('income')" id="btn-income">收款(利息)</button>
-                <button type="button" class="flex-1 py-2.5 rounded-xl text-xs font-bold text-slate-500 transition-all" onclick="App.toggleTxType('expense')" id="btn-expense">放款/支出</button>
+                <button type="button" class="flex-1 py-2.5 rounded-xl text-xs font-bold text-slate-500 transition-all" onclick="App.toggleTxType('income')" id="btn-income">收款 (利息)</button>
+                <button type="button" class="flex-1 py-2.5 rounded-xl text-xs font-bold text-slate-500 transition-all" onclick="App.toggleTxType('expense')" id="btn-expense">放款 / 支出</button>
             </div>
             <input type="hidden" name="type" id="tx-type" value="income">
-            <div class="text-center py-2">
-                <input type="number" name="amount" class="w-full text-4xl font-bold text-slate-800 border-none bg-transparent text-center focus:outline-none" placeholder="0" required inputmode="decimal">
-            </div>
+            <div class="text-center py-2"><input type="number" name="amount" class="w-full text-4xl font-bold text-slate-800 border-none bg-transparent text-center focus:outline-none" placeholder="0" required inputmode="decimal"></div>
             <div class="space-y-4">
                 <div class="grid grid-cols-2 gap-4">
                     <div><label class="text-[10px] font-bold text-slate-400 ml-1 mb-1 block">日期</label><input type="date" name="date" class="input-box" required></div>
                     <div><label class="text-[10px] font-bold text-slate-400 ml-1 mb-1 block">分類</label><div class="flex gap-2"><input name="category" class="input-box" placeholder="利息/本金" required><button type="button" onclick="App.openCategorySelector()" class="w-10 h-10 bg-indigo-50 rounded-xl flex items-center justify-center text-primary shrink-0"><i class="fa-solid fa-list-ul"></i></button></div></div>
                 </div>
-                <div><label class="text-[10px] font-bold text-slate-400 ml-1 mb-1 block">對象/項目</label><input type="text" name="project" class="input-box" placeholder="客戶名或案號"></div>
+                <div><label class="text-[10px] font-bold text-slate-400 ml-1 mb-1 block">客戶項目</label><input type="text" name="project" class="input-box" placeholder="輸入案號或客戶名"></div>
                 <div><label class="text-[10px] font-bold text-slate-400 ml-1 mb-1 block">備註</label><input type="text" name="remarks" class="input-box" placeholder="紀錄一下細節..."></div>
             </div>
             <button type="submit" class="w-full bg-primary text-white font-bold py-4 rounded-2xl shadow-lg active:scale-95 transition">確認儲存</button>
@@ -274,29 +267,20 @@
     </template>
 
     <template id="tpl-investment-modal">
-        <div class="flex justify-between items-center mb-6">
-            <h3 class="text-xl font-bold text-slate-800">放款案件設定</h3>
-            <div class="flex items-center gap-3">
-                 <button type="button" id="btn-delete-inv" class="hidden w-9 h-9 rounded-full bg-rose-50 text-rose-500 flex items-center justify-center"><i class="fa-solid fa-trash-can text-sm"></i></button>
-                 <button type="button" onclick="App.closeModal()" class="w-9 h-9 rounded-full bg-slate-100 flex items-center justify-center text-slate-500"><i class="fa-solid fa-xmark"></i></button>
-            </div>
-        </div>
+        <div class="flex justify-between items-center mb-6"><h3 class="text-xl font-bold text-slate-800">放款帳戶設定</h3><div class="flex items-center gap-3"><button type="button" id="btn-delete-inv" class="hidden w-9 h-9 rounded-full bg-rose-50 text-rose-500 flex items-center justify-center"><i class="fa-solid fa-trash-can text-sm"></i></button><button type="button" onclick="App.closeModal()" class="w-9 h-9 rounded-full bg-slate-100 flex items-center justify-center text-slate-500"><i class="fa-solid fa-xmark"></i></button></div></div>
         <form onsubmit="App.handleSaveInvestment(event)" class="space-y-5">
             <input type="hidden" name="id">
-            <div><label class="text-[10px] font-bold text-slate-400 ml-1 mb-1 block">客戶姓名 / 案號</label><input type="text" name="name" class="input-box" placeholder="例如: 大肚王先生-10萬" required></div>
+            <div><label class="text-[10px] font-bold text-slate-400 ml-1 mb-1 block">客戶姓名 / 案號</label><input type="text" name="name" class="input-box" placeholder="案號-對象" required></div>
             <div class="grid grid-cols-2 gap-4">
-                <div><label class="text-[10px] font-bold text-slate-400 ml-1 mb-1 block">本金金額</label><input type="number" name="initial" id="inv-initial-amt" class="input-box" oninput="App.suggestPenalty()"></div>
-                <div><label class="text-[10px] font-bold text-slate-400 ml-1 mb-1 block">下個收款日</label><input type="date" name="nextCollectionDate" class="input-box"></div>
+                <div><label class="text-[10px] font-bold text-slate-400 ml-1 mb-1 block">放款本金</label><input type="number" name="initial" id="inv-initial-amt" class="input-box" oninput="App.suggestPenalty()"></div>
+                <div><label class="text-[10px] font-bold text-slate-400 ml-1 mb-1 block">收款日</label><input type="date" name="nextCollectionDate" class="input-box"></div>
             </div>
             <div class="p-4 bg-indigo-50 rounded-2xl space-y-3">
-                <div class="flex items-center justify-between"><label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" name="enablePenalty" class="w-4 h-4 rounded text-primary border-slate-300"><span class="text-xs font-bold text-slate-600">啟動自動罰金系統</span></label></div>
+                <div class="flex items-center justify-between"><label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" name="enablePenalty" class="w-4 h-4 rounded text-primary border-slate-300"><span class="text-xs font-bold text-slate-600">啟動自動罰金監控</span></label></div>
                 <div><label class="text-[10px] font-bold text-indigo-400 ml-1 mb-1 block">每日逾期罰金</label><input type="number" name="penaltyAmount" id="inv-penalty-amt" class="input-box bg-white" placeholder="慢一天罰多少?"></div>
             </div>
-            <div class="flex items-center gap-3 px-1">
-                <input type="checkbox" name="isArchived" id="inv-archived" class="w-4 h-4 rounded text-primary border-slate-300">
-                <label for="inv-archived" class="text-xs font-bold text-slate-500 cursor-pointer">案件已結清歸檔</label>
-            </div>
-            <button type="submit" class="w-full bg-primary text-white font-bold py-3.5 rounded-2xl shadow-lg transition">儲存案件設定</button>
+            <div class="flex items-center gap-3 px-1"><input type="checkbox" name="isArchived" id="inv-archived" class="w-4 h-4 rounded text-primary border-slate-300"><label for="inv-archived" class="text-xs font-bold text-slate-500 cursor-pointer">案件已結清(存檔)</label></div>
+            <button type="submit" class="w-full bg-primary text-white font-bold py-3.5 rounded-2xl shadow-lg transition">確定案件</button>
         </form>
     </template>
 
@@ -308,6 +292,32 @@
         <div class="details-actions mt-4 pt-4 border-t border-slate-100 flex flex-col gap-2"></div>
     </template>
 
+    <template id="tpl-budget-form">
+        <div class="flex justify-between items-center mb-6"><h3 class="text-xl font-bold">預定收款排程</h3><button onclick="App.closeModal()"><i class="fa-solid fa-xmark"></i></button></div>
+        <form onsubmit="App.handleSaveBudget(event)" class="space-y-4">
+            <input type="hidden" name="id"><input type="hidden" name="context" id="budget-context">
+            <select name="targetId_select" id="budget-target-select" class="input-box w-full p-3 rounded-xl text-sm"></select>
+            <input type="text" name="targetId_input" id="budget-target-input" class="input-box w-full p-3 rounded-xl text-sm hidden">
+            <div class="grid grid-cols-2 gap-4">
+                <input type="number" name="amount" class="input-box p-3 rounded-xl text-sm" placeholder="預收金額" required>
+                <input type="date" name="date" class="input-box p-3 rounded-xl text-sm" required>
+            </div>
+            <input type="text" name="desc" class="input-box w-full p-3 rounded-xl text-sm" placeholder="說明/備註" required>
+            <button type="submit" class="w-full bg-secondary text-white py-3.5 rounded-2xl font-bold">儲存排程</button>
+        </form>
+    </template>
+
+    <template id="tpl-event-modal">
+        <div class="flex justify-between items-center mb-6"><h3 class="text-xl font-bold">記事紀錄</h3><div class="flex items-center gap-3"><button type="button" id="btn-delete-event" class="hidden w-9 h-9 rounded-full bg-rose-50 text-rose-500 flex items-center justify-center"><i class="fa-solid fa-trash-can"></i></button><button onclick="App.closeModal()"><i class="fa-solid fa-xmark"></i></button></div></div>
+        <form onsubmit="App.handleSaveEvent(event)" class="space-y-4">
+            <input type="hidden" name="id">
+            <input type="date" name="date" class="input-box" required>
+            <input type="text" name="title" class="input-box" placeholder="標題" required>
+            <textarea name="desc" class="input-box h-24" placeholder="詳細紀錄..."></textarea>
+            <button type="submit" class="w-full bg-dark text-white py-3.5 rounded-2xl font-bold">存檔</button>
+        </form>
+    </template>
+
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, signInAnonymously, onAuthStateChanged, GoogleAuthProvider, signInWithPopup, signOut } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
@@ -317,9 +327,9 @@
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app); const db = getFirestore(app);
         
-        const State = { user: null, data: { transactions: [], debts: [], investments: [], events: [], investmentBudgets: [], debtBudgets: [], accountingBudgets: [] }, listeners: [], chart: null, categories: { income: ['利息', '本金回收', '手續費', '罰金', '獎金', '其他'], expense: ['放款本金', '交通費', '交際招待', '雜項支出'] }, view: { invTab: 'active', currentTab: 'accounting' } };
+        const State = { user: null, data: { transactions: [], debts: [], investments: [], events: [], investmentBudgets: [], debtBudgets: [], accountingBudgets: [] }, listeners: [], chart: null, categories: { income: ['利息', '本金回收', '手續費', '罰金', '獎金', '其他'], expense: ['放款本金', '交通費', '招待費', '雜支'] }, view: { invTab: 'active', currentTab: 'accounting' } };
 
-        const getTxDate = (t) => { if (!t) return new Date(); if (t.timestamp?.toDate) return t.timestamp.toDate(); if (t.date?.toDate) return t.date.toDate(); if (t.date) return new Date(t.date); if (t.createdAt?.toDate) return t.createdAt.toDate(); return new Date(); };
+        const getTxDate = (t) => { if (!t) return new Date(); if (t.timestamp?.toDate) return t.timestamp.toDate(); if (t.date?.toDate) return t.date.toDate(); if (t.date) return new Date(t.date); return new Date(); };
         const toDateStr = (d) => { const date = d instanceof Date ? d : getTxDate({timestamp: d}); return date.toISOString().split('T')[0]; };
 
         const App = {
@@ -356,7 +366,6 @@
                 const target = document.getElementById(`view-${tab}`); target.classList.remove('hidden'); target.innerHTML = document.getElementById(`tpl-${tab}`).innerHTML;
                 document.querySelectorAll('.nav-item').forEach(e => e.classList.remove('active')); if(btn) btn.classList.add('active');
                 if(tab === 'accounting') document.getElementById('date-filter').value = new Date().toISOString().slice(0, 7);
-                if(tab === 'investment') document.getElementById('inv-date-filter').value = new Date().toISOString().slice(0, 7);
                 if(tab === 'reports') { const curYr = new Date().getFullYear(); const s = document.getElementById('report-year'); if(s) { for(let y=curYr-1;y<=curYr+1;y++) s.innerHTML += `<option value="${y}" ${y===curYr?'selected':''}>${y}年</option>`; document.getElementById('report-month-select').value = (new Date().getMonth()+1).toString(); } }
                 App.refreshCurrentView();
             },
@@ -388,44 +397,24 @@
                 }
             },
 
-            // --- RENDER FUNCTIONS (CRITICAL FIXES HERE) ---
             renderInvestments: () => {
-                const container = document.getElementById('inv-list');
-                if(!container) return;
+                const list = document.getElementById('inv-list'); if(!list) return;
                 const active = State.data.investments.filter(i => State.view.invTab === 'active' ? !i.isArchived : i.isArchived);
                 let tv=0, tr=0;
-                container.innerHTML = active.map(i => {
+                list.innerHTML = active.map(i => {
                     const txs = State.data.transactions.filter(t => t.project === i.name);
-                    const inc = txs.filter(t=>t.type==='income').reduce((a,b)=>a+(b.amount||0),0);
-                    const exp = txs.filter(t=>t.type==='expense').reduce((a,b)=>a+(b.amount||0),0);
-                    const profit = inc - exp; tv += (i.marketValue||0); tr += profit;
-                    return `<div class="bg-white p-4 rounded-2xl shadow-soft border border-slate-50 relative animate-fade-in" onclick="App.showDetails('investment', '${i.id}')">
-                        <div class="flex justify-between items-start">
-                            <div>
-                                <h4 class="font-bold text-slate-800 text-sm">${i.name}</h4>
-                                <p class="text-[10px] text-slate-400">本金: $${(i.initialValue||0).toLocaleString()}</p>
-                            </div>
-                            <div class="text-right">
-                                <p class="font-bold text-slate-800">$${(i.marketValue||0).toLocaleString()}</p>
-                                <p class="text-[10px] font-bold ${profit>=0?'text-emerald-500':'text-rose-500'}">${profit>=0?'+':''}${profit.toLocaleString()}</p>
-                            </div>
-                        </div>
-                        <div class="mt-3 flex justify-between items-center text-[10px]">
-                            <span class="${new Date(i.nextCollectionDate)<new Date()?'text-rose-500 font-bold bg-rose-50 px-1.5 rounded':'text-slate-400'}">收款日: ${i.nextCollectionDate || '未設'}</span>
-                            ${i.enablePenalty?'<span class="bg-rose-50 text-rose-600 px-2 py-0.5 rounded-lg font-bold">罰金監控中</span>':''}
-                        </div>
-                    </div>`;
-                }).join('') || '<div class="text-center py-20 text-slate-400 text-xs">尚無案件資料</div>';
+                    const inc = txs.filter(t=>t.type==='income').reduce((a,b)=>a+(parseFloat(b.amount)||0),0);
+                    const exp = txs.filter(t=>t.type==='expense').reduce((a,b)=>a+(parseFloat(b.amount)||0),0);
+                    const profit = inc - exp; tv += (parseFloat(i.marketValue)||0); tr += profit;
+                    return `<div class="bg-white p-4 rounded-2xl shadow-soft border border-slate-50 relative animate-fade-in" onclick="App.showDetails('investment', '${i.id}')"><div class="flex justify-between items-start"><div><h4 class="font-bold text-slate-800 text-sm">${i.name}</h4><p class="text-[10px] text-slate-400">放款本金: $${(parseFloat(i.initialValue)||0).toLocaleString()}</p></div><div class="text-right"><p class="font-bold text-slate-800 text-sm">$${(parseFloat(i.marketValue)||0).toLocaleString()}</p><p class="text-[10px] font-bold ${profit>=0?'text-emerald-500':'text-rose-500'}">${profit>=0?'+':''}${profit.toLocaleString()}</p></div></div><div class="mt-3 flex justify-between items-center text-[10px]"><span class="${new Date(i.nextCollectionDate)<new Date()?'text-rose-500 font-bold bg-rose-50 px-1.5 rounded':'text-slate-400'}">收款日: ${i.nextCollectionDate || '未設'}</span>${i.enablePenalty?'<span class="bg-rose-50 text-rose-600 px-2 py-0.5 rounded-lg font-bold">罰金系統ING</span>':''}</div></div>`;
+                }).join('') || '<div class="text-center py-10 text-slate-400 text-xs">目前無案件</div>';
                 
                 document.getElementById('inv-total-val').innerText = `$${tv.toLocaleString()}`;
                 document.getElementById('inv-total-ret').innerText = `$${tr.toLocaleString()}`;
-                const roi = tv > 0 ? (tr/tv*100).toFixed(1) : 0;
-                document.getElementById('inv-roi').innerText = `${roi}%`;
+                const roi = tv > 0 ? (tr/tv*100).toFixed(1) : 0; document.getElementById('inv-roi').innerText = `${roi}%`;
                 
-                // Render Budgets
-                const budgetList = document.getElementById('inv-budget-list');
                 const buds = State.data.investmentBudgets.filter(b=>!b.isRealized).sort((a,b)=>getTxDate(a)-getTxDate(b));
-                if(budgetList) budgetList.innerHTML = buds.map(b => `<li class="flex justify-between items-center p-3 rounded-xl bg-white border border-slate-50 shadow-soft"><div class="flex items-center gap-3"><div class="w-1 ${b.description.includes('罰金')?'bg-rose-500':'bg-emerald-500'} h-8 rounded-full"></div><div><span class="font-bold text-slate-700 text-xs block">${b.description}</span><span class="text-[10px] text-slate-400">${toDateStr(b.expectedDate)} | 預收: $${b.amount}</span></div></div><button onclick="App.realizeBudget('investment', '${b.id}')" class="w-8 h-8 rounded-full bg-emerald-50 text-emerald-600 hover:bg-emerald-100 transition"><i class="fa-solid fa-check"></i></button></li>`).join('') || '<li class="text-center text-xs text-slate-300 py-4 border-2 border-dashed border-slate-100 rounded-xl">尚無預定計畫</li>';
+                document.getElementById('inv-budget-list').innerHTML = buds.map(b => `<li class="flex justify-between items-center p-3 rounded-xl bg-white border border-slate-50 shadow-soft"><div class="flex items-center gap-3"><div class="w-1 ${b.description.includes('罰金')?'bg-rose-500':'bg-emerald-500'} h-8 rounded-full"></div><div><span class="font-bold text-slate-700 text-xs block">${b.description}</span><span class="text-[10px] text-slate-400">${toDateStr(b.expectedDate)} | $${b.amount}</span></div></div><div class="flex gap-2"><button onclick="App.realizeBudget('investment', '${b.id}')" class="w-8 h-8 rounded-full bg-emerald-50 text-emerald-600"><i class="fa-solid fa-check"></i></button><button onclick="App.deleteItem('investmentBudgets', '${b.id}')" class="w-8 h-8 rounded-full bg-rose-50 text-rose-400"><i class="fa-solid fa-trash-can text-xs"></i></button></div></li>`).join('') || '<li class="text-center text-xs text-slate-300 py-4">無收款計畫</li>';
             },
 
             renderTransactions: () => {
@@ -433,33 +422,54 @@
                 const val = document.getElementById('date-filter').value; const [y, m] = val.split('-').map(Number);
                 const start = new Date(y, m-1, 1), end = new Date(y, m, 0, 23, 59, 59);
                 const txs = State.data.transactions.filter(t => { const d = getTxDate(t); return d >= start && d <= end; }).sort((a,b) => getTxDate(b) - getTxDate(a));
-                list.innerHTML = txs.map(t => `<li class="flex justify-between items-center p-4 bg-white rounded-2xl shadow-soft border border-slate-50 active:scale-[0.98] transition" onclick="App.openModal('transaction-modal', '${t.id}')"><div class="flex items-center gap-3"><div class="w-10 h-10 rounded-xl flex items-center justify-center font-bold ${t.type==='income'?'bg-emerald-50 text-emerald-500':'bg-rose-50 text-rose-500'}">${(t.category||'貸')[0]}</div><div><p class="font-bold text-slate-800 text-sm">${t.category || '未分類'}</p><p class="text-[10px] text-slate-400">${t.project || ''} | ${toDateStr(t.timestamp)}</p></div></div><span class="font-bold text-sm ${t.type==='income'?'text-emerald-500':'text-slate-700'}">${t.type==='income'?'+':'-'} $${parseFloat(t.amount).toLocaleString()}</span></li>`).join('') || '<p class="text-center text-xs text-slate-300 py-10">本月查無帳目</p>';
+                list.innerHTML = txs.map(t => `<li class="flex justify-between items-center p-4 bg-white rounded-2xl shadow-soft border border-slate-50 active:scale-[0.98] transition" onclick="App.openModal('transaction-modal', '${t.id}')"><div class="flex items-center gap-3"><div class="w-10 h-10 rounded-xl flex items-center justify-center font-bold ${t.type==='income'?'bg-emerald-50 text-emerald-500':'bg-rose-50 text-rose-500'}">${(t.category||'帳')[0]}</div><div><p class="font-bold text-slate-800 text-sm">${t.category || '未分類'}</p><p class="text-[10px] text-slate-400">${t.project || ''} | ${toDateStr(t.timestamp)}</p></div></div><span class="font-bold text-sm ${t.type==='income'?'text-emerald-500':'text-slate-700'}">${t.type==='income'?'+':'-'} $${(parseFloat(t.amount)||0).toLocaleString()}</span></li>`).join('') || '<p class="text-center text-xs text-slate-300 py-10">本月查無帳目</p>';
             },
 
             updateDashboard: () => {
-                const now = new Date(); const m = now.getMonth()+1, y = now.getFullYear();
+                const now = new Date(); const val = document.getElementById('date-filter')?.value || now.toISOString().slice(0, 7);
+                const [y, m] = val.split('-').map(Number);
                 const txs = State.data.transactions.filter(t => { const d = getTxDate(t); return d.getMonth()+1 === m && d.getFullYear() === y; });
-                const inc = txs.filter(t=>t.type==='income').reduce((a,b)=>a+(b.amount||0),0);
-                const exp = txs.filter(t=>t.type==='expense').reduce((a,b)=>a+(b.amount||0),0);
+                const inc = txs.filter(t=>t.type==='income').reduce((a,b)=>a+(parseFloat(b.amount)||0),0);
+                const exp = txs.filter(t=>t.type==='expense').reduce((a,b)=>a+(parseFloat(b.amount)||0),0);
                 document.getElementById('monthly-balance').innerText = `$${(inc-exp).toLocaleString()}`;
                 document.getElementById('monthly-income').innerText = inc.toLocaleString();
                 document.getElementById('monthly-expense').innerText = exp.toLocaleString();
-                const todayTxs = txs.filter(t => toDateStr(getTxDate(t)) === toDateStr(now));
-                document.getElementById('today-income').innerText = todayTxs.filter(t=>t.type==='income').reduce((a,b)=>a+b.amount,0).toLocaleString();
-                document.getElementById('today-expense').innerText = todayTxs.filter(t=>t.type==='expense').reduce((a,b)=>a+b.amount,0).toLocaleString();
+                
+                const todayStr = toDateStr(now);
+                const todayTxs = txs.filter(t => toDateStr(getTxDate(t)) === todayStr);
+                document.getElementById('today-income').innerText = todayTxs.filter(t=>t.type==='income').reduce((a,b)=>a+(parseFloat(b.amount)||0),0).toLocaleString();
+                document.getElementById('today-expense').innerText = todayTxs.filter(t=>t.type==='expense').reduce((a,b)=>a+(parseFloat(b.amount)||0),0).toLocaleString();
             },
 
             renderReports: () => {
-                const container = document.getElementById('report-stats'); if(!container) return;
+                const stats = document.getElementById('report-stats'); if(!stats) return;
                 const yr = parseInt(document.getElementById('report-year').value), mn = document.getElementById('report-month-select').value;
                 const filtered = State.data.transactions.filter(t => { const d = getTxDate(t); return d.getFullYear() === yr && (mn === 'all' || d.getMonth() + 1 === parseInt(mn)); });
-                const map = {}; filtered.filter(t=>t.type==='income').forEach(t => { map[t.category] = (map[t.category]||0) + t.amount; });
+                const map = {}; filtered.filter(t=>t.type==='income').forEach(t => { map[t.category] = (map[t.category]||0) + (parseFloat(t.amount)||0); });
                 if(State.chart) State.chart.destroy();
                 State.chart = new Chart(document.getElementById('expense-chart').getContext('2d'), { type:'doughnut', data: { labels: Object.keys(map), datasets:[{data: Object.values(map), backgroundColor:['#6366f1','#10b981','#f59e0b','#f43f5e','#ec4899','#64748b']}] }, options: { responsive:true, maintainAspectRatio:false } });
-                container.innerHTML = Object.entries(map).map(([k,v])=>`<li class="flex justify-between py-2 border-b border-slate-50 last:border-0"><span>${k}</span><span class="font-bold text-primary">$${v.toLocaleString()}</span></li>`).join('') || '<li class="text-center py-4 text-slate-300">本期無獲利數據</li>';
+                stats.innerHTML = Object.entries(map).map(([k,v])=>`<li class="flex justify-between py-2 border-b border-slate-50"><span>${k}</span><span class="font-bold text-primary">$${v.toLocaleString()}</span></li>`).join('') || '<li class="text-center py-4 text-slate-300">本期無數據</li>';
             },
 
-            // --- SAVE & ACTIONS ---
+            renderDebts: () => {
+                const list = document.getElementById('debt-list'); if(!list) return;
+                let totalRem = 0, totalOrig = 0;
+                list.innerHTML = State.data.debts.map(d => {
+                    const rem = parseFloat(d.remainingAmount) || 0; const orig = parseFloat(d.totalAmount) || 1;
+                    totalRem += rem; totalOrig += orig; const p = Math.round(((orig-rem)/orig)*100);
+                    return `<div class="bg-white p-4 rounded-2xl shadow-soft border border-slate-50 group" onclick="App.openModal('debt-modal', '${d.id}')"><div class="flex justify-between mb-2"><span class="font-bold text-slate-700">${d.name}</span><span class="text-xs font-bold text-warning">${p}%</span></div><div class="w-full bg-slate-100 rounded-full h-2 mb-2"><div class="bg-warning h-2 rounded-full" style="width:${p}%"></div></div><div class="text-xs text-slate-400">剩餘: <span class="text-slate-700 font-bold">$${rem.toLocaleString()}</span></div></div>`;
+                }).join('');
+                document.getElementById('debt-total-remaining').innerText = `$${totalRem.toLocaleString()}`;
+                const globalP = totalOrig > 0 ? Math.round(((totalOrig - totalRem) / totalOrig) * 100) : 0;
+                document.getElementById('debt-progress-text').innerText = `${globalP}%`;
+                document.getElementById('debt-progress-bar').style.width = `${globalP}%`;
+            },
+
+            renderEvents: () => {
+                const list = document.getElementById('event-list'); if(!list) return;
+                list.innerHTML = `<div class="absolute left-[19px] top-0 bottom-0 w-0.5 bg-slate-100 z-0"></div>` + State.data.events.sort((a,b)=>getTxDate(b)-getTxDate(a)).map(e => `<div class="relative pl-8 group cursor-pointer" onclick="App.openModal('event-modal', '${e.id}')"><div class="absolute left-3 top-1.5 w-4 h-4 rounded-full border-[3px] border-[#f8fafc] bg-indigo-300 shadow-sm"></div><div class="bg-white p-4 rounded-2xl shadow-soft border border-slate-50"><p class="text-[10px] font-bold text-primary mb-1">${toDateStr(e.date)}</p><h4 class="font-bold text-slate-800 text-sm">${e.title}</h4><p class="text-xs text-slate-500 mt-1">${e.description||''}</p></div></div>`).join('');
+            },
+
             handleSaveInvestment: async (e) => {
                 e.preventDefault(); const f=e.target, uid=State.user.uid, id=f.id.value;
                 const d={name:f.name.value, initialValue:parseFloat(f.initial.value)||0, nextCollectionDate:f.nextCollectionDate.value||'', enablePenalty:f.enablePenalty.checked, penaltyAmount:parseFloat(f.penaltyAmount.value)||0, isArchived:f.isArchived.checked};
@@ -475,15 +485,22 @@
                 App.closeModal();
             },
 
+            handleSaveEvent: async (e) => {
+                e.preventDefault(); const f=e.target, uid=State.user.uid, id=f.id.value;
+                const d={title:f.title.value, desc:f.desc.value, date:Timestamp.fromDate(new Date(f.date.value))};
+                id?await updateDoc(doc(db,`users/${uid}/events`,id),d):await addDoc(collection(db,`users/${uid}/events`),d);
+                App.closeModal();
+            },
+
             showDetails: async (type, id) => {
-                const item = State.data[type + 's'].find(i => i.id === id); if(!item) return;
+                const item = State.data[type + 's']?.find(i => i.id === id); if(!item) return;
                 const c = document.getElementById('modal-content'); c.innerHTML = document.getElementById('tpl-details-modal').innerHTML;
                 c.querySelector('.details-title').innerText = item.name;
                 const txs = State.data.transactions.filter(t => t.project === item.name).sort((a,b)=>getTxDate(b)-getTxDate(a));
-                c.querySelector('.details-list').innerHTML = txs.map(t => `<li class="flex justify-between items-center py-3 border-b border-slate-50 last:border-0"><div class="flex-1"><div><span class="text-[10px] text-slate-400">${toDateStr(t.timestamp)}</span><p class="text-xs font-bold text-slate-700">${t.category}</p></div><p class="text-[10px] text-slate-400 truncate">${t.remarks||''}</p></div><span class="font-bold text-sm ${t.type==='income'?'text-emerald-500':'text-rose-500'}">${t.type==='income'?'+':'-'}$${t.amount.toLocaleString()}</span></li>`).join('') || '<li class="text-center text-xs py-10 text-slate-300">尚無往來紀錄</li>';
+                c.querySelector('.details-list').innerHTML = txs.map(t => `<li class="flex justify-between items-center py-3 border-b border-slate-50"><div><span class="text-[10px] text-slate-400">${toDateStr(t.timestamp)}</span><p class="text-xs font-bold text-slate-700">${t.category}</p></div><span class="font-bold text-sm ${t.type==='income'?'text-emerald-500':'text-rose-500'}">${t.type==='income'?'+':'-'}${(parseFloat(t.amount)||0).toLocaleString()}</span></li>`).join('') || '<li class="text-center text-xs py-10 text-slate-300">尚無紀錄</li>';
                 const actions = c.querySelector('.details-actions');
-                const btn1 = document.createElement('button'); btn1.className="w-full bg-primary text-white py-3.5 rounded-2xl font-bold shadow-lg"; btn1.innerText="+ 新增往來入帳"; btn1.onclick=()=>App.openModal('transaction-modal', null, {project: item.name});
-                const btn2 = document.createElement('button'); btn2.className="w-full bg-slate-100 text-slate-500 py-3 rounded-2xl text-xs font-bold"; btn2.innerText="修改案件設定"; btn2.onclick=()=>App.openModal('investment-modal', id);
+                const btn1 = document.createElement('button'); btn1.className="w-full bg-primary text-white py-3.5 rounded-2xl font-bold"; btn1.innerText="+ 入帳/出帳"; btn1.onclick=()=>App.openModal('transaction-modal', null, {project: item.name});
+                const btn2 = document.createElement('button'); btn2.className="w-full bg-slate-100 text-slate-500 py-3 rounded-2xl text-xs font-bold"; btn2.innerText="案件設定"; btn2.onclick=()=>App.openModal('investment-modal', id);
                 actions.appendChild(btn1); actions.appendChild(btn2);
                 document.getElementById('modal-overlay').classList.remove('hidden');
             },
@@ -492,38 +509,43 @@
                 const b = State.data[`${ctx}Budgets`].find(i=>i.id===id);
                 const batch = writeBatch(db);
                 batch.update(doc(db, `users/${State.user.uid}/${ctx}Budgets`, id), { isRealized: true });
-                batch.set(doc(collection(db, `users/${State.user.uid}/transactions`)), { type: 'income', amount: b.amount, category: b.description.includes('罰金')?'罰金':'利息收入', project: State.data.investments.find(i=>i.id===b.targetId)?.name, remarks: b.description, timestamp: Timestamp.now() });
+                batch.set(doc(collection(db, `users/${State.user.uid}/transactions`)), { type: 'income', amount: b.amount, category: b.description.includes('罰金')?'罰金':'利息', project: State.data.investments.find(i=>i.id===b.targetId)?.name, remarks: b.description, timestamp: Timestamp.now() });
                 await batch.commit();
             },
 
-            // Other UI helpers
-            switchInvTab: (tab, btn) => { State.view.invTab = tab; document.querySelectorAll('.tab-pill').forEach(e => e.classList.remove('active', 'bg-indigo-50', 'text-primary')); btn.classList.add('active', 'bg-indigo-50', 'text-primary'); App.renderInvestments(); },
             openModal: (t, id, defaults={}) => {
                 const c = document.getElementById('modal-content'); c.innerHTML = document.getElementById(`tpl-${t}`).innerHTML;
-                if(id) {
-                    const item = (t==='investment-modal'?State.data.investments:State.data.transactions).find(i=>i.id===id);
-                    if(item) {
-                        c.querySelector('[name=id]').value = id;
-                        if(t==='investment-modal') {
-                            c.querySelector('[name=name]').value = item.name; c.querySelector('[name=initial]').value = item.initialValue;
-                            c.querySelector('[name=nextCollectionDate]').value = item.nextCollectionDate || '';
-                            c.querySelector('[name=enablePenalty]').checked = item.enablePenalty;
-                            c.querySelector('[name=penaltyAmount]').value = item.penaltyAmount;
-                            c.querySelector('[name=isArchived]').checked = item.isArchived;
-                            c.querySelector('#btn-delete-inv').classList.remove('hidden');
-                            c.querySelector('#btn-delete-inv').onclick = () => App.deleteItem('investments', id);
-                        } else {
-                            c.querySelector('[name=amount]').value = item.amount; c.querySelector('[name=date]').value = toDateStr(item.timestamp);
-                            c.querySelector('[name=category]').value = item.category; c.querySelector('[name=project]').value = item.project || '';
-                            c.querySelector('[name=remarks]').value = item.remarks; App.toggleTxType(item.type);
-                            c.querySelector('#btn-delete-tx').classList.remove('hidden');
-                            c.querySelector('#btn-delete-tx').onclick = () => App.deleteItem('transactions', id);
-                        }
+                const list = t==='investment-modal'?State.data.investments:t==='transaction-modal'?State.data.transactions:t==='event-modal'?State.data.events:[];
+                const item = list.find(i=>i.id===id);
+                if(item) {
+                    c.querySelector('[name=id]').value = id;
+                    if(t==='investment-modal') {
+                        c.querySelector('[name=name]').value = item.name; c.querySelector('[name=initial]').value = item.initialValue;
+                        c.querySelector('[name=nextCollectionDate]').value = item.nextCollectionDate || '';
+                        c.querySelector('[name=enablePenalty]').checked = item.enablePenalty;
+                        c.querySelector('[name=penaltyAmount]').value = item.penaltyAmount;
+                        c.querySelector('[name=isArchived]').checked = item.isArchived;
+                        c.querySelector('#btn-delete-inv').classList.remove('hidden');
+                        c.querySelector('#btn-delete-inv').onclick = () => App.deleteItem('investments', id);
+                    } else if(t==='transaction-modal') {
+                        c.querySelector('[name=amount]').value = item.amount; c.querySelector('[name=date]').value = toDateStr(item.timestamp);
+                        c.querySelector('[name=category]').value = item.category; c.querySelector('[name=project]').value = item.project || '';
+                        c.querySelector('[name=remarks]').value = item.remarks; App.toggleTxType(item.type);
+                        c.querySelector('#btn-delete-tx').classList.remove('hidden');
+                        c.querySelector('#btn-delete-tx').onclick = () => App.deleteItem('transactions', id);
+                    } else if(t==='event-modal') {
+                        c.querySelector('[name=date]').value = toDateStr(item.date); c.querySelector('[name=title]').value = item.title;
+                        c.querySelector('[name=desc]').value = item.desc; c.querySelector('#btn-delete-event').classList.remove('hidden');
+                        c.querySelector('#btn-delete-event').onclick = () => App.deleteItem('events', id);
                     }
-                } else if(t==='transaction-modal') {
-                    c.querySelector('[name=date]').value = new Date().toLocaleDateString('zh-CA');
-                    if(defaults.project) c.querySelector('[name=project]').value = defaults.project;
-                    App.toggleTxType('income');
+                } else {
+                    if(t==='transaction-modal') {
+                        c.querySelector('[name=date]').value = new Date().toLocaleDateString('zh-CA');
+                        if(defaults.project) c.querySelector('[name=project]').value = defaults.project;
+                        App.toggleTxType('income');
+                    } else if(t==='event-modal') {
+                        c.querySelector('[name=date]').value = new Date().toLocaleDateString('zh-CA');
+                    }
                 }
                 document.getElementById('modal-overlay').classList.remove('hidden');
             },
@@ -538,16 +560,15 @@
             },
             openCategorySelector: () => {
                 const type = document.getElementById('tx-type').value;
-                const c = document.getElementById('sub-modal-content'); c.innerHTML = document.getElementById('tpl-category-selector').innerHTML;
+                const c = document.getElementById('sub-modal-content'); c.innerHTML = document.getElementById('tpl-category-selector').innerHTML || '';
                 const list = document.getElementById('category-chips');
-                list.innerHTML = State.categories[type].map(v => `<button onclick="App.pickCategory('${v}')" class="bg-slate-50 p-3 rounded-xl font-bold text-xs hover:bg-primary hover:text-white transition">${v}</button>`).join('');
+                if(list) list.innerHTML = State.categories[type].map(v => `<button onclick="App.pickCategory('${v}')" class="bg-slate-50 p-3 rounded-xl font-bold text-xs hover:bg-primary hover:text-white transition">${v}</button>`).join('');
                 document.getElementById('sub-modal-overlay').classList.remove('hidden');
             },
             closeSubModal: () => document.getElementById('sub-modal-overlay').classList.add('hidden'),
-            pickCategory: (v) => { document.querySelector('#modal-content [name=category]').value = v; App.closeSubModal(); },
-            deleteItem: async (col, id) => { if(confirm('威爾森老闆，確定要砍掉這筆嗎？')) { await deleteDoc(doc(db, `users/${State.user.uid}/${col}`, id)); App.closeModal(); } },
-            exportReport: () => { const csv = "日期,對象,分類,金額,備註\n" + State.data.transactions.map(t=>`${toDateStr(t.timestamp)},${t.project||''},${t.category},${t.amount},${t.remarks}`).join("\n"); const link = document.createElement('a'); link.href = URL.createObjectURL(new Blob(["\uFEFF"+csv], {type:'text/csv'})); link.download = '威爾森金庫報表.csv'; link.click(); },
-            exportEvents: () => { const txt = State.data.events.map(e => `${toDateStr(e.date)} - ${e.title}\n${e.description}\n---`).join("\n"); const link = document.createElement('a'); link.href = URL.createObjectURL(new Blob([txt], {type:'text/plain'})); link.download = '大事記.txt'; link.click(); }
+            pickCategory: (v) => { const inp = document.querySelector('#modal-content [name=category]'); if(inp) inp.value = v; App.closeSubModal(); },
+            deleteItem: async (col, id) => { if(confirm('威爾森老闆，這條真的要砍掉？')) { await deleteDoc(doc(db, `users/${State.user.uid}/${col}`, id)); App.closeModal(); } },
+            exportReport: () => { const csv = "日期,對象,分類,金額,備註\n" + State.data.transactions.map(t=>`${toDateStr(t.timestamp)},${t.project||''},${t.category},${t.amount},${t.remarks}`).join("\n"); const link = document.createElement('a'); link.href = URL.createObjectURL(new Blob(["\uFEFF"+csv], {type:'text/csv'})); link.download = '威爾森金庫報表.csv'; link.click(); }
         };
 
         window.App = App; App.init();
