@@ -714,10 +714,9 @@
                     // If expected date is in the future or today, no penalty yet (penalty starts day after)
                     if (today <= expected) continue;
 
-                    // Loop from day after expected date until today
+                    // Loop from expected date until today
                     let cursor = new Date(expected);
-                    cursor.setDate(cursor.getDate() + 1);
-
+                    
                     while (cursor <= today) {
                         const cursorTime = cursor.getTime();
                         
@@ -851,6 +850,42 @@
                 };
                 if(targetName) txData.project = targetName;
                 batch.set(doc(collection(db,`users/${uid}/transactions`)), txData); 
+
+                // Penalty Handling for Investment
+                if(ctx === 'investment') {
+                    // 1. Delete all automatically generated penalty budget items for this parent
+                    const penaltyBudgets = State.data.investmentBudgets.filter(pb => pb.parentBudgetId === id && pb.isPenalty && !pb.isRealized);
+                    penaltyBudgets.forEach(pb => {
+                        batch.delete(doc(db, `users/${uid}/investmentBudgets`, pb.id));
+                    });
+
+                    // 2. Generate penalty transactions if overdue
+                    if (b.enablePenalty && b.dailyPenalty) {
+                        const expected = getTxDate({timestamp: b.expectedDate});
+                        expected.setHours(0,0,0,0);
+                        const today = new Date();
+                        today.setHours(0,0,0,0);
+
+                        // Only charge penalty if strictly late (today > expected)
+                        if (today > expected) {
+                            let cursor = new Date(expected);
+                            // Start from expected date (inclusive of deadline day) until today
+                            while (cursor <= today) {
+                                const dateStr = cursor.toLocaleDateString('zh-TW', {month:'numeric', day:'numeric'});
+                                const pTx = {
+                                    type: 'income',
+                                    amount: parseFloat(b.dailyPenalty),
+                                    category: '滯納金',
+                                    remarks: `逾期滯納金 (${b.description}) [${dateStr}]`,
+                                    timestamp: Timestamp.fromDate(new Date(cursor)),
+                                    project: targetName
+                                };
+                                batch.set(doc(collection(db, `users/${uid}/transactions`)), pTx);
+                                cursor.setDate(cursor.getDate() + 1);
+                            }
+                        }
+                    }
+                }
 
                 if(ctx==='debt' && b.targetId) batch.update(doc(db,`users/${uid}/debts`,b.targetId),{remainingAmount:increment(-b.amount)}); 
                 
