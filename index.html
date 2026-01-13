@@ -342,7 +342,12 @@
         <div class="mt-6">
             <div class="flex justify-between items-center px-1 mb-3">
                 <span class="text-xs font-bold text-slate-400 uppercase tracking-wider">定期定額 / 預期收入</span>
-                <button onclick="App.openBudgetModal('investment')" class="text-secondary text-[10px] font-bold bg-emerald-50 px-2 py-1 rounded-lg hover:bg-emerald-100 transition"><i class="fa-solid fa-plus"></i> 新增</button>
+                <div class="flex gap-2">
+                     <select id="inv-budget-filter-select" class="bg-slate-100 border-none rounded-lg px-2 py-1 text-[10px] font-bold text-slate-500 outline-none" onchange="App.renderInvestments()">
+                        <option value="all">全部</option>
+                     </select>
+                     <button onclick="App.openBudgetModal('investment')" class="text-secondary text-[10px] font-bold bg-emerald-50 px-2 py-1 rounded-lg hover:bg-emerald-100 transition"><i class="fa-solid fa-plus"></i> 新增</button>
+                </div>
             </div>
             <ul id="inv-budget-list" class="space-y-2"></ul>
         </div>
@@ -661,6 +666,23 @@
         const toDateStr = (dateObj) => { const d = (dateObj instanceof Date) ? dateObj : getTxDate({timestamp: dateObj}); const year = d.getFullYear(); const month = String(d.getMonth() + 1).padStart(2, '0'); const day = String(d.getDate()).padStart(2, '0'); return `${year}-${month}-${day}`; };
         const renderDatalist = (e, i) => { if(e) e.innerHTML = i.map(v => `<option value="${v}">`).join(''); };
 
+        // Helper to calculate penalty
+        const calculatePenalty = (budget) => {
+            if (!budget.enablePenalty || !budget.dailyPenalty || budget.isRealized) return 0;
+            const expected = getTxDate({timestamp: budget.expectedDate});
+            const now = new Date();
+            // Reset hours for date comparison
+            expected.setHours(0,0,0,0);
+            const today = new Date(); today.setHours(0,0,0,0);
+            
+            if (today > expected) {
+                const diffTime = Math.abs(today - expected);
+                const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)); 
+                return diffDays * parseFloat(budget.dailyPenalty);
+            }
+            return 0;
+        };
+
         const App = {
             init: () => onAuthStateChanged(auth, u => {
                 State.user = u;
@@ -714,9 +736,10 @@
                     // If expected date is in the future or today, no penalty yet (penalty starts day after)
                     if (today <= expected) continue;
 
-                    // Loop from expected date until today
+                    // Loop from day after expected date until today
                     let cursor = new Date(expected);
-                    
+                    cursor.setDate(cursor.getDate() + 1);
+
                     while (cursor <= today) {
                         const cursorTime = cursor.getTime();
                         
@@ -1228,7 +1251,25 @@
                 document.getElementById('inv-total-val').innerText = `$${tv.toLocaleString()}`; document.getElementById('inv-total-ret').innerText = `${tr>0?'+':''}${tr.toLocaleString()}`; document.getElementById('inv-roi').innerText = `${roi.toFixed(1)}%`; document.getElementById('inv-roi').className = `font-bold text-base ${tr>=0?'text-emerald-400':'text-rose-400'}`;
                 
                 // Render Budgets with Penalty
-                document.getElementById('inv-budget-list').innerHTML = State.data.investmentBudgets.filter(b=>!b.isRealized).sort((a,b)=>(a.expectedDate?.seconds||0)-(b.expectedDate?.seconds||0)).map(b => {
+                const filterSel = document.getElementById('inv-budget-filter-select');
+                const currentFilter = filterSel ? filterSel.value : 'all';
+                
+                if(filterSel && filterSel.options.length <= 1) {
+                     const invOptions = State.data.investments.map(i => `<option value="${i.id}">${i.name}</option>`).join('');
+                     filterSel.innerHTML = `<option value="all">全部項目</option><option value="penalty">僅顯示罰金</option>` + invOptions;
+                     filterSel.value = currentFilter;
+                }
+
+                let budgetList = State.data.investmentBudgets.filter(b=>!b.isRealized);
+                if(currentFilter !== 'all') {
+                    if(currentFilter === 'penalty') {
+                        budgetList = budgetList.filter(b => b.isPenalty);
+                    } else {
+                        budgetList = budgetList.filter(b => b.targetId === currentFilter);
+                    }
+                }
+
+                document.getElementById('inv-budget-list').innerHTML = budgetList.sort((a,b)=>(a.expectedDate?.seconds||0)-(b.expectedDate?.seconds||0)).map(b => {
                     const isExp = (!b.type || b.type === 'expense');
                     const isPast = b.expectedDate?.toDate() < new Date().setHours(0,0,0,0);
                     // For generated penalty items, use a distinct style
@@ -1296,7 +1337,7 @@
                 if(!document.getElementById('event-list')) return;
                 const grouped = {};
                 State.data.events.sort((a,b) => getTxDate(b) - getTxDate(a)).forEach(e => { const k = getTxDate(e).toLocaleDateString('zh-TW', {year:'numeric', month:'long'}); if(!grouped[k]) grouped[k]=[]; grouped[k].push(e); });
-                document.getElementById('event-list').innerHTML = `<div class="absolute left-[19px] top-0 bottom-0 w-0.5 bg-slate-100 z-0"></div>` + (Object.keys(grouped).length ? Object.entries(grouped).map(([m, evs]) => `<div class="mb-8 relative z-10"><h3 class="text-xs font-bold text-slate-400 mb-4 bg-[#f8fafc] inline-block pr-2 sticky top-0">${m}</h3><div class="space-y-6">${evs.map(e => `<div class="relative pl-8 group cursor-pointer" onclick="App.openModal('event-modal','${e.id}')"><div class="absolute left-3 top-1.5 w-4 h-4 rounded-full border-[3px] border-[#f8fafc] bg-indigo-300 group-hover:bg-primary group-hover:scale-125 transition shadow-sm"></div><div class="bg-white p-4 rounded-2xl shadow-soft border border-slate-50 hover:shadow-md transition active:scale-[0.99]"><div class="flex justify-between items-start mb-1"><span class="text-[10px] font-bold text-primary bg-indigo-50 px-2 py-0.5 rounded-lg">${getTxDate(e).toLocaleDateString('zh-TW', {day:'numeric', weekday:'short'})}</span><div class="opacity-0 group-hover:opacity-100 transition"><i class="fa-solid fa-pen text-slate-300 text-xs"></i></div></div><h4 class="font-bold text-slate-800 text-sm mb-1">${e.title}</h4><p class="text-xs text-slate-500 leading-relaxed whitespace-pre-wrap">${e.description||''}</p></div></div>`).join('')}</div></div>`).join('') : '<div class="text-center py-20"><div class="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-3 text-slate-300"><i class="fa-solid fa-camera-retro text-xl"></i></div><p class="text-slate-400 text-xs">這裡空空的，記錄一點生活吧？</p></div>');
+                document.getElementById('event-list').innerHTML = `<div class="absolute left-[19px] top-0 bottom-0 w-0.5 bg-slate-100 z-0"></div>` + (Object.keys(grouped).length ? Object.entries(grouped).map(([m, evs]) => `<div class="mb-8 relative z-10"><h3 class="text-xs font-bold text-slate-400 mb-4 bg-[#f8fafc] inline-block pr-2 sticky top-0">${m}</h3><div class="space-y-6">${evs.map(e => `<div class="relative pl-8 group cursor-pointer" onclick="App.openModal('event-modal','${e.id}')"><div class="absolute left-3 top-1.5 w-4 h-4 rounded-full border-[3px] border-[#f8fafc] bg-indigo-300 group-hover:bg-primary group-hover:scale-125 transition shadow-sm"></div><div class="bg-white p-4 rounded-2xl shadow-soft border border-slate-50 hover:shadow-md transition active:scale-[0.99]\"><div class="flex justify-between items-start mb-1"><span class="text-[10px] font-bold text-primary bg-indigo-50 px-2 py-0.5 rounded-lg">${getTxDate(e).toLocaleDateString('zh-TW', {day:'numeric', weekday:'short'})}</span><div class="opacity-0 group-hover:opacity-100 transition"><i class="fa-solid fa-pen text-slate-300 text-xs"></i></div></div><h4 class="font-bold text-slate-800 text-sm mb-1">${e.title}</h4><p class="text-xs text-slate-500 leading-relaxed whitespace-pre-wrap">${e.description||''}</p></div></div>`).join('')}</div></div>`).join('') : '<div class="text-center py-20"><div class="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-3 text-slate-300"><i class="fa-solid fa-camera-retro text-xl"></i></div><p class="text-slate-400 text-xs">這裡空空的，記錄一點生活吧？</p></div>');
             },
         };
         window.App = App; App.init();
