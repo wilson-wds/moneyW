@@ -540,8 +540,8 @@
         </div>
 
         <!-- Receipt Preview -->
-        <div id="receipt-preview" class="bg-white p-6 shadow-md relative overflow-hidden mx-auto max-w-[320px] font-mono border-t-[8px] border-slate-700">
-            <div class="text-center border-b-2 border-dashed border-slate-300 pb-4 mb-4">
+        <div id="receipt-preview" class="bg-white p-6 shadow-md relative overflow-hidden mx-auto max-w-[320px] font-mono border-t-[8px] border-black">
+            <div class="text-center border-b-2 border-dashed border-slate-800 pb-4 mb-4">
                 <h2 class="text-2xl font-bold text-slate-800 tracking-widest">RECEIPT</h2>
                 <p class="text-xs text-slate-400 mt-1 uppercase tracking-widest">Official Record</p>
             </div>
@@ -556,25 +556,25 @@
                 </div>
                 <div class="pt-2">
                     <span class="text-slate-400 block text-xs mb-1">RECEIVED FROM</span>
-                    <span id="r-client" class="font-bold text-lg block border-b border-slate-200 pb-1 text-slate-800 min-h-[1.75rem]"></span>
+                    <span id="r-client" class="font-bold text-lg block border-b border-slate-800 pb-1 text-slate-800 min-h-[1.75rem]"></span>
                 </div>
                 <div class="pt-2">
                     <span class="text-slate-400 block text-xs mb-1">FOR</span>
                     <span id="r-desc" class="font-bold block text-slate-700"></span>
                 </div>
-                 <div class="flex justify-between items-end pt-4 border-t-2 border-dashed border-slate-300 mt-4">
+                 <div class="flex justify-between items-end pt-4 border-t-2 border-dashed border-slate-800 mt-4">
                     <span class="text-slate-400 font-bold text-xs">AMOUNT</span>
                     <span id="r-amount" class="text-2xl font-bold text-slate-800"></span>
                 </div>
             </div>
             <div class="mt-8 pt-8 text-center relative">
-                 <div class="absolute top-8 left-0 right-0 border-t border-slate-300"></div>
+                 <div class="absolute top-8 left-0 right-0 border-t border-slate-800"></div>
                  <p class="text-[10px] text-slate-300 uppercase tracking-widest bg-white relative z-10 inline-block px-2 -mt-2">Authorized Signature</p>
-                 <p class="text-sm font-bold text-slate-500 mt-2" id="r-signer">Wilson</p> 
+                 <p class="text-sm font-bold text-slate-500 mt-2" id="r-signer">威爾設計</p> 
             </div>
             
             <div class="mt-6 text-center">
-                <img src="https://i.ibb.co/xt6cCqVS/grok-image-38ff8969-e1d9-4592-98d6-1366fb857c2c-image-edit-0-1.jpg" alt="Studio Logo" class="h-16 mx-auto opacity-80 mix-blend-multiply">
+                <img src="https://i.ibb.co/xt6cCqVS/grok-image-38ff8969-e1d9-4592-98d6-1366fb857c2c-image-edit-0-1.jpg" alt="Studio Logo" class="h-32 mx-auto opacity-80 mix-blend-multiply">
             </div>
 
             <!-- Jagged Edge Effect -->
@@ -1043,7 +1043,7 @@
                 c.querySelector('#r-id').innerText = '#' + tx.id.slice(0, 6).toUpperCase();
                 c.querySelector('#r-desc').innerText = tx.remarks || tx.category;
                 c.querySelector('#r-amount').innerText = '$' + parseFloat(tx.amount).toLocaleString();
-                c.querySelector('#r-signer').innerText = State.user.displayName || 'Wilson';
+                c.querySelector('#r-signer').innerText = '威爾設計'; // Hardcoded default
                 c.querySelector('#r-client').innerText = "____________"; 
                 
                 // Store current tx for closure access if needed, though simple input works directly
@@ -1067,7 +1067,7 @@
                 printWindow.document.write('<script src="https://cdn.tailwindcss.com"></scr' + 'ipt>');
                 printWindow.document.write('<style>@import url("https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700&display=swap"); body { font-family: "Courier Prime", monospace; -webkit-print-color-adjust: exact; } .receipt-jagged { background: linear-gradient(135deg, transparent 5px, white 0) top left, linear-gradient(225deg, transparent 5px, white 0) top right; background-size: 10px 10px; background-repeat: repeat-x; }</style>');
                 printWindow.document.write('</head><body class="bg-gray-100 flex items-center justify-center min-h-screen p-8">');
-                printWindow.document.write('<div class="bg-white p-8 max-w-[320px] w-full relative border-t-[8px] border-slate-700 shadow-none">'); 
+                printWindow.document.write('<div class="bg-white p-8 max-w-[320px] w-full relative border-t-[8px] border-black shadow-none">'); 
                 printWindow.document.write(content);
                 printWindow.document.write('</div>');
                 printWindow.document.write('</body></html>');
