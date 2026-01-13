@@ -572,12 +572,20 @@
                  <p class="text-[10px] text-slate-300 uppercase tracking-widest bg-white relative z-10 inline-block px-2 -mt-2">Authorized Signature</p>
                  <p class="text-sm font-bold text-slate-500 mt-2" id="r-signer">Wilson</p> 
             </div>
+            
+            <div class="mt-6 text-center">
+                <img src="https://i.ibb.co/xt6cCqVS/grok-image-38ff8969-e1d9-4592-98d6-1366fb857c2c-image-edit-0-1.jpg" alt="Studio Logo" class="h-16 mx-auto opacity-80 mix-blend-multiply">
+            </div>
+
             <!-- Jagged Edge Effect -->
             <div class="absolute bottom-0 left-0 w-full h-3 receipt-jagged"></div>
         </div>
 
-        <div class="mt-6">
-             <button onclick="App.closeSubModal()" class="w-full bg-slate-100 text-slate-500 py-3.5 rounded-2xl font-bold text-xs hover:bg-slate-200 transition">完成</button>
+        <div class="mt-6 flex gap-3">
+             <button onclick="App.printReceipt()" class="flex-1 bg-slate-800 text-white py-3.5 rounded-2xl font-bold text-xs hover:bg-slate-900 transition flex items-center justify-center gap-2">
+                <i class="fa-solid fa-print"></i> 列印 / 儲存
+             </button>
+             <button onclick="App.closeSubModal()" class="flex-1 bg-slate-100 text-slate-500 py-3.5 rounded-2xl font-bold text-xs hover:bg-slate-200 transition">完成</button>
         </div>
     </template>
 
@@ -1048,6 +1056,27 @@
             updateReceiptPreview: () => {
                 const val = document.getElementById('receipt-client-name').value;
                 document.getElementById('r-client').innerText = val || "____________";
+            },
+
+            printReceipt: () => {
+                const content = document.getElementById('receipt-preview').innerHTML;
+                const printWindow = window.open('', '', 'height=800,width=600');
+                printWindow.document.write('<html><head><title>收據列印</title>');
+                printWindow.document.write('<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">');
+                printWindow.document.write('<link href="https://fonts.googleapis.com/css2?family=Courier+Prime:wght@400;700&display=swap" rel="stylesheet">');
+                printWindow.document.write('<script src="https://cdn.tailwindcss.com"></scr' + 'ipt>');
+                printWindow.document.write('<style>@import url("https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700&display=swap"); body { font-family: "Courier Prime", monospace; -webkit-print-color-adjust: exact; } .receipt-jagged { background: linear-gradient(135deg, transparent 5px, white 0) top left, linear-gradient(225deg, transparent 5px, white 0) top right; background-size: 10px 10px; background-repeat: repeat-x; }</style>');
+                printWindow.document.write('</head><body class="bg-gray-100 flex items-center justify-center min-h-screen p-8">');
+                printWindow.document.write('<div class="bg-white p-8 max-w-[320px] w-full relative border-t-[8px] border-slate-700 shadow-none">'); 
+                printWindow.document.write(content);
+                printWindow.document.write('</div>');
+                printWindow.document.write('</body></html>');
+                printWindow.document.close();
+                printWindow.focus();
+                setTimeout(() => {
+                    printWindow.print();
+                    printWindow.close();
+                }, 500);
             },
             
             exportReport: () => { 
