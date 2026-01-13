@@ -583,6 +583,19 @@
                 </div>
             </div>
             
+            <!-- Recurring Configuration (Visible only for Investment) -->
+            <div id="recurring-config" class="hidden space-y-3 bg-emerald-50 p-3 rounded-xl border border-emerald-100 mb-3">
+                <div class="flex items-center gap-2">
+                    <input type="checkbox" id="enable-recurring" name="enableRecurring" class="w-4 h-4 text-emerald-500 rounded border-gray-300 focus:ring-emerald-500" onchange="document.getElementById('recurring-days-input').classList.toggle('hidden', !this.checked)">
+                    <label for="enable-recurring" class="text-xs font-bold text-slate-700">啟用週期性自動產生 (例如: 定期配息)</label>
+                </div>
+                <div id="recurring-days-input" class="hidden animate-fade-in flex items-center gap-2">
+                    <span class="text-[10px] font-bold text-slate-400">每隔</span>
+                    <input type="number" name="recurringDays" class="input-box w-20 bg-white rounded-lg p-2 text-xs text-center" placeholder="10">
+                    <span class="text-[10px] font-bold text-slate-400">天產生一次</span>
+                </div>
+            </div>
+            
             <!-- Penalty Configuration (Visible only for Investment) -->
             <div id="penalty-config" class="hidden space-y-3 bg-rose-50 p-3 rounded-xl border border-rose-100">
                 <div class="flex items-center gap-2">
@@ -702,7 +715,7 @@
                 State.listeners.push(onSnapshot(query(collection(db, `users/${uid}/investmentBudgets`)), s => {
                     const list = s.docs.map(d=>({id:d.id, ...d.data()}));
                     State.data.investmentBudgets = list;
-                    App.checkPenalties(list);
+                    App.checkAutoBudgetItems(list);
                     App.refreshCurrentView();
                 }));
 
@@ -717,65 +730,109 @@
                 }));
             },
             
-            checkPenalties: async (list) => {
+            checkAutoBudgetItems: async (list) => {
                 const batch = writeBatch(db);
                 let hasUpdates = false;
                 const today = new Date();
                 today.setHours(0,0,0,0);
 
-                // Filter out existing penalties to use for checking duplicates
-                const existingPenalties = list.filter(b => b.isPenalty);
+                // Filter out existing penalties/recurring to use for checking duplicates
+                const existingItems = list.filter(b => b.isPenalty || b.isRecurringItem);
 
                 for (const b of list) {
-                    // Skip if it's a penalty itself, realized, disabled, or no daily penalty
-                    if (b.isPenalty || b.isRealized || !b.enablePenalty || !b.dailyPenalty) continue;
+                    // --- 1. Penalty Logic (Existing) ---
+                    if (!b.isPenalty && !b.isRealized && b.enablePenalty && b.dailyPenalty) {
+                        const expected = getTxDate({timestamp: b.expectedDate});
+                        expected.setHours(0,0,0,0);
 
-                    const expected = getTxDate({timestamp: b.expectedDate});
-                    expected.setHours(0,0,0,0);
+                        // If expected date is in the future or today, no penalty yet
+                        if (today <= expected) continue;
 
-                    // If expected date is in the future or today, no penalty yet (penalty starts day after)
-                    if (today <= expected) continue;
-
-                    // Loop from day after expected date until today
-                    let cursor = new Date(expected);
-                    cursor.setDate(cursor.getDate() + 1);
-
-                    while (cursor <= today) {
-                        const cursorTime = cursor.getTime();
-                        
-                        // Check if penalty exists for this specific day and parent budget
-                        const alreadyExists = existingPenalties.some(p => {
-                            const pDate = getTxDate({timestamp: p.expectedDate});
-                            pDate.setHours(0,0,0,0);
-                            const dateMatch = pDate.getTime() === cursorTime;
-                            
-                            // Exact match via ID
-                            if (p.parentBudgetId === b.id && dateMatch) return true;
-
-                            // Heuristic match for legacy items (no parentBudgetId)
-                            if (!p.parentBudgetId && p.targetId === b.targetId && p.isPenalty && dateMatch) {
-                                return p.description.includes(b.description); 
-                            }
-                            return false;
-                        });
-
-                        if (!alreadyExists) {
-                            const newRef = doc(collection(db, `users/${State.user.uid}/investmentBudgets`));
-                            const pDate = new Date(cursor);
-                            batch.set(newRef, {
-                                targetId: b.targetId,
-                                parentBudgetId: b.id, // Link to parent
-                                amount: parseFloat(b.dailyPenalty),
-                                expectedDate: Timestamp.fromDate(pDate),
-                                description: `[罰金] ${b.description} (${pDate.toLocaleDateString('zh-TW', {month:'numeric', day:'numeric'})})`,
-                                type: 'income', // Penalty income
-                                isRealized: false,
-                                isPenalty: true,
-                                createdAt: Timestamp.now()
-                            });
-                            hasUpdates = true;
-                        }
+                        let cursor = new Date(expected);
                         cursor.setDate(cursor.getDate() + 1);
+
+                        while (cursor <= today) {
+                            const cursorTime = cursor.getTime();
+                            
+                            // Check if penalty exists
+                            const alreadyExists = existingItems.some(p => {
+                                if (!p.isPenalty) return false;
+                                const pDate = getTxDate({timestamp: p.expectedDate});
+                                pDate.setHours(0,0,0,0);
+                                const dateMatch = pDate.getTime() === cursorTime;
+                                
+                                if (p.parentBudgetId === b.id && dateMatch) return true;
+                                if (!p.parentBudgetId && p.targetId === b.targetId && dateMatch && p.description.includes(b.description)) return true;
+                                return false;
+                            });
+
+                            if (!alreadyExists) {
+                                const newRef = doc(collection(db, `users/${State.user.uid}/investmentBudgets`));
+                                const pDate = new Date(cursor);
+                                batch.set(newRef, {
+                                    targetId: b.targetId,
+                                    parentBudgetId: b.id,
+                                    amount: parseFloat(b.dailyPenalty),
+                                    expectedDate: Timestamp.fromDate(pDate),
+                                    description: `[罰金] ${b.description} (${pDate.toLocaleDateString('zh-TW', {month:'numeric', day:'numeric'})})`,
+                                    type: 'income',
+                                    isRealized: false,
+                                    isPenalty: true,
+                                    createdAt: Timestamp.now()
+                                });
+                                hasUpdates = true;
+                            }
+                            cursor.setDate(cursor.getDate() + 1);
+                        }
+                    }
+
+                    // --- 2. Recurring Income Logic (New) ---
+                    // "generate every X days"
+                    // Start from expectedDate (or lastGeneratedDate), if (nextDate <= today), generate it.
+                    if (b.enableRecurring && b.recurringDays && b.recurringDays > 0 && !b.isRecurringItem) {
+                         // Start checking from the expected date (which is presumably the first one or the start date)
+                         // We rely on 'lastRecurringDate' to know where we left off, default to expectedDate
+                         let lastDate = b.lastRecurringDate ? getTxDate({timestamp: b.lastRecurringDate}) : getTxDate({timestamp: b.expectedDate});
+                         lastDate.setHours(0,0,0,0);
+                         
+                         // If we haven't generated anything yet, and today is past the first cycle, we should start generating
+                         let nextDate = new Date(lastDate);
+                         nextDate.setDate(nextDate.getDate() + parseInt(b.recurringDays));
+
+                         while (nextDate <= today) {
+                            // Check for duplicates is less critical here if we rely on updating lastRecurringDate on parent
+                            // But for safety against race conditions or data inconsistency:
+                            const cursorTime = nextDate.getTime();
+                            const alreadyExists = existingItems.some(item => {
+                                if (!item.isRecurringItem) return false;
+                                const iDate = getTxDate({timestamp: item.expectedDate});
+                                iDate.setHours(0,0,0,0);
+                                return item.parentBudgetId === b.id && iDate.getTime() === cursorTime;
+                            });
+
+                            if (!alreadyExists) {
+                                const newRef = doc(collection(db, `users/${State.user.uid}/investmentBudgets`));
+                                const rDate = new Date(nextDate);
+                                batch.set(newRef, {
+                                    targetId: b.targetId,
+                                    parentBudgetId: b.id,
+                                    amount: parseFloat(b.amount), // Use parent amount
+                                    expectedDate: Timestamp.fromDate(rDate),
+                                    description: `[自動] ${b.description} (${rDate.toLocaleDateString('zh-TW', {month:'numeric', day:'numeric'})})`,
+                                    type: b.type || 'income',
+                                    isRealized: false,
+                                    isRecurringItem: true, // Mark as a child item
+                                    createdAt: Timestamp.now()
+                                });
+                            }
+                            
+                            // Update parent's tracker
+                            const parentRef = doc(db, `users/${State.user.uid}/investmentBudgets`, b.id);
+                            batch.update(parentRef, { lastRecurringDate: Timestamp.fromDate(new Date(nextDate)) });
+                            
+                            hasUpdates = true;
+                            nextDate.setDate(nextDate.getDate() + parseInt(b.recurringDays));
+                         }
                     }
                 }
 
@@ -828,10 +885,20 @@
                     type: f.type.value || 'expense' 
                 }; 
                 
-                // Add penalty fields for investment
+                // Add penalty & recurring fields for investment
                 if(ctx === 'investment') {
+                    // Penalty
                     d.enablePenalty = f.enablePenalty.checked;
                     d.dailyPenalty = f.enablePenalty.checked ? parseFloat(f.dailyPenalty.value) || 0 : 0;
+                    
+                    // Recurring
+                    d.enableRecurring = f.enableRecurring.checked;
+                    d.recurringDays = f.enableRecurring.checked ? parseInt(f.recurringDays.value) || 0 : 0;
+                    if(d.enableRecurring) {
+                         // Reset lastGenerated if enabling for first time to start fresh from expected date
+                         // We don't want to reset if editing an existing recurring plan unless needed
+                         // For simplicity, we assume editing a recurring plan just updates params
+                    }
                 }
 
                 if(!f.id.value){d.isRealized=false;d.createdAt=Timestamp.now();} 
@@ -944,11 +1011,11 @@
                 const e = document.getElementById('btn-budget-expense'), i = document.getElementById('btn-budget-income');
                 const ctx = document.getElementById('budget-context').value;
                 const penaltyConfig = document.getElementById('penalty-config');
+                const recurringConfig = document.getElementById('recurring-config');
                 
-                // Show penalty config only for investment
-                if(penaltyConfig) {
-                    penaltyConfig.classList.toggle('hidden', ctx !== 'investment');
-                }
+                // Show penalty/recurring config only for investment
+                if(penaltyConfig) penaltyConfig.classList.toggle('hidden', ctx !== 'investment');
+                if(recurringConfig) recurringConfig.classList.toggle('hidden', ctx !== 'investment');
 
                 // Update datalist if accounting context
                 if (ctx === 'accounting') {
@@ -1045,10 +1112,18 @@
                         else sel.value = item.targetId || '';
 
                         // Populate Penalty fields for edit
-                        if (ctx === 'investment' && item.enablePenalty) {
-                            c.querySelector('#enable-penalty').checked = true;
-                            c.querySelector('#penalty-amount-input').classList.remove('hidden');
-                            c.querySelector('[name=dailyPenalty]').value = item.dailyPenalty || 0;
+                        if (ctx === 'investment') {
+                            if (item.enablePenalty) {
+                                c.querySelector('#enable-penalty').checked = true;
+                                c.querySelector('#penalty-amount-input').classList.remove('hidden');
+                                c.querySelector('[name=dailyPenalty]').value = item.dailyPenalty || 0;
+                            }
+                            // Populate Recurring fields
+                            if (item.enableRecurring) {
+                                c.querySelector('#enable-recurring').checked = true;
+                                c.querySelector('#recurring-days-input').classList.remove('hidden');
+                                c.querySelector('[name=recurringDays]').value = item.recurringDays || 0;
+                            }
                         }
                     } 
                 } else { c.querySelector('[name=date]').value = new Date().toLocaleDateString('zh-CA'); } 
@@ -1337,7 +1412,7 @@
                 if(!document.getElementById('event-list')) return;
                 const grouped = {};
                 State.data.events.sort((a,b) => getTxDate(b) - getTxDate(a)).forEach(e => { const k = getTxDate(e).toLocaleDateString('zh-TW', {year:'numeric', month:'long'}); if(!grouped[k]) grouped[k]=[]; grouped[k].push(e); });
-                document.getElementById('event-list').innerHTML = `<div class="absolute left-[19px] top-0 bottom-0 w-0.5 bg-slate-100 z-0"></div>` + (Object.keys(grouped).length ? Object.entries(grouped).map(([m, evs]) => `<div class="mb-8 relative z-10"><h3 class="text-xs font-bold text-slate-400 mb-4 bg-[#f8fafc] inline-block pr-2 sticky top-0">${m}</h3><div class="space-y-6">${evs.map(e => `<div class="relative pl-8 group cursor-pointer" onclick="App.openModal('event-modal','${e.id}')"><div class="absolute left-3 top-1.5 w-4 h-4 rounded-full border-[3px] border-[#f8fafc] bg-indigo-300 group-hover:bg-primary group-hover:scale-125 transition shadow-sm"></div><div class="bg-white p-4 rounded-2xl shadow-soft border border-slate-50 hover:shadow-md transition active:scale-[0.99]\"><div class="flex justify-between items-start mb-1"><span class="text-[10px] font-bold text-primary bg-indigo-50 px-2 py-0.5 rounded-lg">${getTxDate(e).toLocaleDateString('zh-TW', {day:'numeric', weekday:'short'})}</span><div class="opacity-0 group-hover:opacity-100 transition"><i class="fa-solid fa-pen text-slate-300 text-xs"></i></div></div><h4 class="font-bold text-slate-800 text-sm mb-1">${e.title}</h4><p class="text-xs text-slate-500 leading-relaxed whitespace-pre-wrap">${e.description||''}</p></div></div>`).join('')}</div></div>`).join('') : '<div class="text-center py-20"><div class="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-3 text-slate-300"><i class="fa-solid fa-camera-retro text-xl"></i></div><p class="text-slate-400 text-xs">這裡空空的，記錄一點生活吧？</p></div>');
+                document.getElementById('event-list').innerHTML = `<div class="absolute left-[19px] top-0 bottom-0 w-0.5 bg-slate-100 z-0"></div>` + (Object.keys(grouped).length ? Object.entries(grouped).map(([m, evs]) => `<div class="mb-8 relative z-10"><h3 class="text-xs font-bold text-slate-400 mb-4 bg-[#f8fafc] inline-block pr-2 sticky top-0">${m}</h3><div class="space-y-6">${evs.map(e => `<div class="relative pl-8 group cursor-pointer" onclick="App.openModal('event-modal','${e.id}')"><div class="absolute left-3 top-1.5 w-4 h-4 rounded-full border-[3px] border-[#f8fafc] bg-indigo-300 group-hover:bg-primary group-hover:scale-125 transition shadow-sm"></div><div class="bg-white p-4 rounded-2xl shadow-soft border border-slate-50 hover:shadow-md transition active:scale-[0.99]"><div class="flex justify-between items-start mb-1"><span class="text-[10px] font-bold text-primary bg-indigo-50 px-2 py-0.5 rounded-lg">${getTxDate(e).toLocaleDateString('zh-TW', {day:'numeric', weekday:'short'})}</span><div class="opacity-0 group-hover:opacity-100 transition"><i class="fa-solid fa-pen text-slate-300 text-xs"></i></div></div><h4 class="font-bold text-slate-800 text-sm mb-1">${e.title}</h4><p class="text-xs text-slate-500 leading-relaxed whitespace-pre-wrap">${e.description||''}</p></div></div>`).join('')}</div></div>`).join('') : '<div class="text-center py-20"><div class="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-3 text-slate-300"><i class="fa-solid fa-camera-retro text-xl"></i></div><p class="text-slate-400 text-xs">這裡空空的，記錄一點生活吧？</p></div>');
             },
         };
         window.App = App; App.init();
