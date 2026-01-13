@@ -506,7 +506,7 @@
                 </div>
                 <div>
                     <label class="text-[10px] font-bold text-slate-400 ml-1 mb-1 block">備註</label>
-                    <input type="text" name="remarks" class="input-box w-full rounded-xl px-4 py-3 text-sm font-medium text-slate-700" placeholder="寫點什麼...">
+                    <textarea name="remarks" rows="2" class="input-box w-full rounded-xl px-4 py-3 text-sm font-medium text-slate-700 resize-none" placeholder="寫點什麼..."></textarea>
                 </div>
             </div>
 
@@ -1329,7 +1329,7 @@
                                         </div>
                                         <div class="min-w-0">
                                             <p class="font-bold text-slate-700 text-sm mb-0.5">${t.category||'未分類'}</p>
-                                            <p class="text-[10px] text-slate-400 truncate max-w-[120px]">${t.remarks||''}</p>
+                                            <p class="text-[10px] text-slate-400 break-words whitespace-pre-wrap">${t.remarks||''}</p>
                                         </div>
                                     </div>
                                     <div class="flex flex-col items-end">
@@ -1503,7 +1503,7 @@
                 if (expTotal > 0) { statsHtml += `<li class="text-xs font-bold text-rose-500 mb-2 pb-1 mt-4 flex justify-between items-center"><span>支出統計</span><span class="bg-rose-100 px-2 py-0.5 rounded-lg">$${expTotal.toLocaleString()}</span></li>` + Object.entries(expMap).sort((a,b)=>b[1]-a[1]).map(([k,v])=>`<li class="flex justify-between border-b border-slate-100 py-1.5 last:border-0 text-slate-600"><span>${k}</span><span class="font-bold text-rose-500">$${v.toLocaleString()} <span class="text-[10px] text-slate-300 font-normal">(${((v/expTotal)*100).toFixed(1)}%)</span></span></li>`).join(''); }
                 if (incTotal === 0 && expTotal === 0) statsHtml = '<li class="text-center text-slate-300 py-4">無數據</li>';
                 document.getElementById('report-stats').innerHTML = statsHtml;
-                document.getElementById('report-details').innerHTML = filtered.length ? filtered.map(t => `<li class="flex justify-between items-center py-3 border-b border-slate-50 last:border-0 group cursor-pointer hover:bg-slate-50 p-2 rounded-xl transition" onclick="App.openModal('transaction-modal', '${t.id}')"><div class="flex-1 min-w-0 mr-2"><p class="text-xs text-slate-400 mb-0.5">${getTxDate(t).toLocaleDateString()} <span class="font-bold text-slate-700 ml-1">${t.category}</span></p><p class="text-[10px] text-slate-400 truncate">${t.remarks||''}</p></div><div class="flex items-center gap-2"><span class="text-xs font-bold ${t.type==='expense'?'text-rose-500':'text-emerald-500'} whitespace-nowrap">${t.type==='expense'?'-':'+'} ${parseFloat(t.amount).toLocaleString()}</span><button type="button" class="w-6 h-6 rounded-full bg-slate-100 text-slate-400 hover:text-primary flex items-center justify-center opacity-0 group-hover:opacity-100 transition" onclick="event.stopPropagation();App.openModal('transaction-modal','${t.id}')"><i class="fa-solid fa-pen text-[10px]"></i></button></div></li>`).join('') : '<li class="text-center text-xs text-slate-300 py-8">無交易紀錄</li>';
+                document.getElementById('report-details').innerHTML = filtered.length ? filtered.map(t => `<li class="flex justify-between items-center py-3 border-b border-slate-50 last:border-0 group cursor-pointer hover:bg-slate-50 p-2 rounded-xl transition" onclick="App.openModal('transaction-modal', '${t.id}')"><div class="flex-1 min-w-0 mr-2"><p class="text-xs text-slate-400 mb-0.5">${getTxDate(t).toLocaleDateString()} <span class="font-bold text-slate-700 ml-1">${t.category}</span></p><p class="text-[10px] text-slate-400 break-words whitespace-pre-wrap">${t.remarks||''}</p></div><div class="flex items-center gap-2"><span class="text-xs font-bold ${t.type==='expense'?'text-rose-500':'text-emerald-500'} whitespace-nowrap">${t.type==='expense'?'-':'+'} ${parseFloat(t.amount).toLocaleString()}</span><button type="button" class="w-6 h-6 rounded-full bg-slate-100 text-slate-400 hover:text-primary flex items-center justify-center opacity-0 group-hover:opacity-100 transition" onclick="event.stopPropagation();App.openModal('transaction-modal','${t.id}')"><i class="fa-solid fa-pen text-[10px]"></i></button></div></li>`).join('') : '<li class="text-center text-xs text-slate-300 py-8">無交易紀錄</li>';
             },
             renderEvents: () => {
                 if(!document.getElementById('event-list')) return;
