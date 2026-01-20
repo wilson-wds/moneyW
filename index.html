@@ -509,6 +509,11 @@
                     <label class="text-[10px] font-bold text-slate-400 ml-1 mb-1 block">備註</label>
                     <textarea name="remarks" rows="2" class="input-box w-full rounded-xl px-4 py-3 text-sm font-medium text-slate-700 resize-none" placeholder="寫點什麼..."></textarea>
                 </div>
+                
+                <div class="flex items-center gap-2 px-1 pt-2">
+                    <input type="checkbox" id="tx-unrealized" name="isUnrealized" class="w-5 h-5 rounded text-primary focus:ring-primary border-gray-300 transition cursor-pointer">
+                    <label for="tx-unrealized" class="text-xs font-bold text-slate-500 cursor-pointer select-none">未實現 (僅加入預算列表)</label>
+                </div>
             </div>
 
             <div class="pt-4">
@@ -696,6 +701,37 @@
         </form>
     </template>
 
+    <template id="tpl-repay-form">
+        <div class="flex justify-between items-center mb-2"><h3 class="text-xl font-bold text-slate-800">還款紀錄</h3><button type="button" onclick="App.closeModal()" class="w-9 h-9 rounded-full bg-slate-100 flex items-center justify-center text-slate-500"><i class="fa-solid fa-xmark"></i></button></div>
+        <p id="repay-debt-name" class="text-sm font-bold text-primary mb-6 bg-indigo-50 inline-block px-3 py-1 rounded-lg"></p>
+        <form onsubmit="App.handleRepayDebt(event)" class="space-y-6">
+            <input type="hidden" name="id" id="repay-id">
+            <div class="text-center">
+                 <input type="number" name="amount" class="w-full text-5xl font-bold text-slate-800 border-none text-center focus:outline-none placeholder-slate-200 bg-transparent p-0" placeholder="0" required inputmode="decimal">
+                 <p class="text-xs text-slate-400 mt-2">本次還款金額</p>
+            </div>
+            <div>
+                 <label class="text-[10px] font-bold text-slate-400 ml-1 block mb-1">日期</label>
+                 <input type="date" name="date" class="input-box w-full rounded-xl p-3 text-sm bg-slate-50" required>
+            </div>
+            <div class="flex gap-3 pt-2">
+                <button type="button" onclick="App.closeModal()" class="flex-1 bg-slate-100 py-3.5 rounded-2xl font-bold text-slate-500 text-sm hover:bg-slate-200 transition">取消</button>
+                <button type="submit" class="flex-[2] bg-emerald-500 text-white py-3.5 rounded-2xl font-bold shadow-lg shadow-emerald-200 text-sm hover:bg-emerald-600 transition active:scale-[0.98]">確認還款</button>
+            </div>
+        </form>
+    </template>
+
+    <template id="tpl-event-modal">
+        <div class="flex justify-between items-center mb-6"><h3 class="text-xl font-bold text-slate-800">生活大事</h3><div class="flex gap-2"><button type="button" id="btn-delete-event" class="hidden w-9 h-9 rounded-full bg-rose-50 text-rose-500 flex items-center justify-center hover:bg-rose-100 transition"><i class="fa-solid fa-trash-can"></i></button><button type="button" onclick="App.closeModal()" class="w-9 h-9 rounded-full bg-slate-100 flex items-center justify-center text-slate-500"><i class="fa-solid fa-xmark"></i></button></div></div>
+        <form onsubmit="App.handleSaveEvent(event)" class="space-y-5">
+            <input type="hidden" name="id">
+            <div><label class="text-[10px] font-bold text-slate-400 ml-1 block mb-1">日期</label><input type="date" name="date" class="input-box w-full bg-slate-50 rounded-xl p-3 text-sm" required></div>
+            <div><label class="text-[10px] font-bold text-slate-400 ml-1 block mb-1">標題</label><input type="text" name="title" class="input-box w-full bg-slate-50 rounded-xl p-3 text-sm font-bold text-slate-700" placeholder="例如: 買新車, 結婚紀念日" required></div>
+            <div><label class="text-[10px] font-bold text-slate-400 ml-1 block mb-1">詳細內容</label><textarea name="desc" rows="4" class="input-box w-full bg-slate-50 rounded-xl p-3 text-sm" placeholder="紀錄一下心情..."></textarea></div>
+            <button type="submit" class="w-full bg-dark text-white py-4 rounded-2xl font-bold text-sm shadow-lg hover:bg-black transition active:scale-[0.98]">紀錄下來</button>
+        </form>
+    </template>
+    
     <template id="tpl-details-modal">
         <div class="sticky top-0 bg-white z-10 pb-4 border-b border-slate-50 mb-4 flex justify-between items-center">
             <h3 class="text-lg font-bold text-slate-800 details-title truncate pr-4"></h3>
@@ -913,7 +949,66 @@
             handleDateFilterChange: () => { App.renderTransactions(); App.updateDashboard(); },
             switchInvTab: (tab, btn) => { State.view.invTab = tab; document.querySelectorAll('.tab-pill').forEach(e => { e.classList.remove('active', 'bg-indigo-50', 'text-primary'); e.classList.add('hover:text-slate-700'); }); btn.classList.add('active', 'bg-indigo-50', 'text-primary'); btn.classList.remove('hover:text-slate-700'); App.renderInvestments(); },
 
-            handleSaveTransaction: async (e) => { e.preventDefault(); const f=e.target, uid=State.user.uid, id=f.id.value, lid=f.legacy_inv_id.value; const localDate = new Date(f.date.value + 'T12:00:00'); const type = f.type.value; const amount = parseFloat(f.amount.value); const project = f.project.value; const d = { type: type, amount: amount, category: f.category.value, remarks: f.remarks.value, timestamp: Timestamp.fromDate(localDate), project: project }; const batch = writeBatch(db); if (type === 'expense' && project && !id) { const debt = State.data.debts.find(db => db.name === project); if (debt) { const debtRef = doc(db, `users/${uid}/debts`, debt.id); batch.update(debtRef, { remainingAmount: increment(-amount) }); } } if (lid && id) { const newRef = doc(collection(db, `users/${uid}/transactions`)); batch.set(newRef, d); batch.delete(doc(db, `users/${uid}/investments/${lid}/transactions`, id)); if (State.data.legacyTxs[lid]) { State.data.legacyTxs[lid] = State.data.legacyTxs[lid].filter(t => t.id !== id); } } else { id ? await updateDoc(doc(db, `users/${uid}/transactions`, id), d) : await addDoc(collection(db, `users/${uid}/transactions`), d); } await batch.commit(); App.closeModal(); },
+            handleSaveTransaction: async (e) => { 
+                e.preventDefault(); 
+                const f=e.target, uid=State.user.uid, id=f.id.value, lid=f.legacy_inv_id.value; 
+                const localDate = new Date(f.date.value + 'T12:00:00'); 
+                const type = f.type.value; 
+                const amount = parseFloat(f.amount.value); 
+                const project = f.project.value; 
+                
+                // New Logic: Check for Unrealized
+                if (f.isUnrealized && f.isUnrealized.checked) {
+                    const desc = f.remarks.value + (project ? ` [${project}]` : '');
+                    const budgetData = {
+                        targetId: f.category.value,
+                        amount: amount,
+                        expectedDate: Timestamp.fromDate(localDate),
+                        description: desc,
+                        type: type,
+                        isRealized: false,
+                        createdAt: Timestamp.now()
+                    };
+                    const batch = writeBatch(db);
+                    // Add to accountingBudgets
+                    batch.set(doc(collection(db, `users/${uid}/accountingBudgets`)), budgetData);
+                    
+                    // If moving from existing transaction, delete old one
+                    if (id) {
+                         if (lid && lid !== 'undefined') {
+                             batch.delete(doc(db, `users/${uid}/investments/${lid}/transactions`, id));
+                         } else {
+                             batch.delete(doc(db, `users/${uid}/transactions`, id));
+                         }
+                    }
+                    await batch.commit();
+                    App.closeModal();
+                    return;
+                }
+
+                // Existing Transaction Logic
+                const d = { type: type, amount: amount, category: f.category.value, remarks: f.remarks.value, timestamp: Timestamp.fromDate(localDate), project: project }; 
+                const batch = writeBatch(db); 
+                if (type === 'expense' && project && !id) { 
+                    const debt = State.data.debts.find(db => db.name === project); 
+                    if (debt) { 
+                        const debtRef = doc(db, `users/${uid}/debts`, debt.id); 
+                        batch.update(debtRef, { remainingAmount: increment(-amount) }); 
+                    } 
+                } 
+                if (lid && id) { 
+                    const newRef = doc(collection(db, `users/${uid}/transactions`)); 
+                    batch.set(newRef, d); 
+                    batch.delete(doc(db, `users/${uid}/investments/${lid}/transactions`, id)); 
+                    if (State.data.legacyTxs[lid]) { 
+                        State.data.legacyTxs[lid] = State.data.legacyTxs[lid].filter(t => t.id !== id); 
+                    } 
+                } else { 
+                    id ? await updateDoc(doc(db, `users/${uid}/transactions`, id), d) : await addDoc(collection(db, `users/${uid}/transactions`), d); 
+                } 
+                await batch.commit(); 
+                App.closeModal(); 
+            },
             handleSaveInvestment: async (e) => { e.preventDefault(); const f=e.target; const d={name:f.name.value, initialValue:parseFloat(f.initial.value)||0, isArchived:f.isArchived.checked}; if(!f.id.value){d.marketValue=d.initialValue;d.createdAt=Timestamp.now();} f.id.value?await updateDoc(doc(db,`users/${State.user.uid}/investments`,f.id.value),d):(await addDoc(collection(db,`users/${State.user.uid}/investments`),d) && d.initialValue>0 && await addDoc(collection(db,`users/${State.user.uid}/transactions`),{type:'expense',amount:d.initialValue,category:'投資',project:f.name.value,remarks:'初始投入',timestamp:Timestamp.now()})); App.closeModal(); },
             handleSaveDebt: async (e) => { e.preventDefault(); const f=e.target, uid=State.user.uid; const d={name:f.name.value, totalAmount:parseFloat(f.total.value)}; if (f.remaining && f.remaining.value) d.remainingAmount = parseFloat(f.remaining.value); else if(!f.id.value) { d.remainingAmount = parseFloat(f.total.value); d.createdAt = Timestamp.now(); } f.id.value?await updateDoc(doc(db,`users/${uid}/debts`,f.id.value),d):await addDoc(collection(db,`users/${uid}/debts`),d); App.closeModal(); },
             
