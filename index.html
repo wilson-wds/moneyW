@@ -464,6 +464,7 @@
         <div class="flex justify-between items-center mb-6">
             <h3 class="text-xl font-bold text-slate-800" id="tx-modal-title">記一筆</h3>
             <div class="flex items-center gap-3">
+                 <button type="button" id="btn-copy-tx" class="hidden w-9 h-9 rounded-full bg-indigo-50 text-indigo-500 flex items-center justify-center hover:bg-indigo-100 transition active:scale-95" title="複製此筆交易"><i class="fa-solid fa-copy text-sm"></i></button>
                  <button type="button" id="btn-delete-tx" class="hidden w-9 h-9 rounded-full bg-rose-50 text-rose-500 flex items-center justify-center hover:bg-rose-100 transition active:scale-95"><i class="fa-solid fa-trash-can text-sm"></i></button>
                  <button type="button" onclick="App.closeModal()" class="w-9 h-9 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 hover:bg-slate-200 transition active:scale-95"><i class="fa-solid fa-xmark"></i></button>
             </div>
@@ -695,37 +696,6 @@
         </form>
     </template>
 
-    <template id="tpl-repay-form">
-        <div class="flex justify-between items-center mb-2"><h3 class="text-xl font-bold text-slate-800">還款紀錄</h3><button type="button" onclick="App.closeModal()" class="w-9 h-9 rounded-full bg-slate-100 flex items-center justify-center text-slate-500"><i class="fa-solid fa-xmark"></i></button></div>
-        <p id="repay-debt-name" class="text-sm font-bold text-primary mb-6 bg-indigo-50 inline-block px-3 py-1 rounded-lg"></p>
-        <form onsubmit="App.handleRepayDebt(event)" class="space-y-6">
-            <input type="hidden" name="id" id="repay-id">
-            <div class="text-center">
-                 <input type="number" name="amount" class="w-full text-5xl font-bold text-slate-800 border-none text-center focus:outline-none placeholder-slate-200 bg-transparent p-0" placeholder="0" required inputmode="decimal">
-                 <p class="text-xs text-slate-400 mt-2">本次還款金額</p>
-            </div>
-            <div>
-                 <label class="text-[10px] font-bold text-slate-400 ml-1 block mb-1">日期</label>
-                 <input type="date" name="date" class="input-box w-full rounded-xl p-3 text-sm bg-slate-50" required>
-            </div>
-            <div class="flex gap-3 pt-2">
-                <button type="button" onclick="App.closeModal()" class="flex-1 bg-slate-100 py-3.5 rounded-2xl font-bold text-slate-500 text-sm hover:bg-slate-200 transition">取消</button>
-                <button type="submit" class="flex-[2] bg-emerald-500 text-white py-3.5 rounded-2xl font-bold shadow-lg shadow-emerald-200 text-sm hover:bg-emerald-600 transition active:scale-[0.98]">確認還款</button>
-            </div>
-        </form>
-    </template>
-
-    <template id="tpl-event-modal">
-        <div class="flex justify-between items-center mb-6"><h3 class="text-xl font-bold text-slate-800">生活大事</h3><div class="flex gap-2"><button type="button" id="btn-delete-event" class="hidden w-9 h-9 rounded-full bg-rose-50 text-rose-500 flex items-center justify-center hover:bg-rose-100 transition"><i class="fa-solid fa-trash-can"></i></button><button type="button" onclick="App.closeModal()" class="w-9 h-9 rounded-full bg-slate-100 flex items-center justify-center text-slate-500"><i class="fa-solid fa-xmark"></i></button></div></div>
-        <form onsubmit="App.handleSaveEvent(event)" class="space-y-5">
-            <input type="hidden" name="id">
-            <div><label class="text-[10px] font-bold text-slate-400 ml-1 block mb-1">日期</label><input type="date" name="date" class="input-box w-full bg-slate-50 rounded-xl p-3 text-sm" required></div>
-            <div><label class="text-[10px] font-bold text-slate-400 ml-1 block mb-1">標題</label><input type="text" name="title" class="input-box w-full bg-slate-50 rounded-xl p-3 text-sm font-bold text-slate-700" placeholder="例如: 買新車, 結婚紀念日" required></div>
-            <div><label class="text-[10px] font-bold text-slate-400 ml-1 block mb-1">詳細內容</label><textarea name="desc" rows="4" class="input-box w-full bg-slate-50 rounded-xl p-3 text-sm" placeholder="紀錄一下心情..."></textarea></div>
-            <button type="submit" class="w-full bg-dark text-white py-4 rounded-2xl font-bold text-sm shadow-lg hover:bg-black transition active:scale-[0.98]">紀錄下來</button>
-        </form>
-    </template>
-    
     <template id="tpl-details-modal">
         <div class="sticky top-0 bg-white z-10 pb-4 border-b border-slate-50 mb-4 flex justify-between items-center">
             <h3 class="text-lg font-bold text-slate-800 details-title truncate pr-4"></h3>
@@ -1060,6 +1030,29 @@
                 await batch.commit(); 
             },
             
+            // New Function: Copy Transaction
+            copyTransaction: (id) => {
+                const tx = App.getAllTransactions().find(t => t.id === id);
+                if (!tx) return;
+                
+                // Open modal in "create" mode (id=null) but pass transaction data as defaults
+                App.openModal('transaction-modal', null, tx);
+            },
+
+            // New Function: Copy Budget
+            copyBudget: (ctx, id) => {
+                let list = [];
+                if(ctx==='investment') list=State.data.investmentBudgets;
+                else if(ctx==='debt') list=State.data.debtBudgets;
+                else list=State.data.accountingBudgets;
+                
+                const budget = list.find(b => b.id === id);
+                if(!budget) return;
+
+                // Open modal in "create" mode (id=null) but pass budget data as defaults
+                App.openBudgetModal(ctx, null, budget);
+            },
+
             openReceiptModal: (id) => {
                 const allTxs = App.getAllTransactions();
                 const tx = allTxs.find(t => t.id === id);
@@ -1164,17 +1157,59 @@
             },
             openModal: (t, id, defaults = {}) => {
                 const c = document.getElementById('modal-content'); c.innerHTML = document.getElementById(`tpl-${t}`).innerHTML;
-                if(t==='transaction-modal') { renderDatalist(c.querySelector('#cat-list'), State.categories.expense); if(defaults.project) c.querySelector('[name=project]').value = defaults.project; if(defaults.category) c.querySelector('[name=category]').value = defaults.category; }
+                
+                // Reset form first
+                const form = c.querySelector('form');
+                if(form) form.reset();
+                c.querySelector('[name=id]').value = '';
+                if(c.querySelector('[name=legacy_inv_id]')) c.querySelector('[name=legacy_inv_id]').value = '';
+
+                if(t==='transaction-modal') { 
+                    renderDatalist(c.querySelector('#cat-list'), State.categories.expense);
+                    
+                    // Handle defaults (copy functionality)
+                    if(defaults.project) c.querySelector('[name=project]').value = defaults.project;
+                    if(defaults.category) c.querySelector('[name=category]').value = defaults.category;
+                    if(defaults.amount) c.querySelector('[name=amount]').value = defaults.amount;
+                    if(defaults.remarks) c.querySelector('[name=remarks]').value = defaults.remarks;
+                    if(defaults.type) App.toggleTxType(defaults.type);
+                }
+
                 if(id) {
+                    // Edit Mode
                     let item = State.data[t==='transaction-modal'?'transactions':t==='investment-modal'?'investments':t==='debt-modal'?'debts':t==='event-modal'?'events':[]].find(i=>i.id===id); if(!item && t==='transaction-modal') item = App.getAllTransactions().find(i=>i.id===id);
                     if(item) {
                         c.querySelector('[name=id]').value = id;
-                        if(t==='transaction-modal') { c.querySelector('[name=amount]').value = item.amount; c.querySelector('[name=date]').value = toDateStr(getTxDate(item)); c.querySelector('[name=category]').value = item.category; c.querySelector('[name=remarks]').value = item.remarks; c.querySelector('[name=project]').value = item.project || ''; if(item.isLegacy && item.legacyInvId) c.querySelector('[name=legacy_inv_id]').value = item.legacyInvId; App.toggleTxType(item.type); } 
+                        if(t==='transaction-modal') { 
+                            c.querySelector('[name=amount]').value = item.amount; 
+                            c.querySelector('[name=date]').value = toDateStr(getTxDate(item)); 
+                            c.querySelector('[name=category]').value = item.category; 
+                            c.querySelector('[name=remarks]').value = item.remarks; 
+                            c.querySelector('[name=project]').value = item.project || ''; 
+                            if(item.isLegacy && item.legacyInvId) c.querySelector('[name=legacy_inv_id]').value = item.legacyInvId; 
+                            App.toggleTxType(item.type); 
+                            // Show Copy Button in Edit Mode
+                            const copyBtn = c.querySelector('#btn-copy-tx');
+                            if(copyBtn) {
+                                copyBtn.classList.remove('hidden');
+                                copyBtn.onclick = () => App.copyTransaction(id);
+                            }
+                        } 
                         else if (t==='investment-modal') { c.querySelector('[name=name]').value = item.name; c.querySelector('[name=initial]').value = item.initialValue; if(c.querySelector('[name=isArchived]')) c.querySelector('[name=isArchived]').checked = item.isArchived; } 
                         else if (t==='debt-modal') { c.querySelector('[name=name]').value = item.name; c.querySelector('[name=total]').value = item.totalAmount; c.querySelector('[name=remaining]').value = item.remainingAmount; } 
                         else if (t==='event-modal') { c.querySelector('[name=title]').value = item.title; c.querySelector('[name=desc]').value = item.description; c.querySelector('[name=date]').value = toDateStr(getTxDate(item)); }
                     }
-                } else if(t==='transaction-modal' || t==='event-modal') c.querySelector('[name=date]').value = toDateStr(new Date());
+                } else {
+                    // Create Mode (or Copy Mode where id is null but defaults are set)
+                    const dateInput = c.querySelector('[name=date]');
+                    if(dateInput && !dateInput.value) dateInput.value = toDateStr(new Date());
+                    
+                    // Hide copy button in create mode
+                    if(t==='transaction-modal') {
+                        const copyBtn = c.querySelector('#btn-copy-tx');
+                        if(copyBtn) copyBtn.classList.add('hidden');
+                    }
+                }
                 
                 // Handlers for Delete Buttons
                 if(t==='transaction-modal' && id) { const delBtn = c.querySelector('#btn-delete-tx'); delBtn.classList.remove('hidden'); let legacyInvId = undefined; const item = App.getAllTransactions().find(i=>i.id===id); if(item && item.legacyInvId) legacyInvId = item.legacyInvId; delBtn.onclick = () => App.deleteTransaction(id, legacyInvId); }
@@ -1186,7 +1221,7 @@
             },
             closeModal: () => document.getElementById('modal-overlay').classList.add('hidden'),
             openRepayModal: (id,n) => { const c=document.getElementById('modal-content'); c.innerHTML=document.getElementById('tpl-repay-form').innerHTML; c.querySelector('#repay-id').value=id; c.querySelector('#repay-debt-name').innerText=n; c.querySelector('[name=date]').value=new Date().toLocaleDateString('zh-CA'); document.getElementById('modal-overlay').classList.remove('hidden'); document.getElementById('modal-overlay').classList.add('flex'); },
-            openBudgetModal: (ctx, id=null) => { 
+            openBudgetModal: (ctx, id=null, defaults={}) => { 
                 const c=document.getElementById('modal-content'); c.innerHTML=document.getElementById('tpl-budget-form').innerHTML; const isEdit = !!id; 
                 c.querySelector('#budget-modal-title').innerText = (isEdit?'編輯':'新增')+(ctx==='investment'?'投資預算':(ctx==='debt'?'還款計畫':'預算/排程')); 
                 c.querySelector('#budget-context').value = ctx; 
@@ -1221,6 +1256,31 @@
                     App.toggleBudgetType('expense'); 
                 }
                 
+                // Handle defaults/copy data first
+                if (Object.keys(defaults).length > 0) {
+                     c.querySelector('[name=amount]').value = defaults.amount;
+                     c.querySelector('[name=desc]').value = defaults.description;
+                     if(defaults.type && (ctx==='investment' || ctx==='accounting')) App.toggleBudgetType(defaults.type);
+                     
+                     // Target ID
+                     if (ctx === 'accounting') inp.value = defaults.targetId || '';
+                     else sel.value = defaults.targetId || '';
+
+                     // Penalty/Recurring
+                     if (ctx === 'investment') {
+                        if (defaults.enablePenalty) {
+                            c.querySelector('#enable-penalty').checked = true;
+                            c.querySelector('#penalty-amount-input').classList.remove('hidden');
+                            c.querySelector('[name=dailyPenalty]').value = defaults.dailyPenalty || 0;
+                        }
+                        if (defaults.enableRecurring) {
+                            c.querySelector('#enable-recurring').checked = true;
+                            c.querySelector('#recurring-days-input').classList.remove('hidden');
+                            c.querySelector('[name=recurringDays]').value = defaults.recurringDays || 0;
+                        }
+                    }
+                }
+
                 if(isEdit) { 
                     let list = [];
                     if(ctx==='investment') list=State.data.investmentBudgets;
@@ -1254,7 +1314,10 @@
                             }
                         }
                     } 
-                } else { c.querySelector('[name=date]').value = toDateStr(new Date()); } 
+                } else { 
+                    // New/Copy mode date default
+                    c.querySelector('[name=date]').value = toDateStr(new Date()); 
+                } 
                 document.getElementById('modal-overlay').classList.remove('hidden'); document.getElementById('modal-overlay').classList.add('flex'); 
             },
             showDetails: async (type, id) => {
@@ -1408,7 +1471,7 @@
                 listEl.innerHTML = budgets.map(b => {
                      const isExp = !b.type || b.type === 'expense';
                      const isPast = b.expectedDate?.toDate() < new Date().setHours(0,0,0,0);
-                     return `<li class="flex justify-between items-center p-3 rounded-xl border shadow-soft mb-2 ${isPast?'bg-rose-50 border-rose-100':'bg-white border-slate-50'}"><div class="flex items-center gap-3"><div class="w-1 ${isExp?'bg-rose-500':'bg-emerald-500'} h-8 rounded-full"></div><div><span class="font-bold text-slate-700 text-xs block">${b.targetId || '一般'}</span><div class="flex gap-2 text-[10px] text-slate-400"><span>${toDateStr(b.expectedDate)}</span><span>${b.description}</span><span class="font-bold ${isExp?'text-rose-500':'text-emerald-500'}">$${(parseFloat(b.amount)||0).toLocaleString()}</span></div></div></div><div class="flex gap-2"><button onclick="App.realizeBudget('accounting','${b.id}')" class="w-8 h-8 rounded-full bg-emerald-50 text-emerald-600 hover:bg-emerald-100 flex items-center justify-center transition"><i class="fa-solid fa-check text-xs"></i></button><button onclick="App.openBudgetModal('accounting','${b.id}')" class="w-8 h-8 rounded-full bg-slate-50 text-slate-400 hover:bg-slate-100 flex items-center justify-center transition"><i class="fa-solid fa-pen text-xs"></i></button><button onclick="App.deleteItem('accountingBudgets','${b.id}')" class="w-8 h-8 rounded-full bg-rose-50 text-rose-400 hover:bg-rose-100 flex items-center justify-center transition"><i class="fa-solid fa-trash text-xs"></i></button></div></li>`;
+                     return `<li class="flex justify-between items-center p-3 rounded-xl border shadow-soft mb-2 ${isPast?'bg-rose-50 border-rose-100':'bg-white border-slate-50'}"><div class="flex items-center gap-3"><div class="w-1 ${isExp?'bg-rose-500':'bg-emerald-500'} h-8 rounded-full"></div><div><span class="font-bold text-slate-700 text-xs block">${b.targetId || '一般'}</span><div class="flex gap-2 text-[10px] text-slate-400"><span>${toDateStr(b.expectedDate)}</span><span>${b.description}</span><span class="font-bold ${isExp?'text-rose-500':'text-emerald-500'}">$${(parseFloat(b.amount)||0).toLocaleString()}</span></div></div></div><div class="flex gap-2"><button onclick="App.realizeBudget('accounting','${b.id}')" class="w-8 h-8 rounded-full bg-emerald-50 text-emerald-600 hover:bg-emerald-100 flex items-center justify-center transition"><i class="fa-solid fa-check text-xs"></i></button><button onclick="App.copyBudget('accounting','${b.id}')" class="w-8 h-8 rounded-full bg-indigo-50 text-indigo-400 hover:bg-indigo-100 flex items-center justify-center transition"><i class="fa-solid fa-copy text-xs"></i></button><button onclick="App.openBudgetModal('accounting','${b.id}')" class="w-8 h-8 rounded-full bg-slate-50 text-slate-400 hover:bg-slate-100 flex items-center justify-center transition"><i class="fa-solid fa-pen text-xs"></i></button><button onclick="App.deleteItem('accountingBudgets','${b.id}')" class="w-8 h-8 rounded-full bg-rose-50 text-rose-400 hover:bg-rose-100 flex items-center justify-center transition"><i class="fa-solid fa-trash text-xs"></i></button></div></li>`;
                 }).join('') || '<li class="text-xs text-slate-300 text-center py-4 border-2 border-dashed border-slate-100 rounded-xl">尚無預算項目</li>';
             },
             updateDashboard: () => {
@@ -1457,15 +1520,10 @@
                 const filterSel = document.getElementById('inv-budget-filter-select');
                 const currentFilter = filterSel ? filterSel.value : 'all';
                 
-                if(filterSel) {
-                     const invOptions = State.data.investments.filter(i => !i.isArchived).map(i => `<option value="${i.id}">${i.name}</option>`).join('');
+                if(filterSel && filterSel.options.length <= 1) {
+                     const invOptions = State.data.investments.map(i => `<option value="${i.id}">${i.name}</option>`).join('');
                      filterSel.innerHTML = `<option value="all">全部項目</option><option value="penalty">僅顯示罰金</option>` + invOptions;
-                     // Restore selection if valid, else default to all
-                     if ([...filterSel.options].some(o => o.value === currentFilter)) {
-                        filterSel.value = currentFilter;
-                     } else {
-                        filterSel.value = 'all';
-                     }
+                     filterSel.value = currentFilter;
                 }
 
                 let budgetList = State.data.investmentBudgets.filter(b=>!b.isRealized);
@@ -1486,7 +1544,7 @@
                     const iconColor = isPenaltyItem ? 'bg-rose-500' : (isExp ? 'bg-rose-500' : 'bg-emerald-500');
                     const amtColor = isPenaltyItem ? 'text-rose-600' : (isExp ? 'text-rose-500' : 'text-emerald-500');
 
-                    return `<li class="flex justify-between items-center p-3 rounded-xl border shadow-soft mb-2 ${rowBg}"><div class="flex items-center gap-3"><div class="w-1 ${iconColor} h-8 rounded-full"></div><div><span class="font-bold text-slate-700 text-xs block">${(invs.find(i=>i.id===b.targetId)?.name)||'未知'}</span><div class="flex gap-2 text-[10px] text-slate-400"><span>${toDateStr(b.expectedDate)}</span><span>${b.description}</span></div></div></div><div class="flex flex-col items-end mr-3"><span class="font-bold ${amtColor} text-xs">$${(parseFloat(b.amount)||0).toLocaleString()}</span></div><div class="flex gap-2"><button onclick="App.realizeBudget('investment','${b.id}')" class="w-8 h-8 rounded-full bg-emerald-50 text-emerald-600 hover:bg-emerald-100 flex items-center justify-center transition"><i class="fa-solid fa-check text-xs"></i></button><button onclick="App.openBudgetModal('investment','${b.id}')" class="w-8 h-8 rounded-full bg-slate-50 text-slate-400 hover:bg-slate-100 flex items-center justify-center transition"><i class="fa-solid fa-pen text-xs"></i></button><button onclick="App.deleteItem('investmentBudgets','${b.id}')" class="w-8 h-8 rounded-full bg-rose-50 text-rose-400 hover:bg-rose-100 flex items-center justify-center transition"><i class="fa-solid fa-trash text-xs"></i></button></div></li>`;
+                    return `<li class="flex justify-between items-center p-3 rounded-xl border shadow-soft mb-2 ${rowBg}"><div class="flex items-center gap-3"><div class="w-1 ${iconColor} h-8 rounded-full"></div><div><span class="font-bold text-slate-700 text-xs block">${(invs.find(i=>i.id===b.targetId)?.name)||'未知'}</span><div class="flex gap-2 text-[10px] text-slate-400"><span>${toDateStr(b.expectedDate)}</span><span>${b.description}</span></div></div></div><div class="flex flex-col items-end mr-3"><span class="font-bold ${amtColor} text-xs">$${(parseFloat(b.amount)||0).toLocaleString()}</span></div><div class="flex gap-2"><button onclick="App.realizeBudget('investment','${b.id}')" class="w-8 h-8 rounded-full bg-emerald-50 text-emerald-600 hover:bg-emerald-100 flex items-center justify-center transition"><i class="fa-solid fa-check text-xs"></i></button><button onclick="App.copyBudget('investment','${b.id}')" class="w-8 h-8 rounded-full bg-indigo-50 text-indigo-400 hover:bg-indigo-100 flex items-center justify-center transition"><i class="fa-solid fa-copy text-xs"></i></button><button onclick="App.openBudgetModal('investment','${b.id}')" class="w-8 h-8 rounded-full bg-slate-50 text-slate-400 hover:bg-slate-100 flex items-center justify-center transition"><i class="fa-solid fa-pen text-xs"></i></button><button onclick="App.deleteItem('investmentBudgets','${b.id}')" class="w-8 h-8 rounded-full bg-rose-50 text-rose-400 hover:bg-rose-100 flex items-center justify-center transition"><i class="fa-solid fa-trash text-xs"></i></button></div></li>`;
                 }).join('') || '<li class="text-xs text-slate-300 text-center py-4 border-2 border-dashed border-slate-100 rounded-xl">尚無預算項目</li>';
             },
             renderDebts: () => { if(!document.getElementById('debt-list')) return;
@@ -1515,7 +1573,7 @@
                 document.getElementById('debt-progress-text').innerText = `${globalP}%`;
                 document.getElementById('debt-progress-bar').style.width = `${globalP}%`;
 
-                document.getElementById('debt-budget-list').innerHTML = State.data.debtBudgets.filter(b=>!b.isRealized).sort((a,b)=>(a.expectedDate?.seconds||0)-(b.expectedDate?.seconds||0)).map(b=>`<li class="flex justify-between items-center p-3 rounded-xl border shadow-soft mb-2 ${b.expectedDate?.toDate()<new Date().setHours(0,0,0,0)?'bg-rose-50 border-rose-100':'bg-white border-slate-50'}"><div class="flex items-center gap-3"><div class="w-1 bg-warning h-8 rounded-full"></div><div><span class="font-bold text-slate-700 text-xs block">${(State.data.debts.find(d=>d.id===b.targetId)?.name)||'未知'}</span><div class="flex gap-2 text-[10px] text-slate-400"><span>${toDateStr(b.expectedDate)}</span><span>${b.description}</span><span class="font-bold text-rose-500">$${(parseFloat(b.amount)||0).toLocaleString()}</span></div></div></div><div class="flex gap-2"><button onclick="App.realizeBudget('debt','${b.id}')" class="w-8 h-8 rounded-full bg-emerald-50 text-emerald-600 hover:bg-emerald-100 flex items-center justify-center transition"><i class="fa-solid fa-check text-xs"></i></button><button onclick="App.openBudgetModal('debt','${b.id}')" class="w-8 h-8 rounded-full bg-slate-50 text-slate-400 hover:bg-slate-100 flex items-center justify-center transition"><i class="fa-solid fa-pen text-xs"></i></button><button onclick="App.deleteItem('debtBudgets','${b.id}')" class="w-8 h-8 rounded-full bg-rose-50 text-rose-400 hover:bg-rose-100 flex items-center justify-center transition"><i class="fa-solid fa-trash text-xs"></i></button></div></li>`).join('')||'<li class="text-xs text-slate-300 text-center py-4 border-2 border-dashed border-slate-100 rounded-xl">尚無還款計畫</li>';
+                document.getElementById('debt-budget-list').innerHTML = State.data.debtBudgets.filter(b=>!b.isRealized).sort((a,b)=>(a.expectedDate?.seconds||0)-(b.expectedDate?.seconds||0)).map(b=>`<li class="flex justify-between items-center p-3 rounded-xl border shadow-soft mb-2 ${b.expectedDate?.toDate()<new Date().setHours(0,0,0,0)?'bg-rose-50 border-rose-100':'bg-white border-slate-50'}"><div class="flex items-center gap-3"><div class="w-1 bg-warning h-8 rounded-full"></div><div><span class="font-bold text-slate-700 text-xs block">${(State.data.debts.find(d=>d.id===b.targetId)?.name)||'未知'}</span><div class="flex gap-2 text-[10px] text-slate-400"><span>${toDateStr(b.expectedDate)}</span><span>${b.description}</span><span class="font-bold text-rose-500">$${(parseFloat(b.amount)||0).toLocaleString()}</span></div></div></div><div class="flex gap-2"><button onclick="App.realizeBudget('debt','${b.id}')" class="w-8 h-8 rounded-full bg-emerald-50 text-emerald-600 hover:bg-emerald-100 flex items-center justify-center transition"><i class="fa-solid fa-check text-xs"></i></button><button onclick="App.copyBudget('debt','${b.id}')" class="w-8 h-8 rounded-full bg-indigo-50 text-indigo-400 hover:bg-indigo-100 flex items-center justify-center transition"><i class="fa-solid fa-copy text-xs"></i></button><button onclick="App.openBudgetModal('debt','${b.id}')" class="w-8 h-8 rounded-full bg-slate-50 text-slate-400 hover:bg-slate-100 flex items-center justify-center transition"><i class="fa-solid fa-pen text-xs"></i></button><button onclick="App.deleteItem('debtBudgets','${b.id}')" class="w-8 h-8 rounded-full bg-rose-50 text-rose-400 hover:bg-rose-100 flex items-center justify-center transition"><i class="fa-solid fa-trash text-xs"></i></button></div></li>`).join('')||'<li class="text-xs text-slate-300 text-center py-4 border-2 border-dashed border-slate-100 rounded-xl">尚無還款計畫</li>';
             },
             renderReports: () => {
                 if(!document.getElementById('report-project')) return;
