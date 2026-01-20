@@ -193,8 +193,12 @@
                 <img id="header-icon" src="https://i.ibb.co/PvVffGgL/image.png" class="h-10 w-auto object-contain">
                 <span id="page-title" class="hidden">總覽</span>
             </h1>
-            <div class="flex items-center gap-4">
-                <div id="user-info" class="text-xs font-bold text-slate-400 bg-slate-100 px-2 py-1 rounded-lg"></div>
+            <div class="flex items-center gap-3">
+                <button onclick="App.openNotificationModal()" class="relative text-slate-400 hover:text-primary transition-colors p-1 group">
+                    <i class="fa-solid fa-bell text-lg group-active:scale-95 transition-transform"></i>
+                    <span id="notification-badge" class="absolute top-0.5 right-0.5 w-2.5 h-2.5 bg-rose-500 rounded-full border-2 border-white hidden animate-bounce"></span>
+                </button>
+                <div id="user-info" class="hidden sm:block text-xs font-bold text-slate-400 bg-slate-100 px-2 py-1 rounded-lg"></div>
                 <button onclick="App.logout()" class="text-slate-400 hover:text-danger transition-colors p-1"><i class="fa-solid fa-right-from-bracket"></i></button>
             </div>
         </header>
@@ -252,6 +256,23 @@
 
     <!-- TEMPLATES -->
     
+    <!-- Notification Template -->
+    <template id="tpl-notifications">
+        <div class="flex justify-between items-center mb-6">
+            <h3 class="text-xl font-bold text-slate-800">提醒事項</h3>
+            <button onclick="App.closeModal()" class="w-9 h-9 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 hover:bg-slate-200 transition"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        <div id="notification-list" class="space-y-3 pb-4">
+             <!-- JS Rendered -->
+        </div>
+        <div id="no-notification" class="hidden text-center py-10">
+            <div class="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-3 text-slate-300">
+                <i class="fa-regular fa-bell-slash text-xl"></i>
+            </div>
+            <p class="text-slate-400 text-xs">目前沒有待辦事項</p>
+        </div>
+    </template>
+
     <!-- Accounting Template -->
     <template id="tpl-accounting">
         <!-- Dashboard Card -->
@@ -701,37 +722,6 @@
         </form>
     </template>
 
-    <template id="tpl-repay-form">
-        <div class="flex justify-between items-center mb-2"><h3 class="text-xl font-bold text-slate-800">還款紀錄</h3><button type="button" onclick="App.closeModal()" class="w-9 h-9 rounded-full bg-slate-100 flex items-center justify-center text-slate-500"><i class="fa-solid fa-xmark"></i></button></div>
-        <p id="repay-debt-name" class="text-sm font-bold text-primary mb-6 bg-indigo-50 inline-block px-3 py-1 rounded-lg"></p>
-        <form onsubmit="App.handleRepayDebt(event)" class="space-y-6">
-            <input type="hidden" name="id" id="repay-id">
-            <div class="text-center">
-                 <input type="number" name="amount" class="w-full text-5xl font-bold text-slate-800 border-none text-center focus:outline-none placeholder-slate-200 bg-transparent p-0" placeholder="0" required inputmode="decimal">
-                 <p class="text-xs text-slate-400 mt-2">本次還款金額</p>
-            </div>
-            <div>
-                 <label class="text-[10px] font-bold text-slate-400 ml-1 block mb-1">日期</label>
-                 <input type="date" name="date" class="input-box w-full rounded-xl p-3 text-sm bg-slate-50" required>
-            </div>
-            <div class="flex gap-3 pt-2">
-                <button type="button" onclick="App.closeModal()" class="flex-1 bg-slate-100 py-3.5 rounded-2xl font-bold text-slate-500 text-sm hover:bg-slate-200 transition">取消</button>
-                <button type="submit" class="flex-[2] bg-emerald-500 text-white py-3.5 rounded-2xl font-bold shadow-lg shadow-emerald-200 text-sm hover:bg-emerald-600 transition active:scale-[0.98]">確認還款</button>
-            </div>
-        </form>
-    </template>
-
-    <template id="tpl-event-modal">
-        <div class="flex justify-between items-center mb-6"><h3 class="text-xl font-bold text-slate-800">生活大事</h3><div class="flex gap-2"><button type="button" id="btn-delete-event" class="hidden w-9 h-9 rounded-full bg-rose-50 text-rose-500 flex items-center justify-center hover:bg-rose-100 transition"><i class="fa-solid fa-trash-can"></i></button><button type="button" onclick="App.closeModal()" class="w-9 h-9 rounded-full bg-slate-100 flex items-center justify-center text-slate-500"><i class="fa-solid fa-xmark"></i></button></div></div>
-        <form onsubmit="App.handleSaveEvent(event)" class="space-y-5">
-            <input type="hidden" name="id">
-            <div><label class="text-[10px] font-bold text-slate-400 ml-1 block mb-1">日期</label><input type="date" name="date" class="input-box w-full bg-slate-50 rounded-xl p-3 text-sm" required></div>
-            <div><label class="text-[10px] font-bold text-slate-400 ml-1 block mb-1">標題</label><input type="text" name="title" class="input-box w-full bg-slate-50 rounded-xl p-3 text-sm font-bold text-slate-700" placeholder="例如: 買新車, 結婚紀念日" required></div>
-            <div><label class="text-[10px] font-bold text-slate-400 ml-1 block mb-1">詳細內容</label><textarea name="desc" rows="4" class="input-box w-full bg-slate-50 rounded-xl p-3 text-sm" placeholder="紀錄一下心情..."></textarea></div>
-            <button type="submit" class="w-full bg-dark text-white py-4 rounded-2xl font-bold text-sm shadow-lg hover:bg-black transition active:scale-[0.98]">紀錄下來</button>
-        </form>
-    </template>
-    
     <template id="tpl-details-modal">
         <div class="sticky top-0 bg-white z-10 pb-4 border-b border-slate-50 mb-4 flex justify-between items-center">
             <h3 class="text-lg font-bold text-slate-800 details-title truncate pr-4"></h3>
@@ -757,7 +747,7 @@
 
         const app = initializeApp({ apiKey: "AIzaSyAqFHm6Bn35m8xauc50ZvNNy_rxIZzCMTE", authDomain: "moneyw-f8105.firebaseapp.com", projectId: "moneyw-f8105", storageBucket: "moneyw-f8105.appspot.com", messagingSenderId: "155586195799", appId: "1:155586195799:web:302184fbf613f032a88e12" });
         const auth = getAuth(app); const db = getFirestore(app);
-        const State = { user: null, data: { transactions: [], debts: [], investments: [], events: [], investmentBudgets: [], debtBudgets: [], accountingBudgets: [], legacyTxs: {} }, listeners: [], chart: null, categories: { expense: ['飲食', '交通', '居住', '娛樂', '購物', '醫療', '教育', '投資', '其他'], income: ['薪資', '獎金', '投資', '兼職', '其他'] }, view: { invTab: 'active', currentTab: 'accounting' } };
+        const State = { user: null, data: { transactions: [], debts: [], investments: [], events: [], investmentBudgets: [], debtBudgets: [], accountingBudgets: [], legacyTxs: {} }, listeners: [], chart: null, categories: { expense: ['飲食', '交通', '居住', '娛樂', '購物', '醫療', '教育', '投資', '其他'], income: ['薪資', '獎金', '投資', '兼職', '其他'] }, view: { invTab: 'active', currentTab: 'accounting' }, reminders: [] };
 
         const getTxDate = (tx) => { if (!tx) return new Date(); try { if (tx.timestamp && typeof tx.timestamp.toDate === 'function') return tx.timestamp.toDate(); if (tx.date) { if (typeof tx.date.toDate === 'function') return tx.date.toDate(); const d = new Date(tx.date); if (!isNaN(d.getTime())) return d; } if (tx.timestamp && tx.timestamp.seconds) return new Date(tx.timestamp.seconds * 1000); } catch (e) {} return new Date(); };
         const toDateStr = (dateObj) => { const d = (dateObj instanceof Date) ? dateObj : getTxDate({timestamp: dateObj}); const year = d.getFullYear(); const month = String(d.getMonth() + 1).padStart(2, '0'); const day = String(d.getDate()).padStart(2, '0'); return `${year}-${month}-${day}`; };
@@ -792,7 +782,11 @@
                 } else App.stopListeners();
             }),
             startListeners: (uid) => {
-                const listen = (c, k) => State.listeners.push(onSnapshot(query(collection(db, `users/${uid}/${c}`)), s => { State.data[k] = s.docs.map(d=>({id:d.id, ...d.data()})); App.refreshCurrentView(); }));
+                const listen = (c, k) => State.listeners.push(onSnapshot(query(collection(db, `users/${uid}/${c}`)), s => { 
+                    State.data[k] = s.docs.map(d=>({id:d.id, ...d.data()})); 
+                    App.calculateReminders();
+                    App.refreshCurrentView(); 
+                }));
                 listen('transactions', 'transactions'); listen('debts', 'debts'); listen('events', 'events'); listen('debtBudgets', 'debtBudgets'); listen('accountingBudgets', 'accountingBudgets');
                 
                 // Special listener for Investment Budgets to handle penalty generation
@@ -800,6 +794,7 @@
                     const list = s.docs.map(d=>({id:d.id, ...d.data()}));
                     State.data.investmentBudgets = list;
                     App.checkAutoBudgetItems(list);
+                    App.calculateReminders();
                     App.refreshCurrentView();
                 }));
 
@@ -812,6 +807,105 @@
                     }
                     App.refreshCurrentView();
                 }));
+            },
+
+            calculateReminders: () => {
+                const today = new Date();
+                today.setHours(0,0,0,0);
+                const threeDaysLater = new Date(today);
+                threeDaysLater.setDate(today.getDate() + 3);
+                
+                const allBudgets = [
+                    ...State.data.accountingBudgets.map(b => ({...b, source: 'accounting', label: '記帳'})),
+                    ...State.data.investmentBudgets.map(b => ({...b, source: 'investment', label: '投資'})),
+                    ...State.data.debtBudgets.map(b => ({...b, source: 'debt', label: '負債'}))
+                ];
+
+                State.reminders = allBudgets.filter(b => {
+                    if (b.isRealized) return false;
+                    const d = getTxDate({timestamp: b.expectedDate});
+                    d.setHours(0,0,0,0);
+                    return d <= threeDaysLater; 
+                }).sort((a,b) => getTxDate({timestamp: a.expectedDate}) - getTxDate({timestamp: b.expectedDate}));
+
+                App.updateNotificationBadge();
+            },
+
+            updateNotificationBadge: () => {
+                const badge = document.getElementById('notification-badge');
+                if (State.reminders.length > 0) {
+                    badge.classList.remove('hidden');
+                } else {
+                    badge.classList.add('hidden');
+                }
+            },
+
+            openNotificationModal: () => {
+                const c = document.getElementById('modal-content');
+                c.innerHTML = document.getElementById('tpl-notifications').innerHTML;
+                const list = c.querySelector('#notification-list');
+                const empty = c.querySelector('#no-notification');
+                
+                if (State.reminders.length === 0) {
+                    list.classList.add('hidden');
+                    empty.classList.remove('hidden');
+                } else {
+                    const today = new Date();
+                    today.setHours(0,0,0,0);
+
+                    list.innerHTML = State.reminders.map(r => {
+                        const d = getTxDate({timestamp: r.expectedDate});
+                        d.setHours(0,0,0,0);
+                        let status = '';
+                        let statusColor = '';
+                        let icon = '';
+
+                        if (d < today) {
+                            status = '已逾期';
+                            statusColor = 'text-rose-500 bg-rose-50 border-rose-100';
+                            icon = 'fa-circle-exclamation';
+                        } else if (d.getTime() === today.getTime()) {
+                            status = '今天到期';
+                            statusColor = 'text-amber-500 bg-amber-50 border-amber-100';
+                            icon = 'fa-clock';
+                        } else {
+                            status = '即將到期';
+                            statusColor = 'text-slate-500 bg-slate-50 border-slate-100';
+                            icon = 'fa-calendar-day';
+                        }
+
+                        // Get target name
+                        let targetName = r.targetId;
+                        if (r.source === 'investment') {
+                            const inv = State.data.investments.find(i => i.id === r.targetId);
+                            targetName = inv ? inv.name : '未知投資';
+                        } else if (r.source === 'debt') {
+                            const debt = State.data.debts.find(d => d.id === r.targetId);
+                            targetName = debt ? debt.name : '未知負債';
+                        }
+
+                        return `
+                        <div class="flex items-center gap-3 p-3 rounded-xl border ${statusColor} cursor-pointer" onclick="App.openBudgetModal('${r.source}', '${r.id}'); App.closeModal();">
+                            <div class="w-10 h-10 rounded-full bg-white flex items-center justify-center shadow-sm shrink-0">
+                                <i class="fa-solid ${icon} text-lg ${statusColor.split(' ')[0]}"></i>
+                            </div>
+                            <div class="flex-1 min-w-0">
+                                <div class="flex justify-between items-center mb-0.5">
+                                    <span class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-white/60 ${statusColor.split(' ')[0]}">${status}</span>
+                                    <span class="text-xs text-slate-400 font-mono">${toDateStr(d)}</span>
+                                </div>
+                                <div class="flex justify-between items-center">
+                                    <h4 class="font-bold text-slate-700 text-sm truncate pr-2">${r.description || targetName}</h4>
+                                    <span class="font-bold text-slate-800 text-sm whitespace-nowrap">$${parseFloat(r.amount).toLocaleString()}</span>
+                                </div>
+                                <p class="text-[10px] text-slate-400 mt-0.5">分類: ${r.label}</p>
+                            </div>
+                        </div>`;
+                    }).join('');
+                }
+                
+                document.getElementById('modal-overlay').classList.remove('hidden');
+                document.getElementById('modal-overlay').classList.add('flex');
             },
             
             checkAutoBudgetItems: async (list) => {
