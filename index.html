@@ -34,7 +34,8 @@
                     },
                     animation: {
                         'slide-up': 'slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1)',
-                        'fade-in': 'fadeIn 0.2s ease-out'
+                        'fade-in': 'fadeIn 0.2s ease-out',
+                        'pulse-fast': 'pulseFast 1.5s cubic-bezier(0.4, 0, 0.6, 1) infinite'
                     },
                     keyframes: {
                         slideUp: {
@@ -44,6 +45,10 @@
                         fadeIn: {
                             '0%': { opacity: '0' },
                             '100%': { opacity: '1' }
+                        },
+                        pulseFast: {
+                            '0%, 100%': { opacity: '1' },
+                            '50%': { opacity: '.7' }
                         }
                     }
                 }
@@ -356,6 +361,12 @@
                         <span class="text-slate-400 text-[10px] block mb-0.5">報酬率</span>
                         <span id="inv-roi" class="font-bold text-base text-emerald-400">--</span>
                     </div>
+                </div>
+                
+                <!-- Penalty Summary -->
+                <div id="inv-penalty-summary" class="mt-4 pt-3 border-t border-white/10 flex items-center justify-between text-rose-300 hidden">
+                    <span class="text-[10px] font-bold"><i class="fa-solid fa-triangle-exclamation mr-1"></i> 待收罰金總額</span>
+                    <span class="font-bold text-sm" id="inv-total-penalty">$0</span>
                 </div>
             </div>
         </div>
@@ -1697,7 +1708,16 @@
                     const mInc = all.filter(t => { const d = getTxDate(t); return t.type==='income' && d >= startM && d <= endM; }).reduce((s,t) => s + parseFloat(t.amount), 0);
                     const mDisp = mInc > 0 ? `<div class="mt-2 pt-2 border-t border-slate-50 flex justify-between items-center"><span class="text-[10px] text-slate-400">本月實現</span><span class="text-xs font-bold text-emerald-500">+$${mInc.toLocaleString()}</span></div>` : '';
                     
-                    return `<div class="bg-white p-4 rounded-2xl shadow-soft border border-slate-50 cursor-pointer hover:shadow-md transition active:scale-[0.99] group relative" onclick="App.showDetails('investment', '${i.id}')"><div class="flex justify-between items-start mb-2"><div class="flex items-center gap-3"><div class="w-10 h-10 rounded-xl bg-indigo-50 text-primary flex items-center justify-center font-bold text-lg shadow-sm">${i.name[0]}</div><div><h4 class="font-bold text-slate-800 text-sm">${i.name}</h4><p class="text-[10px] text-slate-400">成本: $${(parseFloat(i.initialValue)||0).toLocaleString()}</p></div></div><div class="text-right"><p class="font-bold text-base text-slate-800">$${(parseFloat(i.marketValue)||0).toLocaleString()}</p><p class="text-[10px] font-bold ${profit>=0?'text-emerald-500':'text-rose-500'}">${profit>=0?'+':''}${profit.toLocaleString()}</p></div></div>${mDisp}<div class="absolute top-4 right-4 opacity-0 group-hover:opacity-100 transition"><button onclick="event.stopPropagation();App.openModal('investment-modal', '${i.id}')" type="button" class="w-6 h-6 rounded-full bg-slate-100 text-slate-400 hover:text-primary flex items-center justify-center"><i class="fa-solid fa-pen text-[10px]"></i></button></div></div>`;
+                    // Calculate Penalty
+                    const pendingPenalties = State.data.investmentBudgets
+                        .filter(b => b.targetId === i.id && !b.isRealized && b.isPenalty)
+                        .reduce((sum, b) => sum + parseFloat(b.amount), 0);
+                    
+                    const penaltyBadge = pendingPenalties > 0 
+                        ? `<div class="absolute -top-1 -left-1 bg-rose-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full shadow-md z-10 animate-pulse-fast">⚠️ 累積罰金 $${pendingPenalties.toLocaleString()}</div>` 
+                        : '';
+
+                    return `<div class="bg-white p-4 rounded-2xl shadow-soft border border-slate-50 cursor-pointer hover:shadow-md transition active:scale-[0.99] group relative" onclick="App.showDetails('investment', '${i.id}')">${penaltyBadge}<div class="flex justify-between items-start mb-2"><div class="flex items-center gap-3"><div class="w-10 h-10 rounded-xl bg-indigo-50 text-primary flex items-center justify-center font-bold text-lg shadow-sm">${i.name[0]}</div><div><h4 class="font-bold text-slate-800 text-sm">${i.name}</h4><p class="text-[10px] text-slate-400">成本: $${(parseFloat(i.initialValue)||0).toLocaleString()}</p></div></div><div class="text-right"><p class="font-bold text-base text-slate-800">$${(parseFloat(i.marketValue)||0).toLocaleString()}</p><p class="text-[10px] font-bold ${profit>=0?'text-emerald-500':'text-rose-500'}">${profit>=0?'+':''}${profit.toLocaleString()}</p></div></div>${mDisp}<div class="absolute top-4 right-4 opacity-0 group-hover:opacity-100 transition"><button onclick="event.stopPropagation();App.openModal('investment-modal', '${i.id}')" type="button" class="w-6 h-6 rounded-full bg-slate-100 text-slate-400 hover:text-primary flex items-center justify-center"><i class="fa-solid fa-pen text-[10px]"></i></button></div></div>`;
                 }).join('') : '<div class="text-center text-slate-400 py-10 text-xs">尚無投資帳戶</div>';
                 
                 const allInvIncome = App.getAllTransactions().filter(t => { const d = getTxDate(t); return t.type === 'income' && t.category.includes('投資') && d >= startM && d <= endM; }).reduce((s, t) => s + parseFloat(t.amount), 0);
@@ -1705,12 +1725,25 @@
                 const roi = tc > 0 ? (tr / tc) * 100 : 0;
                 document.getElementById('inv-total-val').innerText = `$${tv.toLocaleString()}`; document.getElementById('inv-total-ret').innerText = `${tr>0?'+':''}${tr.toLocaleString()}`; document.getElementById('inv-roi').innerText = `${roi.toFixed(1)}%`; document.getElementById('inv-roi').className = `font-bold text-base ${tr>=0?'text-emerald-400':'text-rose-400'}`;
                 
+                // Update Total Penalty Summary
+                const totalPendingPenalty = State.data.investmentBudgets
+                    .filter(b => !b.isRealized && b.isPenalty)
+                    .reduce((sum, b) => sum + parseFloat(b.amount), 0);
+
+                const penaltySummaryEl = document.getElementById('inv-penalty-summary');
+                if (totalPendingPenalty > 0) {
+                    document.getElementById('inv-total-penalty').innerText = `$${totalPendingPenalty.toLocaleString()}`;
+                    penaltySummaryEl.classList.remove('hidden');
+                } else {
+                    penaltySummaryEl.classList.add('hidden');
+                }
+
                 // Render Budgets with Penalty
                 const filterSel = document.getElementById('inv-budget-filter-select');
                 const currentFilter = filterSel ? filterSel.value : 'all';
                 
                 if(filterSel && filterSel.options.length <= 1) {
-                     const invOptions = State.data.investments.map(i => `<option value="${i.id}">${i.name}</option>`).join('');
+                     const invOptions = State.data.investments.filter(i => !i.isArchived).map(i => `<option value="${i.id}">${i.name}</option>`).join('');
                      filterSel.innerHTML = `<option value="all">全部項目</option><option value="penalty">僅顯示罰金</option>` + invOptions;
                      filterSel.value = currentFilter;
                 }
