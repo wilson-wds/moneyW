@@ -107,11 +107,14 @@
             <div class="absolute right-0 top-0 w-40 h-40 bg-indigo-500/20 rounded-full blur-3xl"></div>
             <div class="relative z-10 flex justify-between items-end mb-4">
                 <div><p class="text-slate-400 text-xs font-medium mb-1">股市總資產 (現值)</p><h2 id="stock-total-assets" class="text-3xl font-bold tracking-tight">--</h2></div>
-                <div class="text-right"><p class="text-slate-400 text-[10px] mb-1">未實現損益</p><p id="stock-total-pl" class="font-bold text-lg">--</p></div>
+                <div class="text-right">
+                    <p class="text-slate-400 text-[10px] mb-1">未實現損益 (<span id="stock-roi">0%</span>)</p>
+                    <p id="stock-total-pl" class="font-bold text-lg">--</p>
+                </div>
             </div>
             <div class="relative z-10 grid grid-cols-2 gap-4 border-t border-white/10 pt-3">
                 <div><span class="text-slate-400 text-[10px] block mb-0.5">總投入成本</span><span id="stock-total-cost" class="font-bold text-sm">--</span></div>
-                <div class="text-right"><span class="text-slate-400 text-[10px] block mb-0.5">報酬率</span><span id="stock-roi" class="font-bold text-sm">--</span></div>
+                <div class="text-right"><span class="text-slate-400 text-[10px] block mb-0.5">已實現損益</span><span id="stock-realized-pl" class="font-bold text-sm">--</span></div>
             </div>
         </div>
         <div class="flex justify-between items-center mb-3 px-1">
@@ -535,22 +538,67 @@
             App.renderStocks = () => {
                 if (!$('stock-list')) return; const holdings = {};
                 State.data.stockTxs.sort((a, b) => getTxDate(a) - getTxDate(b)).forEach(t => {
-                    if (!holdings[t.symbol]) holdings[t.symbol] = { s: t.symbol, n: t.name, q: 0, cost: 0 };
-                    if (t.type === 'buy') { holdings[t.symbol].q += t.quantity; holdings[t.symbol].cost += t.total; holdings[t.symbol].n = t.name || holdings[t.symbol].n; }
-                    else { const avgCost = holdings[t.symbol].q > 0 ? holdings[t.symbol].cost / holdings[t.symbol].q : 0; holdings[t.symbol].q -= t.quantity; holdings[t.symbol].cost -= avgCost * t.quantity; if (holdings[t.symbol].q < 0) { holdings[t.symbol].q = 0; holdings[t.symbol].cost = 0; } }
+                    if (!holdings[t.symbol]) holdings[t.symbol] = { s: t.symbol, n: t.name, q: 0, cost: 0, realized: 0 };
+                    const h = holdings[t.symbol];
+                    if (t.type === 'buy') { 
+                        h.q += t.quantity; 
+                        h.cost += t.total; 
+                        h.n = t.name || h.n; 
+                    } else { 
+                        const avgCost = h.q > 0 ? h.cost / h.q : 0; 
+                        const costSold = avgCost * t.quantity;
+                        h.realized += (t.total - costSold);
+                        h.q -= t.quantity; 
+                        h.cost -= costSold; 
+                        if (h.q < 0.0001) { h.q = 0; h.cost = 0; }
+                    }
                 });
-                let totalMkt = 0, totalCost = 0;
-                $('stock-list').innerHTML = Object.values(holdings).filter(h => h.q > 0).map(h => {
+                let totalMkt = 0, totalCost = 0, totalRealized = 0;
+                
+                const listHtml = Object.values(holdings).filter(h => h.q > 0 || h.realized !== 0).map(h => {
                     const curr = State.data.stocks.find(s => s.id === h.s)?.currentPrice || 0;
-                    const mkt = Math.round(curr * h.q); const avg = h.q > 0 ? h.cost / h.q : 0; const pl = mkt - h.cost;
-                    totalMkt += mkt; totalCost += h.cost;
-                    return `<div class="bg-white p-4 rounded-2xl shadow-soft border border-slate-50 mb-2" onclick="App.showStockDetails('${h.s}')"><div class="flex justify-between items-start mb-2"><div><h4 class="font-bold text-slate-800 text-sm flex items-center gap-2">${h.n} <span class="bg-slate-100 text-slate-500 text-[10px] px-1.5 py-0.5 rounded font-mono">${h.s}</span></h4><p class="text-[10px] text-slate-400 mt-0.5">持股: ${h.q} 股 • 均價: ${avg.toFixed(1)}</p></div><div class="text-right"><button onclick="event.stopPropagation();App.updateStockPrice('${h.s}','${curr}')" class="bg-slate-50 px-2 py-1 rounded-lg text-xs font-bold text-slate-800 hover:bg-slate-100 transition mb-1">現價 $${curr}</button><p class="text-[10px] font-bold ${pl >= 0 ? 'text-emerald-500' : 'text-rose-500'}">${pl >= 0 ? '+' : ''}${Math.round(pl).toLocaleString()}</p></div></div><div class="flex justify-between items-center text-xs pt-2 border-t border-slate-50"><span class="text-slate-400">市值 $${mkt.toLocaleString()}</span><span class="text-[10px] ${pl >= 0 ? 'bg-emerald-50 text-emerald-600' : 'bg-rose-50 text-rose-500'} px-2 py-0.5 rounded-lg font-bold">${h.cost > 0 ? ((pl / h.cost) * 100).toFixed(1) : 0}%</span></div></div>`;
-                }).join('') || '<div class="text-center text-slate-300 py-10 text-xs">尚無持股</div>';
+                    const mkt = Math.round(curr * h.q); 
+                    const avg = h.q > 0 ? h.cost / h.q : 0; 
+                    const pl = mkt - h.cost;
+                    
+                    totalMkt += mkt; 
+                    totalCost += h.cost;
+                    totalRealized += h.realized;
+                    
+                    const isCleared = h.q === 0;
+                    
+                    return `<div class="bg-white p-4 rounded-2xl shadow-soft border border-slate-50 mb-2 ${isCleared ? 'opacity-70 grayscale' : ''}" onclick="App.showStockDetails('${h.s}')">
+                        <div class="flex justify-between items-start mb-2">
+                            <div>
+                                <h4 class="font-bold text-slate-800 text-sm flex items-center gap-2">
+                                    ${h.n} <span class="bg-slate-100 text-slate-500 text-[10px] px-1.5 py-0.5 rounded font-mono">${h.s}</span>
+                                    ${isCleared ? '<span class="text-[10px] bg-slate-200 text-slate-500 px-1.5 py-0.5 rounded">已清空</span>' : ''}
+                                </h4>
+                                <p class="text-[10px] text-slate-400 mt-0.5">持股: ${h.q} 股 • 均價: ${avg.toFixed(1)}</p>
+                            </div>
+                            <div class="text-right">
+                                ${!isCleared ? `<button onclick="event.stopPropagation();App.updateStockPrice('${h.s}','${curr}')" class="bg-slate-50 px-2 py-1 rounded-lg text-xs font-bold text-slate-800 hover:bg-slate-100 transition mb-1">現價 $${curr}</button>` : ''}
+                                <p class="text-[10px] font-bold ${h.realized >= 0 ? 'text-emerald-500' : 'text-rose-500'}">已實現: ${h.realized >= 0 ? '+' : ''}${Math.round(h.realized).toLocaleString()}</p>
+                            </div>
+                        </div>
+                        <div class="flex justify-between items-center text-xs pt-2 border-t border-slate-50">
+                            <span class="text-slate-400">市值 $${mkt.toLocaleString()}</span>
+                            <span class="text-[10px] ${pl >= 0 ? 'bg-emerald-50 text-emerald-600' : 'bg-rose-50 text-rose-500'} px-2 py-0.5 rounded-lg font-bold">${!isCleared && h.cost > 0 ? ((pl / h.cost) * 100).toFixed(1) + '%' : '--'}</span>
+                        </div>
+                    </div>`;
+                }).join('');
+                
+                $('stock-list').innerHTML = listHtml || '<div class="text-center text-slate-300 py-10 text-xs">尚無持股或交易紀錄</div>';
+                
                 const tpl = totalMkt - totalCost;
                 $('stock-total-assets').innerText = `$${Math.round(totalMkt).toLocaleString()}`;
                 $('stock-total-cost').innerText = `$${Math.round(totalCost).toLocaleString()}`;
                 $('stock-total-pl').innerText = `${tpl >= 0 ? '+' : ''}${Math.round(tpl).toLocaleString()}`;
                 $('stock-total-pl').className = `font-bold text-lg ${tpl >= 0 ? 'text-emerald-400' : 'text-rose-400'}`;
+                
+                $('stock-realized-pl').innerText = `${totalRealized >= 0 ? '+' : ''}${Math.round(totalRealized).toLocaleString()}`;
+                $('stock-realized-pl').className = `font-bold text-sm ${totalRealized >= 0 ? 'text-emerald-400' : 'text-rose-400'}`;
+                
                 $('stock-roi').innerText = `${totalCost > 0 ? ((tpl / totalCost) * 100).toFixed(1) : 0}%`;
                 $('stock-roi').className = `font-bold text-sm ${tpl >= 0 ? 'text-emerald-400' : 'text-rose-400'}`;
             };
