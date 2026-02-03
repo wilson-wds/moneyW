@@ -176,8 +176,8 @@
     <template id="tpl-category-selector"><div class="flex justify-between items-center mb-6"><h3 class="text-lg font-bold text-slate-800">選擇分類</h3><button onclick="App.closeSubModal()" class="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 hover:bg-slate-200"><i class="fa-solid fa-xmark"></i></button></div><div id="category-chips" class="flex flex-wrap gap-2.5 pb-4"></div></template>
     <template id="tpl-receipt-modal"><div class="flex justify-between items-center mb-4"><h3 class="text-xl font-bold text-slate-800">產生收據</h3><button onclick="App.closeSubModal()" class="w-9 h-9 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 hover:bg-slate-200 transition"><i class="fa-solid fa-xmark"></i></button></div><div class="mb-6 space-y-3"><div><label class="text-[10px] font-bold text-slate-400 block mb-1">客戶名稱 / 抬頭</label><input type="text" id="receipt-client-name" class="input-box w-full rounded-xl p-3 text-sm" placeholder="輸入客戶姓名..." oninput="App.updateReceiptPreview()"></div></div><div id="receipt-preview" class="bg-white p-6 shadow-md relative overflow-hidden mx-auto max-w-[320px] font-mono border-t-[8px] border-black"><div class="text-center border-b-2 border-dashed border-slate-800 pb-4 mb-4"><h2 class="text-2xl font-bold text-slate-800 tracking-widest">RECEIPT</h2><p class="text-xs text-slate-400 mt-1 uppercase tracking-widest">Official Record</p></div><div class="space-y-4 text-sm text-slate-600"><div class="flex justify-between"><span class="text-slate-400 text-xs">DATE</span><span id="r-date" class="font-bold text-slate-800"></span></div><div class="flex justify-between"><span class="text-slate-400 text-xs">NO.</span><span id="r-id" class="font-bold text-[10px] text-slate-500"></span></div><div class="pt-2"><span class="text-slate-400 block text-xs mb-1">RECEIVED FROM</span><span id="r-client" class="font-bold text-lg block border-b border-slate-800 pb-1 text-slate-800 min-h-[1.75rem]"></span></div><div class="pt-2"><span class="text-slate-400 block text-xs mb-1">FOR</span><span id="r-desc" class="font-bold block text-slate-700"></span></div><div class="flex justify-between items-end pt-4 border-t-2 border-dashed border-slate-800 mt-4"><span class="text-slate-400 font-bold text-xs">AMOUNT</span><span id="r-amount" class="text-2xl font-bold text-slate-800"></span></div></div><div class="mt-8 pt-8 text-center relative"><div class="absolute top-8 left-0 right-0 border-t border-slate-800"></div><p class="text-[10px] text-slate-300 uppercase tracking-widest bg-white relative z-10 inline-block px-2 -mt-2">Authorized Signature</p><p class="text-sm font-bold text-slate-500 mt-2" id="r-signer">威爾設計</p></div><div class="mt-6 text-center"><img src="https://i.ibb.co/xt6cCqVS/grok-image-38ff8969-e1d9-4592-98d6-1366fb857c2c-image-edit-0-1.jpg" alt="Studio Logo" class="h-32 mx-auto opacity-80 mix-blend-multiply"></div><div class="absolute bottom-0 left-0 w-full h-3 receipt-jagged"></div></div><div class="mt-6 flex gap-3"><button onclick="App.printReceipt()" class="flex-1 bg-slate-800 text-white py-3.5 rounded-2xl font-bold text-xs hover:bg-slate-900 transition flex items-center justify-center gap-2"><i class="fa-solid fa-print"></i> 列印 / 儲存</button><button onclick="App.closeSubModal()" class="flex-1 bg-slate-100 text-slate-500 py-3.5 rounded-2xl font-bold text-xs hover:bg-slate-200 transition">完成</button></div></template>
 
-    <template id="tpl-investment-modal"><div class="flex justify-between items-center mb-6"><h3 class="text-xl font-bold text-slate-800">投資帳戶</h3><div class="flex items-center gap-3"><button id="btn-delete-inv" class="hidden w-9 h-9 rounded-full bg-rose-50 text-rose-500 flex items-center justify-center hover:bg-rose-100 transition"><i class="fa-solid fa-trash-can text-sm"></i></button><button onclick="App.closeModal()" class="w-9 h-9 rounded-full bg-slate-100 flex items-center justify-center text-slate-500"><i class="fa-solid fa-xmark"></i></button></div></div><form onsubmit="App.handleSaveInvestment(event)" class="space-y-5"><input type="hidden" name="id"><div><label class="text-[10px] font-bold text-slate-400 ml-1 mb-1 block">帳戶名稱</label><input type="text" name="name" class="input-box w-full rounded-xl p-3 text-sm" placeholder="例如: 0050, 比特幣" required></div><div><label class="text-[10px] font-bold text-slate-400 ml-1 block">初始投入成本</label><input type="number" name="initial" class="input-box w-full rounded-xl p-3 text-sm" placeholder="0"></div><div class="flex items-center gap-3 px-1 py-2 bg-slate-50 rounded-xl"><input type="checkbox" name="isArchived" id="inv-archived" class="w-5 h-5 rounded text-primary focus:ring-primary border-gray-300 ml-2"><label for="inv-archived" class="text-sm font-bold text-slate-600 cursor-pointer select-none py-1 flex-1">已結案 (歸檔)</label></div><button type="submit" class="w-full bg-primary text-white font-bold py-3.5 rounded-2xl shadow-lg shadow-indigo-200 text-sm hover:bg-primaryDark active:scale-[0.98] transition">儲存帳戶</button></form></template>
-    <template id="tpl-debt-modal"><div class="flex justify-between items-center mb-6"><h3 class="text-xl font-bold text-slate-800">負債項目</h3><div class="flex items-center gap-3"><button id="btn-delete-debt" class="hidden w-9 h-9 rounded-full bg-rose-50 text-rose-500 flex items-center justify-center hover:bg-rose-100 transition"><i class="fa-solid fa-trash-can text-sm"></i></button><button onclick="App.closeModal()" class="w-9 h-9 rounded-full bg-slate-100 flex items-center justify-center text-slate-500"><i class="fa-solid fa-xmark"></i></button></div></div><form onsubmit="App.handleSaveDebt(event)" class="space-y-5"><input type="hidden" name="id"><div><label class="text-[10px] font-bold text-slate-400 ml-1 block mb-1">名稱</label><input type="text" name="name" class="input-box w-full rounded-xl p-3 text-sm" placeholder="例如: 房貸, 學貸" required></div><div class="grid grid-cols-2 gap-4"><div><label class="text-[10px] font-bold text-slate-400 ml-1 block mb-1">總金額</label><input type="number" name="total" class="input-box w-full rounded-xl p-3 text-sm" placeholder="0" required></div><div><label class="text-[10px] font-bold text-slate-400 ml-1 block mb-1">剩餘金額 <span class="font-normal">(選填)</span></label><input type="number" name="remaining" class="input-box w-full rounded-xl p-3 text-sm" placeholder="同總金額"></div></div><button type="submit" class="w-full bg-warning text-white font-bold py-3.5 rounded-2xl shadow-lg shadow-orange-200 text-sm hover:bg-orange-500 active:scale-[0.98] transition">儲存項目</button></form></template>
+    <template id="tpl-investment-modal"><div class="flex justify-between items-center mb-6"><h3 class="text-xl font-bold text-slate-800">投資帳戶</h3><div class="flex items-center gap-3"><button id="btn-delete-inv" class="hidden w-9 h-9 rounded-full bg-rose-50 text-rose-500 flex items-center justify-center hover:bg-rose-100 transition"><i class="fa-solid fa-trash-can text-sm"></i></button><button onclick="App.closeModal()" class="w-9 h-9 rounded-full bg-slate-100 flex items-center justify-center text-slate-500"><i class="fa-solid fa-xmark"></i></button></div></div><form onsubmit="App.handleSaveInvestment(event)" class="space-y-5"><input type="hidden" name="id"><div><label class="text-[10px] font-bold text-slate-400 ml-1 mb-1 block">帳戶名稱</label><input type="text" name="name" class="input-box w-full rounded-xl p-3 text-sm" placeholder="例如: 0050, 比特幣" required></div><div class="grid grid-cols-2 gap-4"><div><label class="text-[10px] font-bold text-slate-400 ml-1 block">初始投入成本</label><input type="number" name="initial" class="input-box w-full rounded-xl p-3 text-sm" placeholder="0"></div><div><label class="text-[10px] font-bold text-slate-400 ml-1 block">預期年化報酬率 (%)</label><input type="number" name="annualRate" class="input-box w-full rounded-xl p-3 text-sm" placeholder="例如: 5"></div></div><div class="flex items-center gap-3 px-1 py-2 bg-slate-50 rounded-xl"><input type="checkbox" name="isArchived" id="inv-archived" class="w-5 h-5 rounded text-primary focus:ring-primary border-gray-300 ml-2"><label for="inv-archived" class="text-sm font-bold text-slate-600 cursor-pointer select-none py-1 flex-1">已結案 (歸檔)</label></div><button type="submit" class="w-full bg-primary text-white font-bold py-3.5 rounded-2xl shadow-lg shadow-indigo-200 text-sm hover:bg-primaryDark active:scale-[0.98] transition">儲存帳戶</button></form></template>
+    <template id="tpl-debt-modal"><div class="flex justify-between items-center mb-6"><h3 class="text-xl font-bold text-slate-800">負債項目</h3><div class="flex items-center gap-3"><button id="btn-delete-debt" class="hidden w-9 h-9 rounded-full bg-rose-50 text-rose-500 flex items-center justify-center hover:bg-rose-100 transition"><i class="fa-solid fa-trash-can text-sm"></i></button><button onclick="App.closeModal()" class="w-9 h-9 rounded-full bg-slate-100 flex items-center justify-center text-slate-500"><i class="fa-solid fa-xmark"></i></button></div></div><form onsubmit="App.handleSaveDebt(event)" class="space-y-5"><input type="hidden" name="id"><div><label class="text-[10px] font-bold text-slate-400 ml-1 block mb-1">名稱</label><input type="text" name="name" class="input-box w-full rounded-xl p-3 text-sm" placeholder="例如: 房貸, 學貸" required></div><div class="grid grid-cols-2 gap-4"><div><label class="text-[10px] font-bold text-slate-400 ml-1 block mb-1">總金額</label><input type="number" name="total" class="input-box w-full rounded-xl p-3 text-sm" placeholder="0" required></div><div><label class="text-[10px] font-bold text-slate-400 ml-1 block mb-1">剩餘金額</label><input type="number" name="remaining" class="input-box w-full rounded-xl p-3 text-sm" placeholder="同總金額"></div></div><div><label class="text-[10px] font-bold text-slate-400 ml-1 block mb-1">年利率 (%)</label><input type="number" name="annualRate" class="input-box w-full rounded-xl p-3 text-sm" placeholder="例如: 2.5"></div><button type="submit" class="w-full bg-warning text-white font-bold py-3.5 rounded-2xl shadow-lg shadow-orange-200 text-sm hover:bg-orange-500 active:scale-[0.98] transition">儲存項目</button></form></template>
     <template id="tpl-details-modal"><div class="sticky top-0 bg-white z-10 pb-4 border-b border-slate-50 mb-4 flex justify-between items-center"><h3 class="text-lg font-bold text-slate-800 details-title truncate pr-4"></h3><button type="button" onclick="App.closeModal()" class="w-8 h-8 rounded-full bg-slate-50 flex items-center justify-center text-slate-400 hover:bg-slate-100 flex-shrink-0"><i class="fa-solid fa-xmark"></i></button></div><div class="max-h-[60vh] overflow-y-auto hide-scrollbar"><div class="details-budget-section mb-6 hidden"><h4 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">預算計畫</h4><ul class="details-budget-list space-y-2"></ul></div><div><h4 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">歷史紀錄</h4><ul class="details-list space-y-3"><li class="text-center text-slate-300 py-6 text-xs">載入中...</li></ul></div></div><div class="details-actions mt-4 pt-4 border-t border-slate-100 flex flex-col gap-2 sticky bottom-0 bg-white pb-2"></div></template>
 
     <script type="module">
@@ -222,17 +222,29 @@
                     State.data[k] = s.docs.map(d => ({ id: d.id, ...d.data() }));
                     App.calculateReminders();
                     App.refreshCurrentView();
+                    if (k === 'debts') App.processAutoInterest(State.data.debts, 'debt');
                 }));
                 ['transactions', 'debts', 'events', 'debtBudgets', 'accountingBudgets', 'stocks', 'stockTransactions'].forEach(k => l(k, k === 'stockTransactions' ? 'stockTxs' : k));
-                State.listeners.push(onSnapshot(query(collection(db, `users/${uid}/investmentBudgets`)), s => {
+                
+                State.listeners.push(onSnapshot(query(collection(db, `users/${uid}/debtBudgets`)), s => {
                     const list = s.docs.map(d => ({ id: d.id, ...d.data() }));
-                    State.data.investmentBudgets = list;
-                    App.checkAutoBudgetItems(list);
+                    State.data.debtBudgets = list;
+                    App.checkAutoBudgetItems(list, 'debt');
                     App.calculateReminders();
                     App.refreshCurrentView();
                 }));
+
+                State.listeners.push(onSnapshot(query(collection(db, `users/${uid}/investmentBudgets`)), s => {
+                    const list = s.docs.map(d => ({ id: d.id, ...d.data() }));
+                    State.data.investmentBudgets = list;
+                    App.checkAutoBudgetItems(list, 'investment');
+                    App.calculateReminders();
+                    App.refreshCurrentView();
+                }));
+                
                 State.listeners.push(onSnapshot(query(collection(db, `users/${uid}/investments`)), async s => {
                     State.data.investments = s.docs.map(d => ({ id: d.id, ...d.data() }));
+                    App.processAutoInterest(State.data.investments, 'investment');
                     for (let i of State.data.investments) {
                         if (!State.data.legacyTxs[i.id]) try {
                             const sub = await getDocs(collection(db, `users/${uid}/investments/${i.id}/transactions`));
@@ -272,31 +284,103 @@
                 $('modal-overlay').classList.remove('hidden'); $('modal-overlay').classList.add('flex');
             };
 
-            App.checkAutoBudgetItems = async l => {
+            // Enhanced Auto Logic
+            App.checkAutoBudgetItems = async (list, type) => {
                 const b = writeBatch(db), t = new Date(); t.setHours(0, 0, 0, 0); let has = false;
-                const ex = l.filter(x => x.isPenalty || x.isRecurringItem);
-                for (const i of l) {
-                    if (!i.isPenalty && !i.isRealized && i.enablePenalty && i.dailyPenalty) {
+                const ex = list.filter(x => x.isPenalty || x.isRecurringItem);
+                const colName = type === 'investment' ? 'investmentBudgets' : 'debtBudgets';
+                
+                for (const i of list) {
+                    // Penalty Logic
+                    if (!i.isPenalty && !i.isRealized && i.enablePenalty && i.dailyPenalty > 0) {
                         const e = getTxDate({ timestamp: i.expectedDate }); e.setHours(0, 0, 0, 0);
                         if (t > e) {
                             let c = new Date(e); c.setDate(c.getDate() + 1);
                             while (c <= t) {
-                                if (!ex.some(p => p.isPenalty && (p.parentBudgetId === i.id || (p.targetId === i.targetId && p.description.includes(i.description))) && getTxDate({ timestamp: p.expectedDate }).getTime() === c.getTime())) {
-                                    b.set(doc(collection(db, `users/${State.user.uid}/investmentBudgets`)), { targetId: i.targetId, parentBudgetId: i.id, amount: parseFloat(i.dailyPenalty), expectedDate: Timestamp.fromDate(new Date(c)), description: `[罰金] ${i.description} (${c.getMonth() + 1}/${c.getDate()})`, type: 'income', isRealized: false, isPenalty: true, createdAt: Timestamp.now() }); has = true;
+                                // Check if penalty for this specific date exists
+                                if (!ex.some(p => p.isPenalty && p.parentBudgetId === i.id && getTxDate({ timestamp: p.expectedDate }).getTime() === c.getTime())) {
+                                    b.set(doc(collection(db, `users/${State.user.uid}/${colName}`)), { 
+                                        targetId: i.targetId, 
+                                        parentBudgetId: i.id, 
+                                        amount: parseFloat(i.dailyPenalty), 
+                                        expectedDate: Timestamp.fromDate(new Date(c)), 
+                                        description: `[罰金] ${i.description} (${c.getMonth() + 1}/${c.getDate()})`, 
+                                        type: type === 'investment' ? 'income' : 'expense', // Penalty on debt is expense, on investment (receivable) is income
+                                        isRealized: false, 
+                                        isPenalty: true, 
+                                        createdAt: Timestamp.now() 
+                                    }); 
+                                    has = true;
                                 }
                                 c.setDate(c.getDate() + 1);
                             }
                         }
                     }
+                    // Recurring Logic
                     if (i.enableRecurring && i.recurringDays > 0 && !i.isRecurringItem) {
                         let ld = i.lastRecurringDate ? getTxDate({ timestamp: i.lastRecurringDate }) : getTxDate({ timestamp: i.expectedDate }); ld.setHours(0, 0, 0, 0);
                         let nd = new Date(ld); nd.setDate(nd.getDate() + parseInt(i.recurringDays));
                         while (nd <= t) {
                             if (!ex.some(x => x.isRecurringItem && x.parentBudgetId === i.id && getTxDate({ timestamp: x.expectedDate }).getTime() === nd.getTime())) {
-                                b.set(doc(collection(db, `users/${State.user.uid}/investmentBudgets`)), { targetId: i.targetId, parentBudgetId: i.id, amount: parseFloat(i.amount), expectedDate: Timestamp.fromDate(new Date(nd)), description: `[自動] ${i.description} (${nd.getMonth() + 1}/${nd.getDate()})`, type: i.type || 'income', isRealized: false, isRecurringItem: true, createdAt: Timestamp.now() });
-                                b.update(doc(db, `users/${State.user.uid}/investmentBudgets`, i.id), { lastRecurringDate: Timestamp.fromDate(new Date(nd)) }); has = true;
+                                b.set(doc(collection(db, `users/${State.user.uid}/${colName}`)), { 
+                                    targetId: i.targetId, 
+                                    parentBudgetId: i.id, 
+                                    amount: parseFloat(i.amount), 
+                                    expectedDate: Timestamp.fromDate(new Date(nd)), 
+                                    description: `[自動] ${i.description} (${nd.getMonth() + 1}/${nd.getDate()})`, 
+                                    type: i.type || (type === 'investment' ? 'income' : 'expense'), 
+                                    isRealized: false, 
+                                    isRecurringItem: true, 
+                                    createdAt: Timestamp.now() 
+                                });
+                                b.update(doc(db, `users/${State.user.uid}/${colName}`, i.id), { lastRecurringDate: Timestamp.fromDate(new Date(nd)) }); 
+                                has = true;
                             }
                             nd.setDate(nd.getDate() + parseInt(i.recurringDays));
+                        }
+                    }
+                }
+                if (has) await b.commit();
+            };
+
+            App.processAutoInterest = async (items, type) => {
+                const now = new Date();
+                const currentMonthKey = `${now.getFullYear()}-${now.getMonth() + 1}`;
+                const b = writeBatch(db);
+                let has = false;
+                const colName = type === 'investment' ? 'investmentBudgets' : 'debtBudgets';
+                const budgetList = State.data[colName] || [];
+
+                for (const item of items) {
+                    if (item.annualRate && parseFloat(item.annualRate) > 0) {
+                        // Check if interest budget already exists for this month
+                        const alreadyExists = budgetList.some(budget => 
+                            budget.targetId === item.id && 
+                            budget.isAutoInterest && 
+                            budget.forMonth === currentMonthKey
+                        );
+
+                        if (!alreadyExists) {
+                            // Logic: Interest generated on the 1st of month or today if not generated
+                            // Amount = Principal * (Rate/100) / 12
+                            const principal = type === 'investment' ? (parseFloat(item.marketValue) || parseFloat(item.initialValue)) : parseFloat(item.remainingAmount);
+                            const monthlyRate = parseFloat(item.annualRate) / 100 / 12;
+                            const interestAmount = Math.round(principal * monthlyRate);
+
+                            if (interestAmount > 0) {
+                                b.set(doc(collection(db, `users/${State.user.uid}/${colName}`)), {
+                                    targetId: item.id,
+                                    amount: interestAmount,
+                                    expectedDate: Timestamp.now(),
+                                    description: `[自動利息] ${currentMonthKey} (${item.annualRate}%)`,
+                                    type: type === 'investment' ? 'income' : 'expense',
+                                    isRealized: false,
+                                    isAutoInterest: true,
+                                    forMonth: currentMonthKey,
+                                    createdAt: Timestamp.now()
+                                });
+                                has = true;
+                            }
                         }
                     }
                 }
@@ -376,13 +460,13 @@
             };
 
             App.handleSaveInvestment = async e => {
-                e.preventDefault(); const f = e.target, d = { name: f.name.value, initialValue: parseFloat(f.initial.value) || 0, isArchived: f.isArchived.checked };
+                e.preventDefault(); const f = e.target, d = { name: f.name.value, initialValue: parseFloat(f.initial.value) || 0, annualRate: parseFloat(f.annualRate.value) || 0, isArchived: f.isArchived.checked };
                 if (!f.id.value) { d.marketValue = d.initialValue; d.createdAt = Timestamp.now(); }
                 f.id.value ? await updateDoc(doc(db, `users/${State.user.uid}/investments`, f.id.value), d) : (await addDoc(collection(db, `users/${State.user.uid}/investments`), d) && d.initialValue > 0 && await addDoc(collection(db, `users/${State.user.uid}/transactions`), { type: 'expense', amount: d.initialValue, category: '投資', project: f.name.value, remarks: '初始投入', timestamp: Timestamp.now() })); App.closeModal();
             };
 
             App.handleSaveDebt = async e => {
-                e.preventDefault(); const f = e.target, d = { name: f.name.value, totalAmount: parseFloat(f.total.value) };
+                e.preventDefault(); const f = e.target, d = { name: f.name.value, totalAmount: parseFloat(f.total.value), annualRate: parseFloat(f.annualRate.value) || 0 };
                 if (f.remaining?.value) d.remainingAmount = parseFloat(f.remaining.value); else if (!f.id.value) { d.remainingAmount = parseFloat(f.total.value); d.createdAt = Timestamp.now(); }
                 f.id.value ? await updateDoc(doc(db, `users/${State.user.uid}/debts`, f.id.value), d) : await addDoc(collection(db, `users/${State.user.uid}/debts`), d); App.closeModal();
             };
@@ -390,7 +474,7 @@
             App.handleSaveBudget = async e => {
                 e.preventDefault(); const f = e.target, ctx = f.context.value, col = ctx === 'investment' ? 'investmentBudgets' : ctx === 'debt' ? 'debtBudgets' : 'accountingBudgets', tv = ctx === 'accounting' ? f.targetId_input.value : f.targetId_select.value; if (!tv) return alert('請輸入目標');
                 const d = { targetId: tv, amount: parseFloat(f.amount.value), expectedDate: Timestamp.fromDate(new Date(f.date.value + 'T12:00:00')), description: f.desc.value, type: f.type.value || 'expense' };
-                if (ctx === 'investment') { d.enablePenalty = f.enablePenalty.checked; d.dailyPenalty = d.enablePenalty ? parseFloat(f.dailyPenalty.value) || 0 : 0; d.enableRecurring = f.enableRecurring.checked; d.recurringDays = d.enableRecurring ? parseInt(f.recurringDays.value) || 0 : 0; }
+                if (ctx === 'investment' || ctx === 'debt') { d.enablePenalty = f.enablePenalty.checked; d.dailyPenalty = d.enablePenalty ? parseFloat(f.dailyPenalty.value) || 0 : 0; d.enableRecurring = f.enableRecurring.checked; d.recurringDays = d.enableRecurring ? parseInt(f.recurringDays.value) || 0 : 0; }
                 if (!f.id.value) { d.isRealized = false; d.createdAt = Timestamp.now(); }
                 f.id.value ? await updateDoc(doc(db, `users/${State.user.uid}/${col}`, f.id.value), d) : await addDoc(collection(db, `users/${State.user.uid}/${col}`), d); App.closeModal();
             };
@@ -651,7 +735,6 @@
                 }
             };
             
-            // MISSING FUNCTIONS RESTORED
             App.showDetails = (type, id) => {
                 const isInv = type === 'investment';
                 const col = isInv ? 'investments' : 'debts';
@@ -689,7 +772,8 @@
                 
                 if (budgets.length > 0) {
                     budgetSection.classList.remove('hidden');
-                    budgetList.innerHTML = budgets.map(b => 
+                    // Fix: Sort budgets by expectedDate before rendering
+                    budgetList.innerHTML = budgets.sort((a, b) => (a.expectedDate?.seconds || 0) - (b.expectedDate?.seconds || 0)).map(b => 
                         `<li class="flex justify-between items-center text-xs p-2 bg-slate-50 rounded-lg">
                             <span class="text-slate-600">${b.description} (${toDateStr(b.expectedDate)})</span>
                             <span class="font-bold text-slate-700">$${b.amount}</span>
@@ -790,7 +874,7 @@
             App.openCategorySelector = () => { const t = $('tx-type').value, h = App.getAllTransactions().filter(x => x.type === t && x.category).map(x => x.category), c = {}; h.forEach(k => c[k] = (c[k] || 0) + 1); const list = [...new Set([...Object.keys(c).sort((a, b) => c[b] - c[a]), ...State.categories[t]])], el = $('sub-modal-content'); el.innerHTML = $('tpl-category-selector').innerHTML; $('category-chips').innerHTML = list.map(k => `<button onclick="App.pickCategory('${k}')" class="bg-slate-100 hover:bg-primary hover:text-white text-slate-600 px-4 py-2.5 rounded-xl text-xs font-bold transition shadow-sm border border-slate-200">${k}</button>`).join(''); $('sub-modal-overlay').classList.remove('hidden'); $('sub-modal-overlay').classList.add('flex') };
             App.closeSubModal = () => $('sub-modal-overlay').classList.add('hidden'); App.pickCategory = v => { document.querySelector('#modal-content input[name="category"]').value = v; App.closeSubModal() };
             App.toggleTxType = t => { $('tx-type').value = t; const e = $('btn-expense'), i = $('btn-income'); if (t === 'expense') { e.classList.add('bg-white', 'shadow-md', 'text-rose-500'); e.classList.remove('text-slate-500'); i.classList.remove('bg-white', 'shadow-md', 'text-emerald-500'); i.classList.add('text-slate-500') } else { i.classList.add('bg-white', 'shadow-md', 'text-emerald-500'); i.classList.remove('text-slate-500'); e.classList.remove('bg-white', 'shadow-md', 'text-rose-500'); e.classList.add('text-slate-500') } };
-            App.toggleBudgetType = t => { $('budget-type').value = t; const e = $('btn-budget-expense'), i = $('btn-budget-income'), ctx = $('budget-context').value; $('penalty-config')?.classList.toggle('hidden', ctx !== 'investment'); $('recurring-config')?.classList.toggle('hidden', ctx !== 'investment'); if (ctx === 'accounting') $('budget-categories-list').innerHTML = (t === 'expense' ? State.categories.expense : State.categories.income).map(c => `<option value="${c}">`).join(''); if (t === 'expense') { e.classList.add('bg-white', 'shadow', 'text-rose-500'); e.classList.remove('text-slate-500'); i.classList.remove('bg-white', 'shadow', 'text-emerald-500'); i.classList.add('text-slate-500'); e.innerText = ctx === 'investment' ? '預計投入' : '支出' } else { i.classList.add('bg-white', 'shadow', 'text-emerald-500'); i.classList.remove('text-slate-500'); e.classList.remove('bg-white', 'shadow', 'text-rose-500'); e.classList.add('text-slate-500'); i.innerText = ctx === 'investment' ? '預期獲利' : '收入' } };
+            App.toggleBudgetType = t => { $('budget-type').value = t; const e = $('btn-budget-expense'), i = $('btn-budget-income'), ctx = $('budget-context').value; $('penalty-config')?.classList.toggle('hidden', ctx !== 'investment' && ctx !== 'debt'); $('recurring-config')?.classList.toggle('hidden', ctx !== 'investment' && ctx !== 'debt'); if (ctx === 'accounting') $('budget-categories-list').innerHTML = (t === 'expense' ? State.categories.expense : State.categories.income).map(c => `<option value="${c}">`).join(''); if (t === 'expense') { e.classList.add('bg-white', 'shadow', 'text-rose-500'); e.classList.remove('text-slate-500'); i.classList.remove('bg-white', 'shadow', 'text-emerald-500'); i.classList.add('text-slate-500'); e.innerText = ctx === 'investment' ? '預計投入' : '支出' } else { i.classList.add('bg-white', 'shadow', 'text-emerald-500'); i.classList.remove('text-slate-500'); e.classList.remove('bg-white', 'shadow', 'text-rose-500'); e.classList.add('text-slate-500'); i.innerText = ctx === 'investment' ? '預期獲利' : '收入' } };
             
             App.openBudgetModal = (ctx, id = null, data = null) => {
                 const c = $('modal-content'); c.innerHTML = $('tpl-budget-modal').innerHTML;
@@ -831,8 +915,8 @@
                     if (item) {
                         c.querySelector('[name=id]').value = id;
                         if (t === 'transaction-modal') { c.querySelector('[name=amount]').value = item.amount; c.querySelector('[name=date]').value = toDateStr(getTxDate(item)); c.querySelector('[name=category]').value = item.category; c.querySelector('[name=remarks]').value = item.remarks; c.querySelector('[name=project]').value = item.project || ''; if (item.isLegacy) c.querySelector('[name=legacy_inv_id]').value = item.legacyInvId; App.toggleTxType(item.type); const cb = c.querySelector('#btn-copy-tx'); cb && cb.classList.remove('hidden'); cb && (cb.onclick = () => App.copyTransaction(id)) }
-                        else if (t === 'investment-modal') { c.querySelector('[name=name]').value = item.name; c.querySelector('[name=initial]').value = item.initialValue; c.querySelector('[name=isArchived]').checked = item.isArchived }
-                        else if (t === 'debt-modal') { c.querySelector('[name=name]').value = item.name; c.querySelector('[name=total]').value = item.totalAmount; c.querySelector('[name=remaining]').value = item.remainingAmount }
+                        else if (t === 'investment-modal') { c.querySelector('[name=name]').value = item.name; c.querySelector('[name=initial]').value = item.initialValue; c.querySelector('[name=annualRate]').value = item.annualRate || ''; c.querySelector('[name=isArchived]').checked = item.isArchived }
+                        else if (t === 'debt-modal') { c.querySelector('[name=name]').value = item.name; c.querySelector('[name=total]').value = item.totalAmount; c.querySelector('[name=remaining]').value = item.remainingAmount; c.querySelector('[name=annualRate]').value = item.annualRate || ''; }
                         else if (t === 'event-modal') { c.querySelector('[name=title]').value = item.title; c.querySelector('[name=desc]').value = item.description; c.querySelector('[name=date]').value = toDateStr(getTxDate(item)) }
                     }
                 } else { const d = c.querySelector('[name=date]'); d && !d.value && (d.value = toDateStr(new Date())) }
@@ -887,7 +971,7 @@
                 $('inv-budget-list').innerHTML=bl.sort((a,b)=>(a.expectedDate?.seconds||0)-(b.expectedDate?.seconds||0)).map(b=>{const ie=(!b.type||b.type==='expense'),ip=b.expectedDate?.toDate()<new Date().setHours(0,0,0,0),isP=b.isPenalty,rb=isP?'bg-rose-50 border-rose-200':(ip?'bg-rose-50 border-rose-100':'bg-white border-slate-50'),ic=isP?'bg-rose-500':(ie?'bg-rose-500':'bg-emerald-500'),ac=isP?'text-rose-600':(ie?'text-rose-500':'text-emerald-500'), dateStr=toDateStr(b.expectedDate), tName=ins.find(i=>i.id===b.targetId)?.name||'未知';return`<li class="flex justify-between items-center p-3 rounded-xl border shadow-soft mb-2 ${rb}"><div class="flex items-center gap-3"><div class="w-1 ${ic} h-8 rounded-full"></div><div><span class="font-bold text-slate-700 text-xs block">${tName}</span><div class="flex gap-2 text-[10px] text-slate-400"><span>${dateStr}</span><span>${b.description}</span></div></div></div><div class="flex flex-col items-end mr-3"><span class="font-bold ${ac} text-xs">$${(parseFloat(b.amount)||0).toLocaleString()}</span></div><div class="flex gap-2"><button onclick="App.toCal('[投資] ${tName}: ${b.description}', '${dateStr}', '預計金額: $${b.amount}')" class="w-8 h-8 rounded-full bg-blue-50 text-blue-400 hover:bg-blue-100 flex items-center justify-center transition"><i class="fa-solid fa-calendar-plus text-xs"></i></button><button onclick="App.realizeBudget('investment','${b.id}')" class="w-8 h-8 rounded-full bg-emerald-50 text-emerald-600 hover:bg-emerald-100 flex items-center justify-center transition"><i class="fa-solid fa-check text-xs"></i></button><button onclick="App.copyBudget('investment','${b.id}')" class="w-8 h-8 rounded-full bg-indigo-50 text-indigo-400 hover:bg-indigo-100 flex items-center justify-center transition"><i class="fa-solid fa-copy text-xs"></i></button><button onclick="App.openBudgetModal('investment','${b.id}')" class="w-8 h-8 rounded-full bg-slate-50 text-slate-400 hover:bg-slate-100 flex items-center justify-center transition"><i class="fa-solid fa-pen text-xs"></i></button><button onclick="App.deleteItem('investmentBudgets','${b.id}')" class="w-8 h-8 rounded-full bg-rose-50 text-rose-400 hover:bg-rose-100 flex items-center justify-center transition"><i class="fa-solid fa-trash text-xs"></i></button></div></li>`}).join('')||'<li class="text-xs text-slate-300 text-center py-4 border-2 border-dashed border-slate-100 rounded-xl">尚無預算項目</li>'};
             
             App.renderDebts = () => {if(!$('debt-list'))return;const mv=$('debt-date-filter').value,[yr,mn]=mv?mv.split('-').map(Number):[new Date().getFullYear(),new Date().getMonth()+1],sm=new Date(yr,mn-1,1),em=new Date(yr,mn,0,23,59,59),ds=State.data.debts.sort((a,b)=>(b.createdAt?.seconds||0)-(a.createdAt?.seconds||0));let tr=0,tm=0,to=0,trem=0;ds.forEach(d=>{to+=parseFloat(d.totalAmount)||0;trem+=parseFloat(d.remainingAmount)||0});const gp=to>0?Math.round(((to-trem)/to)*100):0;$('debt-list').innerHTML=ds.map(d=>{tr+=parseFloat(d.remainingAmount);const p=Math.round(((d.totalAmount-d.remainingAmount)/d.totalAmount)*100),mr=State.data.transactions.filter(t=>t.type==='expense'&&t.project===d.name).reduce((s,t)=>{const dt=getTxDate(t);return(dt>=sm&&dt<=em)?s+(parseFloat(t.amount)||0):s},0);tm+=mr;const md=mr>0?`<span class="text-[10px] text-emerald-600 font-bold bg-emerald-50 px-2 py-0.5 rounded-lg">本月已還: $${mr.toLocaleString()}</span>`:'';return`<div class="bg-white p-4 rounded-2xl shadow-soft border border-slate-50 cursor-pointer active:scale-[0.99] transition relative group" onclick="App.showDetails('debt','${d.id}')"><div class="flex justify-between mb-2"><span class="font-bold text-slate-700">${d.name}</span><div class="flex items-center gap-2">${md}<span class="text-xs font-bold text-warning">${p}%</span></div></div><div class="w-full bg-slate-100 rounded-full h-2 mb-3"><div class="bg-warning h-2 rounded-full" style="width:${p}%"></div></div><div class="flex justify-between items-end"><div class="text-xs text-slate-400">剩餘 <span class="text-slate-700 font-bold text-sm">$${d.remainingAmount.toLocaleString()}</span></div><div class="flex gap-2 relative z-10"><button onclick="event.stopPropagation();App.openRepayModal('${d.id}','${d.name}')" class="text-xs bg-emerald-50 text-emerald-600 font-bold px-3 py-1.5 rounded-lg hover:bg-emerald-100 transition">還款</button></div></div><button onclick="event.stopPropagation();App.openModal('debt-modal','${d.id}')" class="absolute top-4 right-4 text-slate-300 hover:text-primary opacity-0 group-hover:opacity-100 transition"><i class="fa-solid fa-pen text-xs"></i></button></div>`}).join('');$('debt-total-remaining').innerText=`$${tr.toLocaleString()}`;$('debt-monthly-summary').innerText=`本月還款: $${tm.toLocaleString()}`;$('debt-progress-text').innerText=`${gp}%`;$('debt-progress-bar').style.width=`${gp}%`;
-            $('debt-budget-list').innerHTML=State.data.debtBudgets.filter(b=>!b.isRealized).sort((a,b)=>(a.expectedDate?.seconds||0)-(b.expectedDate?.seconds||0)).map(b=>{ const dateStr = toDateStr(b.expectedDate); const tName = State.data.debts.find(d=>d.id===b.targetId)?.name||'未知'; return `<li class="flex justify-between items-center p-3 rounded-xl border shadow-soft mb-2 ${b.expectedDate?.toDate()<new Date().setHours(0,0,0,0)?'bg-rose-50 border-rose-100':'bg-white border-slate-50'}"><div class="flex items-center gap-3"><div class="w-1 bg-warning h-8 rounded-full"></div><div><span class="font-bold text-slate-700 text-xs block">${tName}</span><div class="flex gap-2 text-[10px] text-slate-400"><span>${dateStr}</span><span>${b.description}</span><span class="font-bold text-rose-500">$${(parseFloat(b.amount)||0).toLocaleString()}</span></div></div></div><div class="flex gap-2"><button onclick="App.toCal('[還款] ${tName}: ${b.description}', '${dateStr}', '預計金額: $${b.amount}')" class="w-8 h-8 rounded-full bg-blue-50 text-blue-400 hover:bg-blue-100 flex items-center justify-center transition"><i class="fa-solid fa-calendar-plus text-xs"></i></button><button onclick="App.realizeBudget('debt','${b.id}')" class="w-8 h-8 rounded-full bg-emerald-50 text-emerald-600 hover:bg-emerald-100 flex items-center justify-center transition"><i class="fa-solid fa-check text-xs"></i></button><button onclick="App.openBudgetModal('debt','${b.id}')" class="w-8 h-8 rounded-full bg-slate-50 text-slate-400 hover:bg-slate-100 flex items-center justify-center transition"><i class="fa-solid fa-pen text-xs"></i></button><button onclick="App.deleteItem('debtBudgets','${b.id}')" class="w-8 h-8 rounded-full bg-rose-50 text-rose-400 hover:bg-rose-100 flex items-center justify-center transition"><i class="fa-solid fa-trash text-xs"></i></button></div></li>`}).join('')||'<li class="text-xs text-slate-300 text-center py-4 border-2 border-dashed border-slate-100 rounded-xl">尚無還款計畫</li>'};
+            $('debt-budget-list').innerHTML=State.data.debtBudgets.filter(b=>!b.isRealized).sort((a,b)=>(a.expectedDate?.seconds||0)-(b.expectedDate?.seconds||0)).map(b=>{ const dateStr = toDateStr(b.expectedDate); const tName = State.data.debts.find(d=>d.id===b.targetId)?.name||'未知'; const isAutoInterest = b.isAutoInterest; const isPenalty = b.isPenalty; const isP = isAutoInterest || isPenalty; const rowBg = isP ? 'bg-indigo-50 border-indigo-200' : (b.expectedDate?.toDate()<new Date().setHours(0,0,0,0)?'bg-rose-50 border-rose-100':'bg-white border-slate-50'); return `<li class="flex justify-between items-center p-3 rounded-xl border shadow-soft mb-2 ${rowBg}"><div class="flex items-center gap-3"><div class="w-1 bg-warning h-8 rounded-full"></div><div><span class="font-bold text-slate-700 text-xs block">${tName}</span><div class="flex gap-2 text-[10px] text-slate-400"><span>${dateStr}</span><span>${b.description}</span></div></div></div><div class="flex flex-col items-end mr-3"><span class="font-bold text-rose-500 text-xs">$${(parseFloat(b.amount)||0).toLocaleString()}</span></div><div class="flex gap-2"><button onclick="App.toCal('[還款] ${tName}: ${b.description}', '${dateStr}', '預計金額: $${b.amount}')" class="w-8 h-8 rounded-full bg-blue-50 text-blue-400 hover:bg-blue-100 flex items-center justify-center transition"><i class="fa-solid fa-calendar-plus text-xs"></i></button><button onclick="App.realizeBudget('debt','${b.id}')" class="w-8 h-8 rounded-full bg-emerald-50 text-emerald-600 hover:bg-emerald-100 flex items-center justify-center transition"><i class="fa-solid fa-check text-xs"></i></button><button onclick="App.openBudgetModal('debt','${b.id}')" class="w-8 h-8 rounded-full bg-slate-50 text-slate-400 hover:bg-slate-100 flex items-center justify-center transition"><i class="fa-solid fa-pen text-xs"></i></button><button onclick="App.deleteItem('debtBudgets','${b.id}')" class="w-8 h-8 rounded-full bg-rose-50 text-rose-400 hover:bg-rose-100 flex items-center justify-center transition"><i class="fa-solid fa-trash text-xs"></i></button></div></li>`}).join('')||'<li class="text-xs text-slate-300 text-center py-4 border-2 border-dashed border-slate-100 rounded-xl">尚無還款計畫</li>'};
             
             App.renderReports = () => {if(!$('report-project'))return;const tx=App.getAllTransactions(),ps=$('report-project'),cs=$('report-category'),cp=ps.value,cc=cs.value,pr=[...new Set(tx.map(t=>t.project).filter(Boolean))].sort();ps.innerHTML='<option value="all">全部專案</option>'+pr.map(p=>`<option value="${p}">${p}</option>`).join('');if(pr.includes(cp))ps.value=cp;const ct=[...new Set(tx.map(t=>t.category).filter(Boolean))].sort();cs.innerHTML='<option value="all">全部分類</option>'+ct.map(c=>`<option value="${c}">${c}</option>`).join('');if(ct.includes(cc))cs.value=cc;const yr=parseInt($('report-year').value),mv=$('report-month-select').value;let s,e;if(mv==='all'){s=new Date(yr,0,1);e=new Date(yr,11,31,23,59,59)}else{const m=parseInt(mv);s=new Date(yr,m-1,1);e=new Date(yr,m,0,23,59,59)}const f=tx.filter(t=>{const d=getTxDate(t);return d>=s&&d<=e&&(ps.value==='all'||t.project===ps.value)&&(cs.value==='all'||t.category===cs.value)}).sort((a,b)=>getTxDate(b)-getTxDate(a));if(State.chart)State.chart.destroy();const m={},tot=f.filter(t=>t.type==='expense').reduce((s,t)=>{const c=t.category||'未分類';m[c]=(m[c]||0)+parseFloat(t.amount);return s+parseFloat(t.amount)},0);State.chart=new Chart($('expense-chart').getContext('2d'),{type:'doughnut',data:{labels:Object.keys(m),datasets:[{data:Object.values(m),backgroundColor:['#f43f5e','#f59e0b','#10b981','#3b82f6','#6366f1','#8b5cf6','#ec4899','#64748b'],borderWidth:0,hoverOffset:4}]},options:{responsive:true,maintainAspectRatio:false,layout:{padding:10},plugins:{legend:{position:'right',labels:{font:{size:11,family:"'Noto Sans TC'"},usePointStyle:true,boxWidth:8}}}}});let html='';const im={},em={};let it=0,et=0;f.forEach(t=>{const a=parseFloat(t.amount)||0,c=t.category||'未分類';if(t.type==='expense'){em[c]=(em[c]||0)+a;et+=a}else{im[c]=(im[c]||0)+a;it+=a}});if(it>0)html+=`<li class="text-xs font-bold text-emerald-600 mb-2 pb-1 mt-2 flex justify-between items-center"><span>收入統計</span><span class="bg-emerald-100 px-2 py-0.5 rounded-lg">$${it.toLocaleString()}</span></li>`+Object.entries(im).sort((a,b)=>b[1]-a[1]).map(([k,v])=>`<li class="flex justify-between border-b border-slate-100 py-1.5 last:border-0 text-slate-600"><span>${k}</span><span class="font-bold text-emerald-600">$${v.toLocaleString()} <span class="text-[10px] text-slate-300 font-normal">(${((v/it)*100).toFixed(1)}%)</span></span></li>`).join('');if(et>0)html+=`<li class="text-xs font-bold text-rose-500 mb-2 pb-1 mt-4 flex justify-between items-center"><span>支出統計</span><span class="bg-rose-100 px-2 py-0.5 rounded-lg">$${et.toLocaleString()}</span></li>`+Object.entries(em).sort((a,b)=>b[1]-a[1]).map(([k,v])=>`<li class="flex justify-between border-b border-slate-100 py-1.5 last:border-0 text-slate-600"><span>${k}</span><span class="font-bold text-rose-500">$${v.toLocaleString()} <span class="text-[10px] text-slate-300 font-normal">(${((v/et)*100).toFixed(1)}%)</span></span></li>`).join('');if(!it&&!et)html='<li class="text-center text-slate-300 py-4">無數據</li>';$('report-stats').innerHTML=html;$('report-details').innerHTML=f.length?f.map(t=>`<li class="flex justify-between items-center py-3 border-b border-slate-50 last:border-0 group cursor-pointer hover:bg-slate-50 p-2 rounded-xl transition" onclick="App.openModal('transaction-modal','${t.id}')"><div class="flex-1 min-w-0 mr-2"><p class="text-xs text-slate-400 mb-0.5">${getTxDate(t).toLocaleDateString()} <span class="font-bold text-slate-700 ml-1">${t.category}</span></p><p class="text-[10px] text-slate-400 break-words whitespace-pre-wrap">${t.remarks||''}</p></div><div class="flex items-center gap-2"><span class="text-xs font-bold ${t.type==='expense'?'text-rose-500':'text-emerald-500'} whitespace-nowrap">${t.type==='expense'?'-':'+'} ${parseFloat(t.amount).toLocaleString()}</span><button type="button" class="w-6 h-6 rounded-full bg-slate-100 text-slate-400 hover:text-primary flex items-center justify-center opacity-0 group-hover:opacity-100 transition" onclick="event.stopPropagation();App.openModal('transaction-modal','${t.id}')"><i class="fa-solid fa-pen text-[10px]"></i></button></div></li>`).join(''):'<li class="text-center text-xs text-slate-300 py-8">無交易紀錄</li>'};
 
