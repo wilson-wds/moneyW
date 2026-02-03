@@ -620,6 +620,106 @@
                     alert('刪除失敗: ' + e.message); 
                 }
             };
+            
+            // MISSING FUNCTIONS RESTORED
+            App.showDetails = (type, id) => {
+                const isInv = type === 'investment';
+                const col = isInv ? 'investments' : 'debts';
+                const item = State.data[col].find(i => i.id === id);
+                if (!item) return;
+
+                const c = $('modal-content');
+                c.innerHTML = $('tpl-details-modal').innerHTML;
+                c.querySelector('.details-title').innerText = item.name;
+
+                const allTxs = App.getAllTransactions();
+                const relatedTxs = allTxs.filter(t => {
+                    if (isInv) return t.project === item.name || t.legacyInvId === id;
+                    return t.project === item.name;
+                });
+
+                const list = c.querySelector('.details-list');
+                list.innerHTML = relatedTxs.map(t => {
+                    const isExp = t.type === 'expense';
+                    return `<li class="flex justify-between items-center py-3 border-b border-slate-50 last:border-0 group cursor-pointer hover:bg-slate-50 p-2 rounded-xl transition" onclick="App.openModal('transaction-modal','${t.id}')">
+                        <div class="flex-1 min-w-0 mr-2">
+                            <p class="text-xs text-slate-400 mb-0.5">${toDateStr(getTxDate(t))} <span class="font-bold text-slate-700 ml-1">${t.category}</span></p>
+                            <p class="text-[10px] text-slate-400 break-words whitespace-pre-wrap">${t.remarks || ''}</p>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <span class="text-xs font-bold ${isExp ? 'text-rose-500' : 'text-emerald-500'} whitespace-nowrap">${isExp ? '-' : '+'} ${parseFloat(t.amount).toLocaleString()}</span>
+                            <button type="button" class="w-6 h-6 rounded-full bg-slate-100 text-slate-400 hover:text-primary flex items-center justify-center opacity-0 group-hover:opacity-100 transition" onclick="event.stopPropagation();App.openModal('transaction-modal','${t.id}')"><i class="fa-solid fa-pen text-[10px]"></i></button>
+                        </div>
+                    </li>`;
+                }).join('') || '<li class="text-center text-xs text-slate-300 py-8">無交易紀錄</li>';
+
+                const budgetList = c.querySelector('.details-budget-list');
+                const budgetSection = c.querySelector('.details-budget-section');
+                const budgets = State.data[isInv ? 'investmentBudgets' : 'debtBudgets'].filter(b => b.targetId === id && !b.isRealized);
+                
+                if (budgets.length > 0) {
+                    budgetSection.classList.remove('hidden');
+                    budgetList.innerHTML = budgets.map(b => 
+                        `<li class="flex justify-between items-center text-xs p-2 bg-slate-50 rounded-lg">
+                            <span class="text-slate-600">${b.description} (${toDateStr(b.expectedDate)})</span>
+                            <span class="font-bold text-slate-700">$${b.amount}</span>
+                         </li>`
+                    ).join('');
+                }
+
+                const act = c.querySelector('.details-actions');
+                
+                const addBtn = document.createElement('button');
+                addBtn.className = "w-full bg-primary text-white py-3 rounded-xl font-bold text-xs shadow-lg active:scale-[0.98] transition flex justify-center items-center gap-2";
+                addBtn.innerHTML = '<i class="fa-solid fa-plus"></i> 新增交易紀錄';
+                addBtn.onclick = () => App.openModal('transaction-modal', null, { project: item.name }); 
+                act.appendChild(addBtn);
+
+                if (isInv) {
+                    const editBtn = document.createElement('button');
+                    editBtn.className = "w-full bg-slate-100 text-slate-600 py-3 rounded-xl font-bold text-xs hover:bg-slate-200 transition";
+                    editBtn.innerText = "編輯帳戶設定";
+                    editBtn.onclick = () => App.openModal('investment-modal', id);
+                    act.appendChild(editBtn);
+                } else {
+                    const repayBtn = document.createElement('button');
+                    repayBtn.className = "w-full bg-emerald-50 text-emerald-600 py-3 rounded-xl font-bold text-xs hover:bg-emerald-100 transition mt-2";
+                    repayBtn.innerText = "快速還款";
+                    repayBtn.onclick = () => App.openRepayModal(id, item.name);
+                    act.appendChild(repayBtn);
+                }
+
+                $('modal-overlay').classList.remove('hidden');
+                $('modal-overlay').classList.add('flex');
+            };
+
+            App.handleRepayDebt = async e => {
+                e.preventDefault();
+                const f = e.target;
+                const id = f.id.value;
+                const amt = parseFloat(f.amount.value);
+                const date = new Date(f.date.value);
+                const u = State.user.uid;
+                const item = State.data.debts.find(d => d.id === id);
+
+                if (!item) return;
+
+                const b = writeBatch(db);
+                b.set(doc(collection(db, `users/${u}/transactions`)), {
+                    type: 'expense',
+                    amount: amt,
+                    category: '負債還款',
+                    project: item.name,
+                    remarks: `償還: ${item.name}`,
+                    timestamp: Timestamp.fromDate(date)
+                });
+                b.update(doc(db, `users/${u}/debts`, id), {
+                    remainingAmount: increment(-amt)
+                });
+
+                await b.commit();
+                App.closeModal();
+            };
 
             App.deleteTransaction = async (id, lid) => {
                 if (!confirm('刪除?')) return; const u = State.user.uid, p = lid && lid !== 'undefined' ? `users/${u}/investments/${lid}/transactions/${id}` : `users/${u}/transactions/${id}`;
@@ -732,7 +832,7 @@
             App.renderEvents = () => { if (!$('event-list')) return; const g = {}; State.data.events.sort((a, b) => getTxDate(b) - getTxDate(a)).forEach(e => { const k = getTxDate(e).toLocaleDateString('zh-TW', { year: 'numeric', month: 'long' }); if (!g[k]) g[k] = []; g[k].push(e) }); $('event-list').innerHTML = `<div class="absolute left-[19px] top-0 bottom-0 w-0.5 bg-slate-100 z-0"></div>` + (Object.keys(g).length ? Object.entries(g).map(([m, evs]) => `<div class="mb-8 relative z-10"><h3 class="text-xs font-bold text-slate-400 mb-4 bg-[#f8fafc] inline-block pr-2 sticky top-0">${m}</h3><div class="space-y-6">${evs.map(e => `<div class="relative pl-8 group cursor-pointer" onclick="App.openModal('event-modal','${e.id}')"><div class="absolute left-3 top-1.5 w-4 h-4 rounded-full border-[3px] border-[#f8fafc] bg-indigo-300 group-hover:bg-primary group-hover:scale-125 transition shadow-sm"></div><div class="bg-white p-4 rounded-2xl shadow-soft border border-slate-50 hover:shadow-md transition active:scale-[0.99]"><div class="flex justify-between items-start mb-1"><span class="text-[10px] font-bold text-primary bg-indigo-50 px-2 py-0.5 rounded-lg">${getTxDate(e).toLocaleDateString('zh-TW', { day: 'numeric', weekday: 'short' })}</span><div class="opacity-0 group-hover:opacity-100 transition"><i class="fa-solid fa-pen text-slate-300 text-xs"></i></div></div><h4 class="font-bold text-slate-800 text-sm mb-1">${e.title}</h4><p class="text-xs text-slate-500 leading-relaxed whitespace-pre-wrap">${e.description || ''}</p></div></div>`).join('')}</div></div>`).join('') : '<div class="text-center py-20"><div class="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-3 text-slate-300"><i class="fa-solid fa-camera-retro text-xl"></i></div><p class="text-slate-400 text-xs">這裡空空的，記錄一點生活吧？</p></div>') };
             
             App.renderInvestments = () => {if(!$('inv-list'))return;const mv=$('inv-date-filter').value,[yr,mn]=mv?mv.split('-').map(Number):[new Date().getFullYear(),new Date().getMonth()+1],sm=new Date(yr,mn-1,1),em=new Date(yr,mn,0,23,59,59),ins=State.data.investments.sort((a,b)=>(b.createdAt?.seconds||0)-(a.createdAt?.seconds||0)),ai=ins.filter(i=>State.view.invTab==='active'?!i.isArchived:i.isArchived);let tv=0,tr=0,tc=0;$('inv-list').innerHTML=ai.length?ai.map(i=>{const sub=State.data.legacyTxs[i.id]||[],main=State.data.transactions.filter(t=>t.project===i.name),l=new Set(sub.map(t=>t.mainTransactionId).filter(Boolean)),all=[...sub,...main.filter(t=>!l.has(t.id))],inc=all.filter(t=>t.type==='income').reduce((a,b)=>a+parseFloat(b.amount),0),exp=all.filter(t=>t.type==='expense').reduce((a,b)=>a+parseFloat(b.amount),0),p=inc-exp;if(State.view.invTab==='active'){tv+=(parseFloat(i.marketValue)||0);tc+=exp;tr+=p}const mi=all.filter(t=>{const d=getTxDate(t);return t.type==='income'&&d>=sm&&d<=em}).reduce((s,t)=>s+parseFloat(t.amount),0),md=mi>0?`<div class="mt-2 pt-2 border-t border-slate-50 flex justify-between items-center"><span class="text-[10px] text-slate-400">本月實現</span><span class="text-xs font-bold text-emerald-500">+$${mi.toLocaleString()}</span></div>`:'',pp=State.data.investmentBudgets.filter(b=>b.targetId===i.id&&!b.isRealized&&b.isPenalty).reduce((s,b)=>s+parseFloat(b.amount),0),pb=pp>0?`<div class="absolute -top-1 -left-1 bg-rose-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full shadow-md z-10 animate-pulse-fast">⚠️ 累積罰金 $${pp.toLocaleString()}</div>`:'';return`<div class="bg-white p-4 rounded-2xl shadow-soft border border-slate-50 cursor-pointer hover:shadow-md transition active:scale-[0.99] group relative" onclick="App.showDetails('investment','${i.id}')">${pb}<div class="flex justify-between items-start mb-2"><div class="flex items-center gap-3"><div class="w-10 h-10 rounded-xl bg-indigo-50 text-primary flex items-center justify-center font-bold text-lg shadow-sm">${i.name[0]}</div><div><h4 class="font-bold text-slate-800 text-sm">${i.name}</h4><p class="text-[10px] text-slate-400">成本: $${(parseFloat(i.initialValue)||0).toLocaleString()}</p></div></div><div class="text-right"><p class="font-bold text-base text-slate-800">$${(parseFloat(i.marketValue)||0).toLocaleString()}</p><p class="text-[10px] font-bold ${p>=0?'text-emerald-500':'text-rose-500'}">${p>=0?'+':''}${p.toLocaleString()}</p></div></div>${md}<div class="absolute top-4 right-4 opacity-0 group-hover:opacity-100 transition"><button onclick="event.stopPropagation();App.openModal('investment-modal','${i.id}')" type="button" class="w-6 h-6 rounded-full bg-slate-100 text-slate-400 hover:text-primary flex items-center justify-center"><i class="fa-solid fa-pen text-[10px]"></i></button></div></div>`}).join(''):'<div class="text-center text-slate-400 py-10 text-xs">尚無投資帳戶</div>';const aii=App.getAllTransactions().filter(t=>{const d=getTxDate(t);return t.type==='income'&&t.category.includes('投資')&&d>=sm&&d<=em}).reduce((s,t)=>s+parseFloat(t.amount),0);$('inv-monthly-summary').innerText=`本月總收益: $${aii.toLocaleString()}`;const roi=tc>0?(tr/tc)*100:0;$('inv-total-val').innerText=`$${tv.toLocaleString()}`;$('inv-total-ret').innerText=`${tr>0?'+':''}${tr.toLocaleString()}`;$('inv-roi').innerText=`${roi.toFixed(1)}%`;$('inv-roi').className=`font-bold text-base ${tr>=0?'text-emerald-400':'text-rose-400'}`;const tpp=State.data.investmentBudgets.filter(b=>!b.isRealized&&b.isPenalty).reduce((s,b)=>s+parseFloat(b.amount),0);if(tpp>0){$('inv-total-penalty').innerText=`$${tpp.toLocaleString()}`;$('inv-penalty-summary').classList.remove('hidden')}else $('inv-penalty-summary').classList.add('hidden');const fs=$('inv-budget-filter-select'),cf=fs?fs.value:'all';if(fs&&fs.options.length<=1)fs.innerHTML=`<option value="all">全部項目</option><option value="penalty">僅顯示罰金</option>`+State.data.investments.filter(i=>!i.isArchived).map(i=>`<option value="${i.id}">${i.name}</option>`).join('');let bl=State.data.investmentBudgets.filter(b=>!b.isRealized);if(cf!=='all')bl=bl.filter(b=>cf==='penalty'?b.isPenalty:b.targetId===cf);
-            $('inv-budget-list').innerHTML=bl.sort((a,b)=>(a.expectedDate?.seconds||0)-(b.expectedDate?.seconds||0)).map(b=>{const ie=(!b.type||b.type==='expense'),ip=b.expectedDate?.toDate()<new Date().setHours(0,0,0,0),isP=b.isPenalty,rb=isP?'bg-rose-50 border-rose-200':(ip?'bg-rose-50 border-rose-100':'bg-white border-slate-50'),ic=isP?'bg-rose-500':(ie?'bg-rose-500':'bg-emerald-500'),ac=isP?'text-rose-600':(ie?'text-rose-500':'text-emerald-500'), dateStr=toDateStr(b.expectedDate), tName=ins.find(i=>i.id===b.targetId)?.name||'未知';return`<li class="flex justify-between items-center p-3 rounded-xl border shadow-soft mb-2 ${rb}"><div class="flex items-center gap-3"><div class="w-1 ${ic} h-8 rounded-full"></div><div><span class="font-bold text-slate-700 text-xs block">${tName}</span><div class="flex gap-2 text-[10px] text-slate-400"><span>${dateStr}</span><span>${b.description}</span></div></div></div><div class="flex flex-col items-end mr-3"><span class="font-bold ${ac} text-xs">$${(parseFloat(b.amount)||0).toLocaleString()}</span></div><div class="flex gap-2"><button onclick="App.toCal('[投資] ${tName}: ${b.description}', '${dateStr}', '預計金額: $${b.amount}')" class="w-8 h-8 rounded-full bg-blue-50 text-blue-400 hover:bg-blue-100 flex items-center justify-center transition"><i class="fa-solid fa-calendar-plus text-xs"></i></button><button onclick="App.realizeBudget('investment','${b.id}')" class="w-8 h-8 rounded-full bg-emerald-50 text-emerald-600 hover:bg-emerald-100 flex items-center justify-center transition"><i class="fa-solid fa-check text-xs"></i></button><button onclick="App.copyBudget('investment','${b.id}')" class="w-8 h-8 rounded-full bg-indigo-50 text-indigo-400 hover:bg-indigo-100 flex items-center justify-center transition"><i class="fa-solid fa-copy text-xs"></i></button><button onclick="App.openBudgetModal('investment','${b.id}')" class="w-8 h-8 rounded-full bg-slate-50 text-slate-400 hover:bg-slate-100 flex items-center justify-center transition"><i class="fa-solid fa-pen text-xs"></i></button><button onclick="App.deleteItem('investmentBudgets','${b.id}')" class="w-8 h-8 rounded-full bg-rose-50 text-rose-400 hover:bg-rose-100 flex items-center justify-center transition"><i class="fa-solid fa-trash text-xs"></i></button></div></li>`}).join('')||'<li class="text-xs text-slate-300 text-center py-4 border-2 border-dashed border-slate-100 rounded-xl">尚無預算項目</li>'};
+                $('inv-budget-list').innerHTML=bl.sort((a,b)=>(a.expectedDate?.seconds||0)-(b.expectedDate?.seconds||0)).map(b=>{const ie=(!b.type||b.type==='expense'),ip=b.expectedDate?.toDate()<new Date().setHours(0,0,0,0),isP=b.isPenalty,rb=isP?'bg-rose-50 border-rose-200':(ip?'bg-rose-50 border-rose-100':'bg-white border-slate-50'),ic=isP?'bg-rose-500':(ie?'bg-rose-500':'bg-emerald-500'),ac=isP?'text-rose-600':(ie?'text-rose-500':'text-emerald-500'), dateStr=toDateStr(b.expectedDate), tName=ins.find(i=>i.id===b.targetId)?.name||'未知';return`<li class="flex justify-between items-center p-3 rounded-xl border shadow-soft mb-2 ${rb}"><div class="flex items-center gap-3"><div class="w-1 ${ic} h-8 rounded-full"></div><div><span class="font-bold text-slate-700 text-xs block">${tName}</span><div class="flex gap-2 text-[10px] text-slate-400"><span>${dateStr}</span><span>${b.description}</span></div></div></div><div class="flex flex-col items-end mr-3"><span class="font-bold ${ac} text-xs">$${(parseFloat(b.amount)||0).toLocaleString()}</span></div><div class="flex gap-2"><button onclick="App.toCal('[投資] ${tName}: ${b.description}', '${dateStr}', '預計金額: $${b.amount}')" class="w-8 h-8 rounded-full bg-blue-50 text-blue-400 hover:bg-blue-100 flex items-center justify-center transition"><i class="fa-solid fa-calendar-plus text-xs"></i></button><button onclick="App.realizeBudget('investment','${b.id}')" class="w-8 h-8 rounded-full bg-emerald-50 text-emerald-600 hover:bg-emerald-100 flex items-center justify-center transition"><i class="fa-solid fa-check text-xs"></i></button><button onclick="App.copyBudget('investment','${b.id}')" class="w-8 h-8 rounded-full bg-indigo-50 text-indigo-400 hover:bg-indigo-100 flex items-center justify-center transition"><i class="fa-solid fa-copy text-xs"></i></button><button onclick="App.openBudgetModal('investment','${b.id}')" class="w-8 h-8 rounded-full bg-slate-50 text-slate-400 hover:bg-slate-100 flex items-center justify-center transition"><i class="fa-solid fa-pen text-xs"></i></button><button onclick="App.deleteItem('investmentBudgets','${b.id}')" class="w-8 h-8 rounded-full bg-rose-50 text-rose-400 hover:bg-rose-100 flex items-center justify-center transition"><i class="fa-solid fa-trash text-xs"></i></button></div></li>`}).join('')||'<li class="text-xs text-slate-300 text-center py-4 border-2 border-dashed border-slate-100 rounded-xl">尚無預算項目</li>'};
             
             App.renderDebts = () => {if(!$('debt-list'))return;const mv=$('debt-date-filter').value,[yr,mn]=mv?mv.split('-').map(Number):[new Date().getFullYear(),new Date().getMonth()+1],sm=new Date(yr,mn-1,1),em=new Date(yr,mn,0,23,59,59),ds=State.data.debts.sort((a,b)=>(b.createdAt?.seconds||0)-(a.createdAt?.seconds||0));let tr=0,tm=0,to=0,trem=0;ds.forEach(d=>{to+=parseFloat(d.totalAmount)||0;trem+=parseFloat(d.remainingAmount)||0});const gp=to>0?Math.round(((to-trem)/to)*100):0;$('debt-list').innerHTML=ds.map(d=>{tr+=parseFloat(d.remainingAmount);const p=Math.round(((d.totalAmount-d.remainingAmount)/d.totalAmount)*100),mr=State.data.transactions.filter(t=>t.type==='expense'&&t.project===d.name).reduce((s,t)=>{const dt=getTxDate(t);return(dt>=sm&&dt<=em)?s+(parseFloat(t.amount)||0):s},0);tm+=mr;const md=mr>0?`<span class="text-[10px] text-emerald-600 font-bold bg-emerald-50 px-2 py-0.5 rounded-lg">本月已還: $${mr.toLocaleString()}</span>`:'';return`<div class="bg-white p-4 rounded-2xl shadow-soft border border-slate-50 cursor-pointer active:scale-[0.99] transition relative group" onclick="App.showDetails('debt','${d.id}')"><div class="flex justify-between mb-2"><span class="font-bold text-slate-700">${d.name}</span><div class="flex items-center gap-2">${md}<span class="text-xs font-bold text-warning">${p}%</span></div></div><div class="w-full bg-slate-100 rounded-full h-2 mb-3"><div class="bg-warning h-2 rounded-full" style="width:${p}%"></div></div><div class="flex justify-between items-end"><div class="text-xs text-slate-400">剩餘 <span class="text-slate-700 font-bold text-sm">$${d.remainingAmount.toLocaleString()}</span></div><div class="flex gap-2 relative z-10"><button onclick="event.stopPropagation();App.openRepayModal('${d.id}','${d.name}')" class="text-xs bg-emerald-50 text-emerald-600 font-bold px-3 py-1.5 rounded-lg hover:bg-emerald-100 transition">還款</button></div></div><button onclick="event.stopPropagation();App.openModal('debt-modal','${d.id}')" class="absolute top-4 right-4 text-slate-300 hover:text-primary opacity-0 group-hover:opacity-100 transition"><i class="fa-solid fa-pen text-xs"></i></button></div>`}).join('');$('debt-total-remaining').innerText=`$${tr.toLocaleString()}`;$('debt-monthly-summary').innerText=`本月還款: $${tm.toLocaleString()}`;$('debt-progress-text').innerText=`${gp}%`;$('debt-progress-bar').style.width=`${gp}%`;
             $('debt-budget-list').innerHTML=State.data.debtBudgets.filter(b=>!b.isRealized).sort((a,b)=>(a.expectedDate?.seconds||0)-(b.expectedDate?.seconds||0)).map(b=>{ const dateStr = toDateStr(b.expectedDate); const tName = State.data.debts.find(d=>d.id===b.targetId)?.name||'未知'; return `<li class="flex justify-between items-center p-3 rounded-xl border shadow-soft mb-2 ${b.expectedDate?.toDate()<new Date().setHours(0,0,0,0)?'bg-rose-50 border-rose-100':'bg-white border-slate-50'}"><div class="flex items-center gap-3"><div class="w-1 bg-warning h-8 rounded-full"></div><div><span class="font-bold text-slate-700 text-xs block">${tName}</span><div class="flex gap-2 text-[10px] text-slate-400"><span>${dateStr}</span><span>${b.description}</span><span class="font-bold text-rose-500">$${(parseFloat(b.amount)||0).toLocaleString()}</span></div></div></div><div class="flex gap-2"><button onclick="App.toCal('[還款] ${tName}: ${b.description}', '${dateStr}', '預計金額: $${b.amount}')" class="w-8 h-8 rounded-full bg-blue-50 text-blue-400 hover:bg-blue-100 flex items-center justify-center transition"><i class="fa-solid fa-calendar-plus text-xs"></i></button><button onclick="App.realizeBudget('debt','${b.id}')" class="w-8 h-8 rounded-full bg-emerald-50 text-emerald-600 hover:bg-emerald-100 flex items-center justify-center transition"><i class="fa-solid fa-check text-xs"></i></button><button onclick="App.openBudgetModal('debt','${b.id}')" class="w-8 h-8 rounded-full bg-slate-50 text-slate-400 hover:bg-slate-100 flex items-center justify-center transition"><i class="fa-solid fa-pen text-xs"></i></button><button onclick="App.deleteItem('debtBudgets','${b.id}')" class="w-8 h-8 rounded-full bg-rose-50 text-rose-400 hover:bg-rose-100 flex items-center justify-center transition"><i class="fa-solid fa-trash text-xs"></i></button></div></li>`}).join('')||'<li class="text-xs text-slate-300 text-center py-4 border-2 border-dashed border-slate-100 rounded-xl">尚無還款計畫</li>'};
