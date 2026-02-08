@@ -764,7 +764,10 @@
 
                 const budgetList = c.querySelector('.details-budget-list');
                 const budgetSection = c.querySelector('.details-budget-section');
-                const budgets = State.data[isInv ? 'investmentBudgets' : 'debtBudgets'].filter(b => b.targetId === id && !b.isRealized);
+                
+                // Safety: ensure array exists
+                const sourceBudgets = State.data[isInv ? 'investmentBudgets' : 'debtBudgets'] || [];
+                const budgets = sourceBudgets.filter(b => b.targetId === id && !b.isRealized);
                 
                 if (budgets.length > 0) {
                     budgetSection.classList.remove('hidden');
@@ -774,9 +777,13 @@
                         const isExp = b.type === 'expense';
                         const color = isExp ? 'text-rose-500' : 'text-emerald-500';
                         const sign = isExp ? '-' : '+';
+                        // Safety: Handle undefined description/amount
+                        const desc = b.description || '無描述';
+                        const amt = parseFloat(b.amount) || 0;
+                        
                         return `<li class="flex justify-between items-center text-xs p-2 bg-slate-50 rounded-lg">
-                            <span class="text-slate-600">${b.description} (${toDateStr(b.expectedDate)})</span>
-                            <span class="font-bold ${color}">${sign}$${parseFloat(b.amount).toLocaleString()}</span>
+                            <span class="text-slate-600">${desc} (${toDateStr(b.expectedDate)})</span>
+                            <span class="font-bold ${color}">${sign}$${amt.toLocaleString()}</span>
                          </li>`
                     }).join('');
 
@@ -784,11 +791,13 @@
                     const stats = {};
                     let grandTotal = 0;
                     budgets.forEach(b => {
-                        const match = b.description.match(/^\[(.*?)\]/);
+                        // Safety: Handle description matching safely
+                        const desc = b.description || '';
+                        const match = desc.match(/^\[(.*?)\]/);
                         const cat = match ? match[1] : '一般項目';
                         if (!stats[cat]) stats[cat] = 0;
                         
-                        const val = parseFloat(b.amount) * (b.type === 'expense' ? -1 : 1);
+                        const val = (parseFloat(b.amount)||0) * (b.type === 'expense' ? -1 : 1);
                         stats[cat] += val;
                         grandTotal += val;
                     });
@@ -799,7 +808,7 @@
                         const sign = v >= 0 ? '+' : '';
                         return `<div class="flex justify-between items-center text-[10px] text-slate-500 mt-1 px-2 border-b border-slate-50 last:border-0 py-1">
                             <span>${k}</span>
-                            <span class="font-bold ${color}">${sign}$${v.toLocaleString()}</span>
+                            <span class="font-bold ${color}">${sign}$${Math.abs(v).toLocaleString()}</span>
                          </div>`;
                     }).join('');
                     
@@ -808,7 +817,7 @@
 
                     const summaryContainer = document.createElement('div');
                     summaryContainer.className = "mt-3 bg-slate-50/50 rounded-xl p-2 border border-slate-100";
-                    summaryContainer.innerHTML = `<h5 class="text-[10px] font-bold text-slate-400 mb-1">分類統計</h5>${summaryHtml}<div class="flex justify-between items-center text-[10px] text-slate-600 mt-2 pt-2 border-t border-slate-200 px-2 font-bold"><span>總計</span><span class="${totalColor}">${totalSign}$${grandTotal.toLocaleString()}</span></div>`;
+                    summaryContainer.innerHTML = `<h5 class="text-[10px] font-bold text-slate-400 mb-1">分類統計</h5>${summaryHtml}<div class="flex justify-between items-center text-[10px] text-slate-600 mt-2 pt-2 border-t border-slate-200 px-2 font-bold"><span>總計</span><span class="${totalColor}">${totalSign}$${Math.abs(grandTotal).toLocaleString()}</span></div>`;
                     
                     budgetSection.appendChild(summaryContainer);
                 }
