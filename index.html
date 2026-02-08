@@ -772,13 +772,37 @@
                 
                 if (budgets.length > 0) {
                     budgetSection.classList.remove('hidden');
-                    // Fix: Sort budgets by expectedDate before rendering
+                    
+                    // Render List
                     budgetList.innerHTML = budgets.sort((a, b) => (a.expectedDate?.seconds || 0) - (b.expectedDate?.seconds || 0)).map(b => 
                         `<li class="flex justify-between items-center text-xs p-2 bg-slate-50 rounded-lg">
                             <span class="text-slate-600">${b.description} (${toDateStr(b.expectedDate)})</span>
                             <span class="font-bold text-slate-700">$${b.amount}</span>
                          </li>`
                     ).join('');
+
+                    // Calculate subtotals
+                    const stats = {};
+                    budgets.forEach(b => {
+                        const match = b.description.match(/^\[(.*?)\]/);
+                        const cat = match ? match[1] : '一般項目';
+                        if (!stats[cat]) stats[cat] = 0;
+                        stats[cat] += parseFloat(b.amount);
+                    });
+                    
+                    // Generate HTML
+                    const summaryHtml = Object.entries(stats).map(([k, v]) => 
+                        `<div class="flex justify-between items-center text-[10px] text-slate-500 mt-1 px-2 border-b border-slate-50 last:border-0 py-1">
+                            <span>${k}</span>
+                            <span class="font-bold text-slate-700">$${v.toLocaleString()}</span>
+                         </div>`
+                    ).join('');
+                    
+                    const summaryContainer = document.createElement('div');
+                    summaryContainer.className = "mt-3 bg-slate-50/50 rounded-xl p-2 border border-slate-100";
+                    summaryContainer.innerHTML = `<h5 class="text-[10px] font-bold text-slate-400 mb-1">分類統計</h5>${summaryHtml}<div class="flex justify-between items-center text-[10px] text-slate-600 mt-2 pt-2 border-t border-slate-200 px-2 font-bold"><span>總計</span><span>$${budgets.reduce((a,b)=>a+parseFloat(b.amount),0).toLocaleString()}</span></div>`;
+                    
+                    budgetSection.appendChild(summaryContainer);
                 }
 
                 const act = c.querySelector('.details-actions');
