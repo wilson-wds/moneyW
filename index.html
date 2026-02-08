@@ -869,8 +869,43 @@
             App.openReceiptModal = id => { const t = App.getAllTransactions().find(x => x.id === id); if (!t) return; const c = $('sub-modal-content'); c.innerHTML = $('tpl-receipt-modal').innerHTML; c.querySelector('#r-date').innerText = toDateStr(t.timestamp); c.querySelector('#r-id').innerText = '#' + t.id.slice(0, 6).toUpperCase(); c.querySelector('#r-desc').innerText = t.remarks || t.category; c.querySelector('#r-amount').innerText = '$' + parseFloat(t.amount).toLocaleString(); c.querySelector('#r-signer').innerText = '威爾設計'; c.querySelector('#r-client').innerText = "____________"; App.currentReceiptTx = t; $('sub-modal-overlay').classList.remove('hidden'); $('sub-modal-overlay').classList.add('flex') };
             App.updateReceiptPreview = () => { $('r-client').innerText = $('receipt-client-name').value || "____________" };
             App.printReceipt = () => { const w = window.open('', '', 'height=800,width=600'); w.document.write('<html><head><title>收據</title><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet"><link href="https://fonts.googleapis.com/css2?family=Courier+Prime:wght@400;700&display=swap" rel="stylesheet"><script src="https://cdn.tailwindcss.com"></scr' + 'ipt><style>body{font-family:"Courier Prime",monospace}.receipt-jagged{background:linear-gradient(135deg,transparent 5px,white 0)top left,linear-gradient(225deg,transparent 5px,white 0)top right;background-size:10px 10px;background-repeat:repeat-x}</style></head><body class="bg-gray-100 flex items-center justify-center min-h-screen p-8"><div class="bg-white p-8 max-w-[320px] w-full relative border-t-[8px] border-black shadow-none">' + $('receipt-preview').innerHTML + '</div></body></html>'); w.document.close(); w.focus(); setTimeout(() => { w.print(); w.close() }, 500) };
-            App.exportReport = () => { if (!confirm("匯出?")) return; const c = "Date,Category,Project,Note,Type,Amount\n" + App.getAllTransactions().map(t => `${toDateStr(t.timestamp)},${t.category},${t.project||''},${t.remarks||''},${t.type},${(t.type==='expense'?'-':'')+t.amount}`).join("\n"); const l = document.createElement("a"); l.href = URL.createObjectURL(new Blob(["\uFEFF" + c], { type: 'text/csv' })); l.download = "report.csv"; l.click() };
-            App.exportEvents = () => { if (!confirm("匯出?")) return; const t = State.data.events.sort((a, b) => getTxDate(b) - getTxDate(a)).map(e => `${toDateStr(getTxDate(e))} - ${e.title}\n${e.description || ''}\n-------------------------`).join("\n"); const l = document.createElement("a"); l.href = URL.createObjectURL(new Blob([t], { type: 'text/plain;charset=utf-8;' })); l.download = "events.txt"; l.click() };
+            
+            // Helper for CSV escaping
+            const toCSV = t => { if(t===null||t===undefined)return''; const s=''+t; if(s.includes(',')||s.includes('\n')||s.includes('"')) return `"${s.replace(/"/g,'""')}"`; return s; };
+
+            App.exportReport = () => { 
+                if (!confirm("匯出報表為 CSV (可直接匯入 Google Sheets)?")) return; 
+                const h = ["日期", "分類", "專案/對象", "備註", "類型", "金額"].join(",");
+                const r = App.getAllTransactions().map(t => [
+                    toDateStr(t.timestamp), 
+                    t.category, 
+                    t.project, 
+                    t.remarks, 
+                    t.type==='expense'?'支出':'收入', 
+                    (t.type==='expense'?'-':'')+t.amount
+                ].map(toCSV).join(",")).join("\n");
+                
+                const l = document.createElement("a"); 
+                l.href = URL.createObjectURL(new Blob(["\uFEFF" + h + "\n" + r], { type: 'text/csv;charset=utf-8;' })); 
+                l.download = `MoneyLite_Report_${new Date().toISOString().split('T')[0]}.csv`; 
+                l.click(); 
+            };
+
+            App.exportEvents = () => { 
+                if (!confirm("匯出大事記為 CSV (可直接匯入 Google Sheets)?")) return; 
+                const h = ["日期", "標題", "詳細描述"].join(",");
+                const r = State.data.events.sort((a, b) => getTxDate(b) - getTxDate(a)).map(e => [
+                    toDateStr(getTxDate(e)), 
+                    e.title, 
+                    e.description
+                ].map(toCSV).join(",")).join("\n");
+                
+                const l = document.createElement("a"); 
+                l.href = URL.createObjectURL(new Blob(["\uFEFF" + h + "\n" + r], { type: 'text/csv;charset=utf-8;' })); 
+                l.download = `MoneyLite_Events_${new Date().toISOString().split('T')[0]}.csv`; 
+                l.click(); 
+            };
+
             App.openCategorySelector = () => { const t = $('tx-type').value, h = App.getAllTransactions().filter(x => x.type === t && x.category).map(x => x.category), c = {}; h.forEach(k => c[k] = (c[k] || 0) + 1); const list = [...new Set([...Object.keys(c).sort((a, b) => c[b] - c[a]), ...State.categories[t]])], el = $('sub-modal-content'); el.innerHTML = $('tpl-category-selector').innerHTML; $('category-chips').innerHTML = list.map(k => `<button onclick="App.pickCategory('${k}')" class="bg-slate-100 hover:bg-primary hover:text-white text-slate-600 px-4 py-2.5 rounded-xl text-xs font-bold transition shadow-sm border border-slate-200">${k}</button>`).join(''); $('sub-modal-overlay').classList.remove('hidden'); $('sub-modal-overlay').classList.add('flex') };
             App.closeSubModal = () => $('sub-modal-overlay').classList.add('hidden'); App.pickCategory = v => { document.querySelector('#modal-content input[name="category"]').value = v; App.closeSubModal() };
             App.toggleTxType = t => { $('tx-type').value = t; const e = $('btn-expense'), i = $('btn-income'); if (t === 'expense') { e.classList.add('bg-white', 'shadow-md', 'text-rose-500'); e.classList.remove('text-slate-500'); i.classList.remove('bg-white', 'shadow-md', 'text-emerald-500'); i.classList.add('text-slate-500') } else { i.classList.add('bg-white', 'shadow-md', 'text-emerald-500'); i.classList.remove('text-slate-500'); e.classList.remove('bg-white', 'shadow-md', 'text-rose-500'); e.classList.add('text-slate-500') } };
