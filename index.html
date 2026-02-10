@@ -53,6 +53,7 @@
 
         <main id="main-content" class="flex-1 overflow-y-auto hide-scrollbar relative px-4 pt-4">
             <div id="view-accounting" class="view-section animate-fade-in space-y-4"></div>
+            <div id="view-stock" class="view-section hidden animate-fade-in space-y-4"></div>
             <div id="view-investment" class="view-section hidden animate-fade-in space-y-4"></div>
             <div id="view-debt" class="view-section hidden animate-fade-in space-y-4"></div>
             <div id="view-reports" class="view-section hidden animate-fade-in space-y-4"></div>
@@ -62,6 +63,7 @@
         <nav class="absolute bottom-0 w-full glass pb-safe pt-2 z-30 border-t border-white/60 shadow-[0_-4px_20px_rgba(0,0,0,0.02)]">
             <div class="flex justify-between items-center px-2 nav-scroll hide-scrollbar min-w-full gap-2">
                 <button id="nav-accounting" onclick="App.switchTab('accounting',this)" class="nav-item active flex flex-col items-center gap-1.5 p-2 min-w-[3.2rem] flex-shrink-0"><i class="fa-solid fa-house text-lg mb-0.5"></i> 記帳</button>
+                <button onclick="App.switchTab('stock',this)" class="nav-item flex flex-col items-center gap-1.5 p-2 min-w-[3.2rem] flex-shrink-0"><i class="fa-solid fa-arrow-trend-up text-lg mb-0.5"></i> 股市</button>
                 <button onclick="App.switchTab('investment',this)" class="nav-item flex flex-col items-center gap-1.5 p-2 min-w-[3.2rem] flex-shrink-0"><i class="fa-solid fa-piggy-bank text-lg mb-0.5"></i> 資產</button>
                 
                 <div class="relative -top-6 mx-1 flex-shrink-0">
@@ -90,7 +92,7 @@
             <div id="acc-overdue-badge" class="absolute -top-1 -left-1 hidden z-20 animate-pulse-fast"><div class="bg-rose-500 text-white text-[10px] font-bold px-3 py-1 rounded-br-2xl rounded-tl-xl shadow-md border-b-2 border-r-2 border-rose-700/30">⚠️ 逾期未收 <span id="acc-overdue-val"></span></div></div>
             <div id="acc-pending-income-badge" class="absolute bottom-0 right-0 hidden z-20"><div class="bg-white/20 backdrop-blur-sm text-white text-[10px] font-bold px-3 py-1 rounded-tl-2xl shadow-sm border-t border-l border-white/20">📅 本月預期 <span id="acc-pending-income-val"></span></div></div>
             <div class="relative z-10">
-                <div class="flex justify-between items-center mb-6 pl-2"><span class="text-indigo-100 text-xs font-medium bg-white/10 px-2 py-1 rounded-lg backdrop-blur-sm">本月概況</span><div class="relative"><input type="month" id="date-filter" class="bg-white/20 text-white border-none rounded-lg px-3 py-1 text-xs font-bold focus:ring-2 focus:ring-white/50 cursor-pointer pl-8 backdrop-blur-sm placeholder-white" onchange="App.renderTransactions()"><i class="fa-regular fa-calendar absolute left-2.5 top-1/2 -translate-y-1/2 text-xs text-indigo-100 pointer-events-none"></i></div></div>
+                <div class="flex justify-between items-center mb-6 pl-2"><span class="text-indigo-100 text-xs font-medium bg-white/10 px-2 py-1 rounded-lg backdrop-blur-sm">本月概況</span><div class="relative"><input type="month" id="date-filter" class="bg-white/20 text-white border-none rounded-lg px-3 py-1 text-xs font-bold focus:ring-2 focus:ring-white/50 cursor-pointer pl-8 backdrop-blur-sm placeholder-white" onchange="App.renderTransactions(true)"><i class="fa-regular fa-calendar absolute left-2.5 top-1/2 -translate-y-1/2 text-xs text-indigo-100 pointer-events-none"></i></div></div>
                 <div class="flex flex-col items-center mb-6"><span class="text-indigo-100 text-xs mb-1">本月結餘</span><span id="monthly-balance" class="text-4xl font-bold tracking-tight text-white drop-shadow-sm">0</span></div>
                 <div class="grid grid-cols-2 gap-4"><div class="bg-white/10 backdrop-blur-sm rounded-xl p-3 border border-white/10"><p class="text-[10px] opacity-80 mb-1">總收入</p><p id="monthly-income" class="text-lg font-bold">0</p></div><div class="bg-white/10 backdrop-blur-sm rounded-xl p-3 border border-white/10"><p class="text-[10px] opacity-80 mb-1">總支出</p><p id="monthly-expense" class="text-lg font-bold">0</p></div></div>
             </div>
@@ -98,6 +100,37 @@
         <div class="flex items-center justify-between px-2 pt-2 mb-2"><span class="text-xs font-bold text-slate-400">本日小計</span><div class="flex gap-3 text-xs font-medium"><span class="text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded">收 <span id="today-income">0</span></span><span class="text-rose-500 bg-rose-50 px-2 py-0.5 rounded">支 <span id="today-expense">0</span></span><span class="text-slate-500 bg-slate-100 px-2 py-0.5 rounded" id="today-balance-container">餘 <span id="today-balance">0</span></span></div></div>
         <ul id="tx-list" class="space-y-4 pb-6"></ul>
         <div class="mt-8 pb-4"><div class="flex justify-between items-center px-1 mb-3"><span class="text-xs font-bold text-slate-400 uppercase tracking-wider">預算 / 排程</span><button onclick="App.openBudgetModal('accounting')" class="text-primary text-[10px] font-bold bg-indigo-50 px-2 py-1 rounded-lg hover:bg-indigo-100"><i class="fa-solid fa-plus"></i> 新增</button></div><ul id="accounting-budget-list" class="space-y-2"></ul></div>
+    </template>
+
+    <template id="tpl-stock">
+        <div class="bg-slate-800 text-white p-5 rounded-3xl shadow-soft mb-4 relative overflow-hidden">
+            <div class="absolute top-0 right-0 w-32 h-32 bg-primary/20 rounded-full blur-2xl -mr-10 -mt-10"></div>
+            <div class="relative z-10 flex justify-between items-start">
+                <div>
+                    <p class="text-slate-400 text-xs font-medium mb-1">股市總資產</p>
+                    <h2 id="stock-total-assets" class="text-3xl font-bold tracking-tight mb-2">--</h2>
+                    <div class="flex gap-4 border-t border-slate-700/50 pt-3">
+                        <div><span class="text-slate-400 text-[10px] block mb-0.5">總損益</span><span id="stock-total-pl" class="font-bold text-sm">--</span></div>
+                        <div><span class="text-slate-400 text-[10px] block mb-0.5">報酬率</span><span id="stock-roi" class="font-bold text-sm">--</span></div>
+                    </div>
+                </div>
+                <div class="text-right">
+                    <div class="bg-white/10 backdrop-blur-sm rounded-xl p-2 border border-white/10 text-center mb-2">
+                        <p class="text-[10px] text-slate-300 mb-0.5">本月投入資金</p>
+                        <p id="stock-monthly-invest" class="text-lg font-bold text-emerald-400">0</p>
+                    </div>
+                    <p class="text-[10px] text-slate-400">總成本: <span id="stock-total-cost">--</span></p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="flex justify-between items-center mb-3 px-1">
+            <h3 class="font-bold text-slate-700 text-sm">持股明細</h3>
+            <button id="btn-update-all" onclick="App.updateAllStockPrices()" class="bg-indigo-50 text-primary text-[10px] font-bold px-3 py-1.5 rounded-lg hover:bg-indigo-100 transition flex items-center gap-1"><i class="fa-solid fa-rotate"></i> 更新股價</button>
+        </div>
+        
+        <div id="stock-list" class="space-y-3"></div>
+        <div class="h-20"></div>
     </template>
 
     <template id="tpl-investment">
@@ -138,9 +171,120 @@
         <form onsubmit="App.handleSaveEvent(event)" class="space-y-5"><input type="hidden" name="id"><div><label class="text-[10px] font-bold text-slate-400 ml-1 block mb-1">標題</label><input type="text" name="title" class="input-box w-full rounded-xl p-3 text-sm" placeholder="例如: 買房, 結婚, 畢業..." required></div><div><label class="text-[10px] font-bold text-slate-400 ml-1 block mb-1">日期</label><input type="date" name="date" class="input-box w-full rounded-xl p-3 text-sm" required></div><div><label class="text-[10px] font-bold text-slate-400 ml-1 block mb-1">詳細描述</label><textarea name="desc" rows="3" class="input-box w-full rounded-xl p-3 text-sm resize-none" placeholder="記錄一下當下的心情..."></textarea></div><button type="submit" class="w-full bg-primary text-white font-bold py-3.5 rounded-2xl shadow-lg hover:bg-primaryDark active:scale-[0.98] transition">儲存紀錄</button></form>
     </template>
 
+    <template id="tpl-investment-modal">
+        <div class="flex justify-between items-center mb-6">
+            <h3 class="text-xl font-bold text-slate-800">資產帳戶</h3>
+            <div class="flex items-center gap-3">
+                <button id="btn-delete-inv" class="hidden w-9 h-9 rounded-full bg-rose-50 text-rose-500 flex items-center justify-center hover:bg-rose-100 transition"><i class="fa-solid fa-trash-can text-sm"></i></button>
+                <button onclick="App.closeModal()" class="w-9 h-9 rounded-full bg-slate-100 flex items-center justify-center text-slate-500"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+        </div>
+        <form onsubmit="App.handleSaveInvestment(event)" class="space-y-5">
+            <input type="hidden" name="id">
+            <div>
+                <label class="text-[10px] font-bold text-slate-400 ml-1 block mb-1">帳戶名稱</label>
+                <input type="text" name="name" class="input-box w-full rounded-xl p-3 text-sm" placeholder="例如: 台積電, 00878..." required>
+            </div>
+            <div>
+                <label class="text-[10px] font-bold text-slate-400 ml-1 block mb-1">初始投入成本</label>
+                <input type="number" name="initial" class="input-box w-full rounded-xl p-3 text-sm" placeholder="0" required>
+            </div>
+            <div>
+                <label class="text-[10px] font-bold text-slate-400 ml-1 block mb-1">預期年化報酬率 (%)</label>
+                <input type="number" name="annualRate" class="input-box w-full rounded-xl p-3 text-sm" placeholder="5" step="0.1">
+            </div>
+            <div class="flex items-center gap-2 px-1">
+                <input type="checkbox" name="isArchived" id="inv-archived" class="w-5 h-5 rounded text-primary focus:ring-primary border-gray-300">
+                <label for="inv-archived" class="text-xs font-bold text-slate-500">已結案 (歸檔)</label>
+            </div>
+            <button type="submit" class="w-full bg-primary text-white font-bold py-3.5 rounded-2xl shadow-lg hover:bg-primaryDark active:scale-[0.98] transition">儲存設定</button>
+        </form>
+    </template>
+
+    <template id="tpl-debt-modal">
+        <div class="flex justify-between items-center mb-6">
+            <h3 class="text-xl font-bold text-slate-800">負債項目</h3>
+            <div class="flex items-center gap-3">
+                <button id="btn-delete-debt" class="hidden w-9 h-9 rounded-full bg-rose-50 text-rose-500 flex items-center justify-center hover:bg-rose-100 transition"><i class="fa-solid fa-trash-can text-sm"></i></button>
+                <button onclick="App.closeModal()" class="w-9 h-9 rounded-full bg-slate-100 flex items-center justify-center text-slate-500"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+        </div>
+        <form onsubmit="App.handleSaveDebt(event)" class="space-y-5">
+            <input type="hidden" name="id">
+            <div>
+                <label class="text-[10px] font-bold text-slate-400 ml-1 block mb-1">項目名稱</label>
+                <input type="text" name="name" class="input-box w-full rounded-xl p-3 text-sm" placeholder="例如: 房貸, 車貸..." required>
+            </div>
+            <div class="grid grid-cols-2 gap-4">
+                <div>
+                    <label class="text-[10px] font-bold text-slate-400 ml-1 block mb-1">總金額</label>
+                    <input type="number" name="total" class="input-box w-full rounded-xl p-3 text-sm" placeholder="0" required>
+                </div>
+                <div>
+                    <label class="text-[10px] font-bold text-slate-400 ml-1 block mb-1">目前剩餘</label>
+                    <input type="number" name="remaining" class="input-box w-full rounded-xl p-3 text-sm" placeholder="0" required>
+                </div>
+            </div>
+            <div>
+                <label class="text-[10px] font-bold text-slate-400 ml-1 block mb-1">年利率 (%)</label>
+                <input type="number" name="annualRate" class="input-box w-full rounded-xl p-3 text-sm" placeholder="2.5" step="0.01">
+            </div>
+            <button type="submit" class="w-full bg-slate-800 text-white font-bold py-3.5 rounded-2xl shadow-lg hover:bg-slate-900 active:scale-[0.98] transition">儲存設定</button>
+        </form>
+    </template>
+
     <template id="tpl-transaction-modal">
         <div class="flex justify-between items-center mb-6"><h3 class="text-xl font-bold text-slate-800" id="tx-modal-title">記一筆</h3><div class="flex items-center gap-3"><button id="btn-copy-tx" class="hidden w-9 h-9 rounded-full bg-indigo-50 text-indigo-500 flex items-center justify-center hover:bg-indigo-100 active:scale-95"><i class="fa-solid fa-copy text-sm"></i></button><button id="btn-delete-tx" class="hidden w-9 h-9 rounded-full bg-rose-50 text-rose-500 flex items-center justify-center hover:bg-rose-100 active:scale-95"><i class="fa-solid fa-trash-can text-sm"></i></button><button onclick="App.closeModal()" class="w-9 h-9 rounded-full bg-slate-100 text-slate-500 hover:bg-slate-200 active:scale-95"><i class="fa-solid fa-xmark"></i></button></div></div>
         <form onsubmit="App.handleSaveTransaction(event)" class="space-y-5"><input type="hidden" name="id"><input type="hidden" name="legacy_inv_id"><div class="flex bg-slate-100 p-1.5 rounded-2xl relative"><button type="button" class="type-btn flex-1 py-2.5 rounded-xl text-xs font-bold text-slate-500 transition-all z-10" onclick="App.toggleTxType('expense')" id="btn-expense">支出</button><button type="button" class="type-btn flex-1 py-2.5 rounded-xl text-xs font-bold text-slate-500 transition-all z-10" onclick="App.toggleTxType('income')" id="btn-income">收入</button></div><input type="hidden" name="type" id="tx-type" value="expense"><div class="text-center py-2"><label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1 block">金額</label><div class="relative inline-block w-full"><span class="absolute left-0 top-1/2 -translate-y-1/2 text-2xl text-slate-300 font-bold">$</span><input type="number" name="amount" class="w-full text-4xl font-bold text-slate-800 border-none bg-transparent text-center focus:outline-none placeholder-slate-200" placeholder="0" required inputmode="decimal"></div></div><div class="space-y-4"><div class="grid grid-cols-2 gap-4"><div class="group"><label class="text-[10px] font-bold text-slate-400 ml-1 mb-1 block">日期</label><input type="date" name="date" class="input-box w-full rounded-xl px-4 py-3 text-sm font-medium text-slate-700" required></div><div><label class="text-[10px] font-bold text-slate-400 ml-1 block mb-1">分類</label><div class="flex gap-2"><input name="category" class="input-box w-full rounded-xl px-4 py-3 text-sm font-medium text-slate-700" placeholder="分類..." required><button type="button" onclick="App.openCategorySelector()" class="w-12 h-11 bg-indigo-50 rounded-xl flex items-center justify-center text-primary hover:bg-indigo-100 shrink-0 mt-[1px]"><i class="fa-solid fa-list-ul"></i></button></div></div></div><div><label class="text-[10px] font-bold text-slate-400 ml-1 block mb-1">專案 / 帳戶 <span class="text-slate-300 font-normal">(選填)</span></label><input type="text" name="project" class="input-box w-full rounded-xl px-4 py-3 text-sm font-medium text-slate-700" placeholder="例如: 旅遊基金、台積電..."></div><div><label class="text-[10px] font-bold text-slate-400 ml-1 block mb-1">備註</label><textarea name="remarks" rows="2" class="input-box w-full rounded-xl px-4 py-3 text-sm font-medium text-slate-700 resize-none" placeholder="寫點什麼..."></textarea></div><div class="flex items-center gap-2 px-1 pt-2"><input type="checkbox" id="tx-unrealized" name="isUnrealized" class="w-5 h-5 rounded text-primary focus:ring-primary border-gray-300 transition cursor-pointer"><label for="tx-unrealized" class="text-xs font-bold text-slate-500 cursor-pointer select-none">未實現 (僅加入預算列表)</label></div></div><div class="pt-4"><button type="submit" class="w-full bg-primary text-white font-bold py-4 rounded-2xl shadow-lg shadow-indigo-200 text-sm hover:bg-primaryDark transition active:scale-[0.98]">儲存紀錄</button></div></form>
+    </template>
+
+    <template id="tpl-stock-tx-modal">
+        <div class="flex justify-between items-center mb-6">
+            <h3 class="text-xl font-bold text-slate-800">股票交易</h3>
+            <button onclick="App.closeModal()" class="w-9 h-9 rounded-full bg-slate-100 flex items-center justify-center text-slate-500"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        <form onsubmit="App.handleSaveStockTx(event)" class="space-y-5">
+            <input type="hidden" name="id">
+            <div class="flex bg-slate-100 p-1.5 rounded-2xl relative mb-4">
+                <button type="button" id="btn-stock-buy" class="flex-1 py-2.5 rounded-xl text-xs font-bold text-slate-500 transition-all z-10" onclick="App.toggleStockType('buy')">買入</button>
+                <button type="button" id="btn-stock-sell" class="flex-1 py-2.5 rounded-xl text-xs font-bold text-slate-500 transition-all z-10" onclick="App.toggleStockType('sell')">賣出</button>
+            </div>
+            <input type="hidden" name="type" id="stock-tx-type" value="buy">
+            
+            <div class="grid grid-cols-2 gap-4">
+                <div>
+                    <label class="text-[10px] font-bold text-slate-400 ml-1 block mb-1">代號</label>
+                    <input type="text" name="symbol" class="input-box w-full rounded-xl p-3 text-sm font-bold uppercase" placeholder="例如: 2330" onblur="App.handleStockSymbolInput(this)" required>
+                </div>
+                <div>
+                    <label class="text-[10px] font-bold text-slate-400 ml-1 block mb-1">名稱</label>
+                    <input type="text" name="name" class="input-box w-full rounded-xl p-3 text-sm text-slate-500" readonly>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-2 gap-4">
+                <div>
+                    <label class="text-[10px] font-bold text-slate-400 ml-1 block mb-1">成交價</label>
+                    <input type="number" name="price" class="input-box w-full rounded-xl p-3 text-sm" placeholder="0" step="0.01" oninput="App.calcStockTotal()" required>
+                </div>
+                <div>
+                    <label class="text-[10px] font-bold text-slate-400 ml-1 block mb-1">股數</label>
+                    <input type="number" name="shares" class="input-box w-full rounded-xl p-3 text-sm" placeholder="0" oninput="App.calcStockTotal()" required>
+                </div>
+            </div>
+
+            <div>
+                <label class="text-[10px] font-bold text-slate-400 ml-1 block mb-1">總金額 (含手續費/稅)</label>
+                <input type="number" name="total" id="stock-total-input" class="input-box w-full rounded-xl p-3 text-sm font-bold text-slate-700" placeholder="0" required>
+            </div>
+
+            <div>
+                <label class="text-[10px] font-bold text-slate-400 ml-1 block mb-1">交易日期</label>
+                <input type="date" name="date" class="input-box w-full rounded-xl p-3 text-sm" required>
+            </div>
+
+            <button type="submit" class="w-full bg-slate-800 text-white font-bold py-3.5 rounded-2xl shadow-lg hover:bg-slate-900 active:scale-[0.98] transition">儲存交易</button>
+        </form>
     </template>
 
     <template id="tpl-budget-modal">
@@ -194,7 +338,7 @@
             const auth=getAuth(app);
             const db=getFirestore(app);
 
-            const State={user:null,data:{transactions:[],debts:[],investments:[],stocks:[],stockTxs:[],events:[],investmentBudgets:[],debtBudgets:[],accountingBudgets:[],legacyTxs:{}},listeners:[],chart:null,categories:{expense:['飲食','交通','居住','娛樂','購物','醫療','教育','投資','其他'],income:['薪資','獎金','投資','兼職','其他']},view:{invTab:'active',currentTab:'accounting'},reminders:[]};
+            const State={user:null,data:{transactions:[],debts:[],investments:[],stocks:[],stockTxs:[],events:[],investmentBudgets:[],debtBudgets:[],accountingBudgets:[],legacyTxs:{}},listeners:[],chart:null,categories:{expense:['飲食','交通','居住','娛樂','購物','醫療','教育','投資','其他'],income:['薪資','獎金','投資','兼職','其他']},view:{invTab:'active',currentTab:'accounting', txPage: 1, txPageSize: 7},reminders:[]};
             const $=i=>document.getElementById(i);
             const Q=s=>document.querySelector(s);
             const getTxDate=t=>{if(!t)return new Date();try{if(t.timestamp?.toDate)return t.timestamp.toDate();if(t.date){if(t.date.toDate)return t.date.toDate();const d=new Date(t.date);if(!isNaN(d))return d}if(t.timestamp?.seconds)return new Date(t.timestamp.seconds*1000)}catch(e){}return new Date()};
@@ -404,6 +548,7 @@
 
             App.switchTab = (t, b) => {
                 State.view.currentTab = t;
+                if(t === 'accounting') State.view.txPage = 1; // Reset page on tab switch
                 document.querySelectorAll('.view-section').forEach(e => { e.classList.add('hidden'); e.innerHTML = ''; });
                 const tg = $(`view-${t}`); tg.classList.remove('hidden'); tg.innerHTML = $(`tpl-${t}`).innerHTML;
                 if (t === 'accounting') $('date-filter').value = new Date().toISOString().slice(0, 7);
@@ -593,7 +738,7 @@
 
             App.renderStocks = () => {
                 if (!$('stock-list')) return; const holdings = {};
-                State.data.stockTxs.sort((a, b) => getTxDate(a) - getTxDate(b)).forEach(t => {
+                (State.data.stockTxs || []).sort((a, b) => getTxDate(a) - getTxDate(b)).forEach(t => {
                     if (!holdings[t.symbol]) holdings[t.symbol] = { s: t.symbol, n: t.name, q: 0, cost: 0, realized: 0 };
                     const h = holdings[t.symbol];
                     if (t.type === 'buy') { 
@@ -611,6 +756,18 @@
                 });
                 let totalMkt = 0, totalCost = 0, totalRealized = 0;
                 
+                // Calculate Monthly Investment
+                const now = new Date();
+                const currentMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+                const currentMonthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59);
+                
+                const monthlyInvest = (State.data.stockTxs || []).filter(t => {
+                    const d = getTxDate(t);
+                    return t.type === 'buy' && d >= currentMonthStart && d <= currentMonthEnd;
+                }).reduce((sum, t) => sum + t.total, 0);
+
+                $('stock-monthly-invest').innerText = `$${Math.round(monthlyInvest).toLocaleString()}`;
+
                 const listHtml = Object.values(holdings).filter(h => h.q > 0 || h.realized !== 0).map(h => {
                     const curr = State.data.stocks.find(s => s.id === h.s)?.currentPrice || 0;
                     const mkt = Math.round(curr * h.q); 
@@ -650,10 +807,7 @@
                 $('stock-total-assets').innerText = `$${Math.round(totalMkt).toLocaleString()}`;
                 $('stock-total-cost').innerText = `$${Math.round(totalCost).toLocaleString()}`;
                 $('stock-total-pl').innerText = `${tpl >= 0 ? '+' : ''}${Math.round(tpl).toLocaleString()}`;
-                $('stock-total-pl').className = `font-bold text-lg ${tpl >= 0 ? 'text-emerald-400' : 'text-rose-400'}`;
-                
-                $('stock-realized-pl').innerText = `${totalRealized >= 0 ? '+' : ''}${Math.round(totalRealized).toLocaleString()}`;
-                $('stock-realized-pl').className = `font-bold text-sm ${totalRealized >= 0 ? 'text-emerald-400' : 'text-rose-400'}`;
+                $('stock-total-pl').className = `font-bold text-sm ${tpl >= 0 ? 'text-emerald-400' : 'text-rose-400'}`;
                 
                 $('stock-roi').innerText = `${totalCost > 0 ? ((tpl / totalCost) * 100).toFixed(1) : 0}%`;
                 $('stock-roi').className = `font-bold text-sm ${tpl >= 0 ? 'text-emerald-400' : 'text-rose-400'}`;
@@ -1023,6 +1177,15 @@
                     if (def.remarks) c.querySelector('[name=remarks]').value = def.remarks;
                     if (def.type) App.toggleTxType(def.type)
                 }
+                if (t === 'stock-tx-modal') {
+                     App.toggleStockType('buy');
+                     if (def.symbol) {
+                         const sInput = c.querySelector('[name=symbol]');
+                         sInput.value = def.symbol;
+                         sInput.readOnly = true; 
+                     }
+                     if (def.name) c.querySelector('[name=name]').value = def.name;
+                }
                 if (id) {
                     let item = State.data[t === 'transaction-modal' ? 'transactions' : t === 'investment-modal' ? 'investments' : t === 'debt-modal' ? 'debts' : t === 'event-modal' ? 'events' : []].find(i => i.id === id);
                     if (!item && t === 'transaction-modal') item = App.getAllTransactions().find(i => i.id === id);
@@ -1043,15 +1206,38 @@
             App.closeModal = () => $('modal-overlay').classList.add('hidden');
             App.openRepayModal = (id, n) => { const c = $('modal-content'); c.innerHTML = '<div class="flex justify-between items-center mb-6"><h3 class="text-xl font-bold text-slate-800">償還負債</h3><button onclick="App.closeModal()" class="w-9 h-9 rounded-full bg-slate-100 flex items-center justify-center text-slate-500"><i class="fa-solid fa-xmark"></i></button></div><form onsubmit="App.handleRepayDebt(event)" class="space-y-5"><input type="hidden" name="id" id="repay-id" value="' + id + '"><div class="text-center"><p class="text-xs text-slate-400 mb-1">償還項目</p><h4 class="text-lg font-bold text-slate-700" id="repay-debt-name">' + n + '</h4></div><div><label class="text-[10px] font-bold text-slate-400 block mb-1">金額</label><input type="number" name="amount" class="input-box w-full rounded-xl p-3 text-sm" required></div><div><label class="text-[10px] font-bold text-slate-400 block mb-1">日期</label><input type="date" name="date" class="input-box w-full rounded-xl p-3 text-sm" required value="' + toDateStr(new Date()) + '"></div><button class="w-full bg-emerald-500 text-white font-bold py-3.5 rounded-2xl shadow-lg hover:bg-emerald-600 transition">確認還款</button></form>'; $('modal-overlay').classList.remove('hidden'); $('modal-overlay').classList.add('flex') },
             
-            App.renderTransactions = () => {
+            App.renderTransactions = (resetPage = false) => {
                 if (!$('tx-list')) return;
+                if (resetPage) State.view.txPage = 1;
+                
                 const v = $('date-filter').value, [y, m] = v.split('-').map(Number), s = new Date(y, m - 1, 1), e = new Date(y, m, 0, 23, 59, 59), tx = State.data.transactions.filter(t => { const d = getTxDate(t); return d >= s && d <= e }).sort((a, b) => getTxDate(b) - getTxDate(a)), g = {};
                 tx.forEach(t => { const k = getTxDate(t).toLocaleDateString('zh-TW', { month: 'numeric', day: 'numeric', weekday: 'short' }); if (!g[k]) g[k] = { l: [], i: 0, e: 0 }; g[k].l.push(t); t.type === 'income' ? g[k].i += parseFloat(t.amount) : g[k].e += parseFloat(t.amount) });
+                
+                const en = Object.entries(g);
+                const totalPages = Math.ceil(en.length / State.view.txPageSize);
+                const start = (State.view.txPage - 1) * State.view.txPageSize;
+                const end = start + State.view.txPageSize;
+                const currentGroups = en.slice(start, end);
+
                 const r = ([k, v]) => `<div class="mb-4 animate-fade-in"><div class="flex justify-between items-center text-xs font-bold text-slate-400 mb-2 px-2"><span>${k}</span><div class="flex gap-3"><span class="text-emerald-500 bg-emerald-50/50 px-1.5 rounded">+${v.i.toLocaleString()}</span><span class="text-rose-400 bg-rose-50/50 px-1.5 rounded">-${v.e.toLocaleString()}</span></div></div><div class="bg-white rounded-2xl shadow-soft border border-slate-50 overflow-hidden">${v.l.map(t => `<div class="flex justify-between items-center py-4 px-4 border-b border-slate-50 hover:bg-slate-50 cursor-pointer transition active:scale-[0.99]" onclick="App.openModal('transaction-modal','${t.id}')"><div class="flex items-center gap-4"><div class="w-10 h-10 rounded-2xl flex items-center justify-center text-sm font-bold shadow-sm ${t.type === 'expense' ? 'bg-rose-50 text-rose-500' : 'bg-emerald-50 text-emerald-500'}">${(t.category || '未')[0]}</div><div class="min-w-0"><p class="font-bold text-slate-700 text-sm mb-0.5">${t.category || '未分類'}</p><p class="text-[10px] text-slate-400 break-words whitespace-pre-wrap">${t.remarks || ''}</p></div></div><div class="flex flex-col items-end"><span class="font-bold text-sm ${t.type === 'expense' ? 'text-slate-700' : 'text-emerald-500'}">${t.type === 'expense' ? '-' : '+'} ${parseFloat(t.amount).toLocaleString()}</span><span class="text-[10px] text-slate-300">${t.project || ''}</span></div></div>`).join('')}</div></div>`;
-                const en = Object.entries(g), rec = en.slice(0, 3), old = en.slice(3); let h = rec.map(r).join('');
-                if (old.length) h += `<div class="text-center py-2 relative z-10"><div class="absolute inset-0 flex items-center"><div class="w-full border-t border-slate-200"></div></div><div class="relative flex justify-center"><button onclick="document.getElementById('older-txs').classList.remove('hidden');this.parentElement.parentElement.classList.add('hidden')" class="bg-slate-50 text-slate-400 px-4 py-1.5 rounded-full text-xs font-bold border border-slate-200 hover:bg-slate-100 shadow-sm">顯示更早紀錄 (${old.length}天) <i class="fa-solid fa-chevron-down ml-1"></i></button></div></div><div id="older-txs" class="hidden space-y-4">${old.map(r).join('')}</div>`;
+                
+                let h = currentGroups.map(r).join('');
+                
+                if (en.length > 0) {
+                    h += `<div class="flex justify-center items-center gap-4 mt-6 mb-4 select-none">
+                        <button onclick="App.changeTxPage(-1)" ${State.view.txPage <= 1 ? 'disabled' : ''} class="w-8 h-8 rounded-full bg-white shadow-soft flex items-center justify-center text-slate-500 disabled:opacity-30 disabled:cursor-not-allowed hover:bg-slate-50 transition"><i class="fa-solid fa-chevron-left text-xs"></i></button>
+                        <span class="text-xs font-bold text-slate-400">第 ${State.view.txPage} / ${totalPages} 頁</span>
+                        <button onclick="App.changeTxPage(1)" ${State.view.txPage >= totalPages ? 'disabled' : ''} class="w-8 h-8 rounded-full bg-white shadow-soft flex items-center justify-center text-slate-500 disabled:opacity-30 disabled:cursor-not-allowed hover:bg-slate-50 transition"><i class="fa-solid fa-chevron-right text-xs"></i></button>
+                    </div>`;
+                }
+
                 if (!en.length) h = '<div class="text-center py-16"><div class="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-3 text-slate-300 text-2xl"><i class="fa-solid fa-receipt"></i></div><p class="text-slate-400 text-xs">本月尚無紀錄</p></div>';
-                $('tx-list').innerHTML = h
+                $('tx-list').innerHTML = h;
+            };
+
+            App.changeTxPage = (delta) => {
+                State.view.txPage += delta;
+                App.renderTransactions();
             };
             
             App.renderAccountingBudgets = () => {
@@ -1087,7 +1273,7 @@
             App.renderDebts = () => {if(!$('debt-list'))return;const mv=$('debt-date-filter').value,[yr,mn]=mv?mv.split('-').map(Number):[new Date().getFullYear(),new Date().getMonth()+1],sm=new Date(yr,mn-1,1),em=new Date(yr,mn,0,23,59,59),ds=State.data.debts.sort((a,b)=>(b.createdAt?.seconds||0)-(a.createdAt?.seconds||0));let tr=0,tm=0,to=0,trem=0;ds.forEach(d=>{to+=parseFloat(d.totalAmount)||0;trem+=parseFloat(d.remainingAmount)||0});const gp=to>0?Math.round(((to-trem)/to)*100):0;$('debt-list').innerHTML=ds.map(d=>{tr+=parseFloat(d.remainingAmount);const p=Math.round(((d.totalAmount-d.remainingAmount)/d.totalAmount)*100),mr=State.data.transactions.filter(t=>t.type==='expense'&&t.project===d.name).reduce((s,t)=>{const dt=getTxDate(t);return(dt>=sm&&dt<=em)?s+(parseFloat(t.amount)||0):s},0);tm+=mr;const md=mr>0?`<span class="text-[10px] text-emerald-600 font-bold bg-emerald-50 px-2 py-0.5 rounded-lg">本月已還: $${mr.toLocaleString()}</span>`:'';return`<div class="bg-white p-4 rounded-2xl shadow-soft border border-slate-50 cursor-pointer active:scale-[0.99] transition relative group" onclick="App.showDetails('debt','${d.id}')"><div class="flex justify-between mb-2"><span class="font-bold text-slate-700">${d.name}</span><div class="flex items-center gap-2">${md}<span class="text-xs font-bold text-warning">${p}%</span></div></div><div class="w-full bg-slate-100 rounded-full h-2 mb-3"><div class="bg-warning h-2 rounded-full" style="width:${p}%"></div></div><div class="flex justify-between items-end"><div class="text-xs text-slate-400">剩餘 <span class="text-slate-700 font-bold text-sm">$${d.remainingAmount.toLocaleString()}</span></div><div class="flex gap-2 relative z-10"><button onclick="event.stopPropagation();App.openRepayModal('${d.id}','${d.name}')" class="text-xs bg-emerald-50 text-emerald-600 font-bold px-3 py-1.5 rounded-lg hover:bg-emerald-100 transition">還款</button></div></div><button onclick="event.stopPropagation();App.openModal('debt-modal','${d.id}')" class="absolute top-4 right-4 text-slate-300 hover:text-primary opacity-0 group-hover:opacity-100 transition"><i class="fa-solid fa-pen text-xs"></i></button></div>`}).join('');$('debt-total-remaining').innerText=`$${tr.toLocaleString()}`;$('debt-monthly-summary').innerText=`本月還款: $${tm.toLocaleString()}`;$('debt-progress-text').innerText=`${gp}%`;$('debt-progress-bar').style.width=`${gp}%`;
             $('debt-budget-list').innerHTML=State.data.debtBudgets.filter(b=>!b.isRealized).sort((a,b)=>(a.expectedDate?.seconds||0)-(b.expectedDate?.seconds||0)).map(b=>{ const dateStr = toDateStr(b.expectedDate); const tName = State.data.debts.find(d=>d.id===b.targetId)?.name||'未知'; const isAutoInterest = b.isAutoInterest; const isPenalty = b.isPenalty; const isP = isAutoInterest || isPenalty; const rowBg = isP ? 'bg-indigo-50 border-indigo-200' : (b.expectedDate?.toDate()<new Date().setHours(0,0,0,0)?'bg-rose-50 border-rose-100':'bg-white border-slate-50'); return `<li class="flex justify-between items-center p-3 rounded-xl border shadow-soft mb-2 ${rowBg}"><div class="flex items-center gap-3"><div class="w-1 bg-warning h-8 rounded-full"></div><div><span class="font-bold text-slate-700 text-xs block">${tName}</span><div class="flex gap-2 text-[10px] text-slate-400"><span>${dateStr}</span><span>${b.description}</span></div></div></div><div class="flex flex-col items-end mr-3"><span class="font-bold text-rose-500 text-xs">$${(parseFloat(b.amount)||0).toLocaleString()}</span></div><div class="flex gap-2"><button onclick="App.toCal('[還款] ${tName}: ${b.description}', '${dateStr}', '預計金額: $${b.amount}')" class="w-8 h-8 rounded-full bg-blue-50 text-blue-400 hover:bg-blue-100 flex items-center justify-center transition"><i class="fa-solid fa-calendar-plus text-xs"></i></button><button onclick="App.realizeBudget('debt','${b.id}')" class="w-8 h-8 rounded-full bg-emerald-50 text-emerald-600 hover:bg-emerald-100 flex items-center justify-center transition"><i class="fa-solid fa-check text-xs"></i></button><button onclick="App.copyBudget('debt','${b.id}')" class="w-8 h-8 rounded-full bg-indigo-50 text-indigo-400 hover:bg-indigo-100 flex items-center justify-center transition"><i class="fa-solid fa-copy text-xs"></i></button><button onclick="App.openBudgetModal('debt','${b.id}')" class="w-8 h-8 rounded-full bg-slate-50 text-slate-400 hover:bg-slate-100 flex items-center justify-center transition"><i class="fa-solid fa-pen text-xs"></i></button><button onclick="App.deleteItem('debtBudgets','${b.id}')" class="w-8 h-8 rounded-full bg-rose-50 text-rose-400 hover:bg-rose-100 flex items-center justify-center transition"><i class="fa-solid fa-trash text-xs"></i></button></div></li>`}).join('')||'<li class="text-xs text-slate-300 text-center py-4 border-2 border-dashed border-slate-100 rounded-xl">尚無還款計畫</li>'};
             
-            App.renderReports = () => {if(!$('report-project'))return;const tx=App.getAllTransactions(),ps=$('report-project'),cs=$('report-category'),cp=ps.value,cc=cs.value,pr=[...new Set(tx.map(t=>t.project).filter(Boolean))].sort();ps.innerHTML='<option value="all">全部專案</option>'+pr.map(p=>`<option value="${p}">${p}</option>`).join('');if(pr.includes(cp))ps.value=cp;const ct=[...new Set(tx.map(t=>t.category).filter(Boolean))].sort();cs.innerHTML='<option value="all">全部分類</option>'+ct.map(c=>`<option value="${c}">${c}</option>`).join('');if(ct.includes(cc))cs.value=cc;const yr=parseInt($('report-year').value),mv=$('report-month-select').value;let s,e;if(mv==='all'){s=new Date(yr,0,1);e=new Date(yr,11,31,23,59,59)}else{const m=parseInt(mv);s=new Date(yr,m-1,1);e=new Date(yr,m,0,23,59,59)}const f=tx.filter(t=>{const d=getTxDate(t);return d>=s&&d<=e&&(ps.value==='all'||t.project===ps.value)&&(cs.value==='all'||t.category===cs.value)}).sort((a,b)=>getTxDate(b)-getTxDate(a));if(State.chart)State.chart.destroy();const m={},tot=f.filter(t=>t.type==='expense').reduce((s,t)=>{const c=t.category||'未分類';m[c]=(m[c]||0)+parseFloat(t.amount);return s+parseFloat(t.amount)},0);State.chart=new Chart($('expense-chart').getContext('2d'),{type:'doughnut',data:{labels:Object.keys(m),datasets:[{data:Object.values(m),backgroundColor:['#f43f5e','#f59e0b','#10b981','#3b82f6','#6366f1','#8b5cf6','#ec4899','#64748b'],borderWidth:0,hoverOffset:4}]},options:{responsive:true,maintainAspectRatio:false,layout:{padding:10},plugins:{legend:{position:'right',labels:{font:{size:11,family:"'Noto Sans TC'"},usePointStyle:true,boxWidth:8}}}}});let html='';const im={},em={};let it=0,et=0;f.forEach(t=>{const a=parseFloat(t.amount)||0,c=t.category||'未分類';if(t.type==='expense'){em[c]=(em[c]||0)+a;et+=a}else{im[c]=(im[c]||0)+a;it+=a}});if(it>0)html+=`<li class="text-xs font-bold text-emerald-600 mb-2 pb-1 mt-2 flex justify-between items-center"><span>收入統計</span><span class="bg-emerald-100 px-2 py-0.5 rounded-lg">$${it.toLocaleString()}</span></li>`+Object.entries(im).sort((a,b)=>b[1]-a[1]).map(([k,v])=>`<li class="flex justify-between border-b border-slate-100 py-1.5 last:border-0 text-slate-600"><span>${k}</span><span class="font-bold text-emerald-600">$${v.toLocaleString()} <span class="text-[10px] text-slate-300 font-normal">(${((v/it)*100).toFixed(1)}%)</span></span></li>`).join('');if(et>0)html+=`<li class="text-xs font-bold text-rose-500 mb-2 pb-1 mt-4 flex justify-between items-center"><span>支出統計</span><span class="bg-rose-100 px-2 py-0.5 rounded-lg">$${et.toLocaleString()}</span></li>`+Object.entries(em).sort((a,b)=>b[1]-a[1]).map(([k,v])=>`<li class="flex justify-between border-b border-slate-100 py-1.5 last:border-0 text-slate-600"><span>${k}</span><span class="font-bold text-rose-500">$${v.toLocaleString()} <span class="text-[10px] text-slate-300 font-normal">(${((v/et)*100).toFixed(1)}%)</span></span></li>`).join('');if(!it&&!et)html='<li class="text-center text-slate-300 py-4">無數據</li>';$('report-stats').innerHTML=html;$('report-details').innerHTML=f.length?f.map(t=>`<li class="flex justify-between items-center py-3 border-b border-slate-50 last:border-0 group cursor-pointer hover:bg-slate-50 p-2 rounded-xl transition" onclick="App.openModal('transaction-modal','${t.id}')"><div class="flex-1 min-w-0 mr-2"><p class="text-xs text-slate-400 mb-0.5">${getTxDate(t).toLocaleDateString()} <span class="font-bold text-slate-700 ml-1">${t.category}</span></p><p class="text-[10px] text-slate-400 break-words whitespace-pre-wrap">${t.remarks||''}</p></div><div class="flex items-center gap-2"><span class="text-xs font-bold ${t.type==='expense'?'text-rose-500':'text-emerald-500'} whitespace-nowrap">${t.type==='expense'?'-':'+'} ${parseFloat(t.amount).toLocaleString()}</span><button type="button" class="w-6 h-6 rounded-full bg-slate-100 text-slate-400 hover:text-primary flex items-center justify-center opacity-0 group-hover:opacity-100 transition" onclick="event.stopPropagation();App.openModal('transaction-modal','${t.id}')"><i class="fa-solid fa-pen text-[10px]"></i></button></div></li>`).join(''):'<li class="text-center text-xs text-slate-300 py-8">無交易紀錄</li>'};
+            App.renderReports = () => {if(!$('report-project'))return;const tx=App.getAllTransactions(),ps=$('report-project'),cs=$('report-category'),cp=ps.value,cc=cs.value,pr=[...new Set(tx.map(t=>t.project).filter(Boolean))].sort();ps.innerHTML='<option value="all">全部專案</option>'+pr.map(p=>`<option value="${p}">${p}</option>`).join('');if(pr.includes(cp))ps.value=cp;const ct=[...new Set(tx.map(t=>t.category).filter(Boolean))].sort();cs.innerHTML='<option value="all">全部分類</option>'+ct.map(c=>`<option value="${c}">${c}</option>`).join('');if(ct.includes(cc))cs.value=cc;const yr=parseInt($('report-year').value),mv=$('report-month-select').value;let s,e;if(mv==='all'){s=new Date(yr,0,1);e=new Date(yr,11,31,23,59,59)}else{const m=parseInt(mv);s=new Date(yr,m-1,1);e=new Date(yr,m,0,23,59,59)}const f=tx.filter(t=>{const d=getTxDate(t);return d>=s&&d<=e&&(ps.value==='all'||t.project===ps.value)&&(cs.value==='all'||t.category===cs.value)}).sort((a,b)=>getTxDate(b)-getTxDate(a));if(State.chart)State.chart.destroy();const m={},tot=f.filter(t=>t.type==='expense').reduce((s,t)=>{const c=t.category||'未分類';m[c]=(m[c]||0)+parseFloat(t.amount);return s+parseFloat(t.amount)},0);State.chart=new Chart($('expense-chart').getContext('2d'),{type:'doughnut',data:{labels:Object.keys(m),datasets:[{data:Object.values(m),backgroundColor:['#f43f5e','#f59e0b','#10b981','#3b82f6','#6366f1','#8b5cf6','#ec4899','#64748b'],borderWidth:0,hoverOffset:4}]},options:{responsive:true,maintainAspectRatio:false,layout:{padding:10},plugins:{legend:{position:'right',labels:{font:{size:11,family:"'Noto Sans TC'"},usePointStyle:true,boxWidth:8}}}}});let html='';const im={},em={};let it=0,et=0;f.forEach(t=>{const a=parseFloat(t.amount)||0,c=t.category||'未分類';if(t.type==='expense'){em[c]=(em[c]||0)+a;et+=a}else{im[c]=(im[c]||0)+a;it+=a}});if(it>0)html+=`<li class="text-xs font-bold text-emerald-600 mb-2 pb-1 mt-2 flex justify-between items-center"><span>收入統計</span><span class="bg-emerald-100 px-2 py-0.5 rounded-lg">$${it.toLocaleString()}</span></li>`+Object.entries(im).sort((a,b)=>b[1]-a[1]).map(([k,v])=>`<li class="flex justify-between border-b border-slate-100 py-1.5 last:border-0 text-slate-600"><span>${k}</span><span class="font-bold text-emerald-600">$${v.toLocaleString()} <span class="text-[10px] text-slate-300 font-normal">(${((v/it)*100).toFixed(1)}%)</span></span></li>`).join('');if(et>0)html+=`<li class="text-xs font-bold text-rose-500 mb-2 pb-1 mt-4 flex justify-between items-center"><span>支出統計</span><span class="bg-rose-100 px-2 py-0.5 rounded-lg">$${et.toLocaleString()}</span></li>`+Object.entries(em).sort((a,b)=>b[1]-a[1]).map(([k,v])=>`<li class="flex justify-between border-b border-slate-100 py-1.5 last:border-0 text-slate-600"><span>${k}</span><span class="font-bold text-rose-500">$${v.toLocaleString()} <span class="text-[10px] text-slate-300 font-normal">(${((v/et)*100).toFixed(1)}%)</span></span></li>`).join('');if(!it&&!et)html='<li class="text-center text-slate-300 py-4">無數據</li>';$('report-stats').innerHTML=html;$('report-details').innerHTML=f.length?f.map(t=>`<li class="flex justify-between items-center py-3 border-b border-slate-50 last:border-0 group cursor-pointer hover:bg-slate-50 p-2 rounded-xl transition" onclick="App.openModal('transaction-modal','${t.id}')"><div class="flex-1 min-w-0 mr-2"><p class="text-xs text-slate-400 mb-0.5">${getTxDate(t).toLocaleDateString()} <span class="font-bold text-slate-700 ml-1">${t.category}</span></p><p class="text-[10px] text-slate-400 break-words whitespace-pre-wrap">${t.remarks||''}</p></div><div class="flex items-center gap-2"><span class="text-xs font-bold ${t.type==='expense'?'text-rose-500':'text-emerald-500'} whitespace-nowrap">${t.type==='expense'?'-':'+'} ${parseFloat(t.amount).toLocaleString()}</span><button type="button" class="w-6 h-6 rounded-full bg-slate-100 text-slate-400 hover:text-primary flex items-center justify-center opacity-0 group-hover:opacity-100 transition" onclick="event.stopPropagation();App.openModal('transaction-modal','${t.id}')"><i class="fa-solid fa-pen text-[10px]"></i></button></div></li>`).join(''):'<li class="text-center text-slate-300 py-8">無交易紀錄</li>'};
 
             App.init();
         } catch (e) {
