@@ -120,6 +120,7 @@
                         <p id="stock-monthly-invest" class="text-lg font-bold text-emerald-400">0</p>
                     </div>
                     <p class="text-[10px] text-slate-400">總成本: <span id="stock-total-cost">--</span></p>
+                    <p class="text-[10px] text-slate-400 mt-1">已實現: <span id="stock-realized-pl">--</span></p>
                 </div>
             </div>
         </div>
@@ -807,7 +808,10 @@
                 $('stock-total-assets').innerText = `$${Math.round(totalMkt).toLocaleString()}`;
                 $('stock-total-cost').innerText = `$${Math.round(totalCost).toLocaleString()}`;
                 $('stock-total-pl').innerText = `${tpl >= 0 ? '+' : ''}${Math.round(tpl).toLocaleString()}`;
-                $('stock-total-pl').className = `font-bold text-sm ${tpl >= 0 ? 'text-emerald-400' : 'text-rose-400'}`;
+                $('stock-total-pl').className = `font-bold text-lg ${tpl >= 0 ? 'text-emerald-400' : 'text-rose-400'}`;
+                
+                $('stock-realized-pl').innerText = `${totalRealized >= 0 ? '+' : ''}${Math.round(totalRealized).toLocaleString()}`;
+                $('stock-realized-pl').className = `font-bold text-sm ${totalRealized >= 0 ? 'text-emerald-400' : 'text-rose-400'}`;
                 
                 $('stock-roi').innerText = `${totalCost > 0 ? ((tpl / totalCost) * 100).toFixed(1) : 0}%`;
                 $('stock-roi').className = `font-bold text-sm ${tpl >= 0 ? 'text-emerald-400' : 'text-rose-400'}`;
@@ -840,6 +844,7 @@
                 }).join('') || '<li class="text-center text-xs text-slate-300 py-6">無交易紀錄</li>';
 
                 const act = c.querySelector('.details-actions');
+                act.innerHTML = '';
                 
                 const addBtn = document.createElement('button');
                 addBtn.className = "w-full bg-primary text-white py-3 rounded-xl font-bold text-xs mt-2 shadow-lg mb-2 active:scale-[0.98] transition";
@@ -853,8 +858,38 @@
                 priceBtn.onclick = () => App.updateStockPrice(symbol, stockInfo.currentPrice);
                 act.appendChild(priceBtn);
 
+                const delBtn = document.createElement('button');
+                delBtn.className = "w-full bg-rose-50 text-rose-500 py-3 rounded-xl font-bold text-xs shadow-sm hover:bg-rose-100 transition mt-2";
+                delBtn.innerText = "刪除此股票帳戶";
+                delBtn.onclick = () => App.deleteStockAccount(symbol);
+                act.appendChild(delBtn);
+
                 $('modal-overlay').classList.remove('hidden');
                 $('modal-overlay').classList.add('flex');
+            };
+
+            App.deleteStockAccount = async (symbol) => {
+                if (!confirm(`確定要刪除 ${symbol} 及其所有交易紀錄嗎？\n此動作無法復原。`)) return;
+                
+                try {
+                    const u = State.user.uid;
+                    const batch = writeBatch(db);
+                    
+                    // Delete stock metadata
+                    batch.delete(doc(db, `users/${u}/stocks`, symbol));
+                    
+                    // Delete all related transactions
+                    const relatedTxs = State.data.stockTxs.filter(t => t.symbol === symbol);
+                    relatedTxs.forEach(t => {
+                        batch.delete(doc(db, `users/${u}/stockTransactions`, t.id));
+                    });
+                    
+                    await batch.commit();
+                    App.closeModal();
+                } catch (e) {
+                    console.error(e);
+                    alert("刪除失敗: " + e.message);
+                }
             };
 
             App.deleteStockTransaction = async (event, id, btn) => {
