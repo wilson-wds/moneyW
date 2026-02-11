@@ -249,6 +249,7 @@
             <div class="flex bg-slate-100 p-1.5 rounded-2xl relative mb-4">
                 <button type="button" id="btn-stock-buy" class="flex-1 py-2.5 rounded-xl text-xs font-bold text-slate-500 transition-all z-10" onclick="App.toggleStockType('buy')">買入</button>
                 <button type="button" id="btn-stock-sell" class="flex-1 py-2.5 rounded-xl text-xs font-bold text-slate-500 transition-all z-10" onclick="App.toggleStockType('sell')">賣出</button>
+                <button type="button" id="btn-stock-dividend" class="flex-1 py-2.5 rounded-xl text-xs font-bold text-slate-500 transition-all z-10" onclick="App.toggleStockType('dividend')">配息</button>
             </div>
             <input type="hidden" name="type" id="stock-tx-type" value="buy">
             
@@ -263,19 +264,19 @@
                 </div>
             </div>
 
-            <div class="grid grid-cols-2 gap-4">
+            <div class="grid grid-cols-2 gap-4" id="stock-price-shares-group">
                 <div>
                     <label class="text-[10px] font-bold text-slate-400 ml-1 block mb-1">成交價</label>
-                    <input type="number" name="price" class="input-box w-full rounded-xl p-3 text-sm" placeholder="0" step="0.01" oninput="App.calcStockTotal()" required>
+                    <input type="number" name="price" class="input-box w-full rounded-xl p-3 text-sm" placeholder="0" step="0.01" oninput="App.calcStockTotal()">
                 </div>
                 <div>
                     <label class="text-[10px] font-bold text-slate-400 ml-1 block mb-1">股數</label>
-                    <input type="number" name="shares" class="input-box w-full rounded-xl p-3 text-sm" placeholder="0" oninput="App.calcStockTotal()" required>
+                    <input type="number" name="shares" class="input-box w-full rounded-xl p-3 text-sm" placeholder="0" oninput="App.calcStockTotal()">
                 </div>
             </div>
 
             <div>
-                <label class="text-[10px] font-bold text-slate-400 ml-1 block mb-1">總金額 (含手續費/稅)</label>
+                <label class="text-[10px] font-bold text-slate-400 ml-1 block mb-1" id="stock-total-label">總金額 (含手續費/稅)</label>
                 <input type="number" name="total" id="stock-total-input" class="input-box w-full rounded-xl p-3 text-sm font-bold text-slate-700" placeholder="0" required>
             </div>
 
@@ -630,9 +631,37 @@
 
             // Stock Logic
             App.toggleStockType = t => {
-                $('stock-tx-type').value = t; const b = $('btn-stock-buy'), s = $('btn-stock-sell');
-                if (t === 'buy') { b.classList.add('bg-white', 'shadow', 'text-rose-500'); b.classList.remove('text-slate-500'); s.classList.remove('bg-white', 'shadow', 'text-emerald-500'); s.classList.add('text-slate-500'); }
-                else { s.classList.add('bg-white', 'shadow', 'text-emerald-500'); s.classList.remove('text-slate-500'); b.classList.remove('bg-white', 'shadow', 'text-rose-500'); b.classList.add('text-slate-500'); }
+                $('stock-tx-type').value = t; const b = $('btn-stock-buy'), s = $('btn-stock-sell'), d = $('btn-stock-dividend');
+                const pg = $('stock-price-shares-group'), tl = $('stock-total-label'), ti = $('stock-total-input');
+                
+                // Reset styles
+                [b, s, d].forEach(btn => {
+                    btn.className = "flex-1 py-2.5 rounded-xl text-xs font-bold text-slate-500 transition-all z-10";
+                });
+
+                pg.classList.remove('hidden');
+                tl.innerText = "總金額 (含手續費/稅)";
+                ti.readOnly = false;
+
+                if (t === 'buy') { 
+                    b.classList.add('bg-white', 'shadow', 'text-rose-500'); 
+                    b.classList.remove('text-slate-500'); 
+                }
+                else if (t === 'sell') { 
+                    s.classList.add('bg-white', 'shadow', 'text-emerald-500'); 
+                    s.classList.remove('text-slate-500'); 
+                }
+                else if (t === 'dividend') {
+                    d.classList.add('bg-white', 'shadow', 'text-amber-500');
+                    d.classList.remove('text-slate-500');
+                    
+                    // Hide price/shares, focus on total amount
+                    pg.classList.add('hidden');
+                    tl.innerText = "配息總金額";
+                    // Clear price/shares values to avoid validation issues or confusion
+                    document.querySelector('[name=price]').value = '';
+                    document.querySelector('[name=shares]').value = '';
+                }
             };
 
             App.handleStockSymbolInput = async (e) => {
@@ -664,11 +693,31 @@
 
             App.handleSaveStockTx = async e => {
                 e.preventDefault(); const f = e.target, u = State.user.uid;
-                const d = { symbol: f.symbol.value.toUpperCase(), name: f.name.value, date: Timestamp.fromDate(new Date(f.date.value + 'T12:00:00')), type: f.type.value, price: parseFloat(f.price.value), quantity: parseFloat(f.shares.value), total: parseFloat(f.total.value) };
-                if (!d.symbol || !d.price || !d.quantity) return alert('請完整填寫');
+                const type = f.type.value;
+                const d = { 
+                    symbol: f.symbol.value.toUpperCase(), 
+                    name: f.name.value, 
+                    date: Timestamp.fromDate(new Date(f.date.value + 'T12:00:00')), 
+                    type: type, 
+                    total: parseFloat(f.total.value) 
+                };
+
+                if (type === 'dividend') {
+                    d.price = 0;
+                    d.quantity = 0;
+                } else {
+                    d.price = parseFloat(f.price.value);
+                    d.quantity = parseFloat(f.shares.value);
+                    if (!d.price || !d.quantity) return alert('請填寫成交價與股數');
+                }
+
+                if (!d.symbol || !d.total) return alert('請完整填寫');
+                
                 const b = writeBatch(db); b.set(doc(collection(db, `users/${u}/stockTransactions`)), { ...d, createdAt: Timestamp.now() });
                 const sRef = doc(db, `users/${u}/stocks`, d.symbol); const sDoc = State.data.stocks.find(s => s.id === d.symbol);
-                if (!sDoc) b.set(sRef, { id: d.symbol, symbol: d.symbol, name: d.name, currentPrice: d.price, updatedAt: Timestamp.now() }); else if (d.type === 'buy') b.update(sRef, { currentPrice: d.price, name: d.name || sDoc.name });
+                if (!sDoc) b.set(sRef, { id: d.symbol, symbol: d.symbol, name: d.name, currentPrice: d.price || 0, updatedAt: Timestamp.now() }); 
+                else if (d.type === 'buy') b.update(sRef, { currentPrice: d.price, name: d.name || sDoc.name });
+                
                 await b.commit(); App.closeModal();
             };
 
@@ -746,13 +795,15 @@
                         h.q += t.quantity; 
                         h.cost += t.total; 
                         h.n = t.name || h.n; 
-                    } else { 
+                    } else if (t.type === 'sell') { 
                         const avgCost = h.q > 0 ? h.cost / h.q : 0; 
                         const costSold = avgCost * t.quantity;
                         h.realized += (t.total - costSold);
                         h.q -= t.quantity; 
                         h.cost -= costSold; 
                         if (h.q < 0.0001) { h.q = 0; h.cost = 0; }
+                    } else if (t.type === 'dividend') {
+                        h.realized += t.total;
                     }
                 });
                 let totalMkt = 0, totalCost = 0, totalRealized = 0;
@@ -831,13 +882,19 @@
                 const list = c.querySelector('.details-list');
                 list.innerHTML = txs.map(t => {
                     const isBuy = t.type === 'buy';
-                    return `<li class="flex justify-between items-center py-3 px-3 rounded-xl mb-2 ${isBuy ? 'bg-indigo-50/50' : 'bg-emerald-50/50'}">
+                    const isDiv = t.type === 'dividend';
+                    const rowBg = isDiv ? 'bg-amber-50/50' : (isBuy ? 'bg-indigo-50/50' : 'bg-emerald-50/50');
+                    const amtColor = isDiv ? 'text-amber-600' : (isBuy ? 'text-indigo-600' : 'text-emerald-600');
+                    const label = isDiv ? '配息' : (isBuy ? '買入' : '賣出');
+                    const detailText = isDiv ? '' : `${t.quantity} 股 @ $${t.price}`;
+
+                    return `<li class="flex justify-between items-center py-3 px-3 rounded-xl mb-2 ${rowBg}">
                         <div>
                             <p class="text-[10px] text-slate-400 mb-0.5">${getTxDate(t).toLocaleDateString()}</p>
-                            <p class="text-xs font-bold text-slate-700">${isBuy ? '買入' : '賣出'} ${t.quantity} 股 @ $${t.price}</p>
+                            <p class="text-xs font-bold text-slate-700">${label} ${detailText}</p>
                         </div>
                         <div class="flex flex-col items-end">
-                            <span class="text-sm font-bold ${isBuy ? 'text-indigo-600' : 'text-emerald-600'}">$${t.total.toLocaleString()}</span>
+                            <span class="text-sm font-bold ${amtColor}">$${t.total.toLocaleString()}</span>
                             <button onclick="event.stopPropagation(); App.deleteStockTransaction(event, '${t.id}', this)" class="text-[10px] text-slate-300 hover:text-rose-500 mt-1 p-2"><i class="fa-solid fa-trash"></i></button>
                         </div>
                     </li>`;
