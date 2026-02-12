@@ -127,7 +127,11 @@
         
         <div class="flex justify-between items-center mb-3 px-1">
             <h3 class="font-bold text-slate-700 text-sm">持股明細</h3>
-            <button id="btn-update-all" onclick="App.updateAllStockPrices()" class="bg-indigo-50 text-primary text-[10px] font-bold px-3 py-1.5 rounded-lg hover:bg-indigo-100 transition flex items-center gap-1"><i class="fa-solid fa-rotate"></i> 更新股價</button>
+            <div class="flex gap-2">
+                <button onclick="App.copyStockReport()" class="w-8 h-8 rounded-lg bg-indigo-50 text-primary hover:bg-indigo-100 flex items-center justify-center transition" title="複製紀錄"><i class="fa-solid fa-copy text-xs"></i></button>
+                <button onclick="App.exportStockReport()" class="w-8 h-8 rounded-lg bg-indigo-50 text-primary hover:bg-indigo-100 flex items-center justify-center transition" title="匯出 CSV"><i class="fa-solid fa-file-export text-xs"></i></button>
+                <button id="btn-update-all" onclick="App.updateAllStockPrices()" class="bg-indigo-50 text-primary text-[10px] font-bold px-3 py-1.5 rounded-lg hover:bg-indigo-100 transition flex items-center gap-1"><i class="fa-solid fa-rotate"></i> 更新股價</button>
+            </div>
         </div>
         
         <div id="stock-list" class="space-y-3"></div>
@@ -1214,6 +1218,28 @@
                     e.title,
                     (e.description||'').replace(/\t|\n/g, ' ')
                 ].join("\t")).join("\n");
+                App.copyToClipboard(h + "\n" + r);
+            };
+
+            App.exportStockReport = () => { 
+                if (!confirm("匯出股市交易紀錄為 CSV (可直接匯入 Google Sheets)?")) return; 
+                const h = ["日期", "代號", "名稱", "交易類型", "成交價", "股數", "總金額"].join(",");
+                const r = State.data.stockTxs.sort((a, b) => getTxDate(b) - getTxDate(a)).map(t => {
+                    const typeStr = t.type === 'buy' ? '買入' : (t.type === 'sell' ? '賣出' : '配息');
+                    return [toDateStr(getTxDate(t)), t.symbol, t.name, typeStr, t.price || 0, t.quantity || 0, t.total || 0].map(toCSV).join(",");
+                }).join("\n");
+                const l = document.createElement("a"); 
+                l.href = URL.createObjectURL(new Blob(["\uFEFF" + h + "\n" + r], { type: 'text/csv;charset=utf-8;' })); 
+                l.download = `MoneyLite_Stocks_${new Date().toISOString().split('T')[0]}.csv`; 
+                l.click(); 
+            };
+
+            App.copyStockReport = () => {
+                const h = ["日期", "代號", "名稱", "交易類型", "成交價", "股數", "總金額"].join("\t");
+                const r = State.data.stockTxs.sort((a, b) => getTxDate(b) - getTxDate(a)).map(t => {
+                    const typeStr = t.type === 'buy' ? '買入' : (t.type === 'sell' ? '賣出' : '配息');
+                    return [toDateStr(getTxDate(t)), t.symbol, t.name, typeStr, t.price || 0, t.quantity || 0, t.total || 0].join("\t");
+                }).join("\n");
                 App.copyToClipboard(h + "\n" + r);
             };
 
