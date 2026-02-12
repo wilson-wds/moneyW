@@ -326,7 +326,7 @@
     <template id="tpl-category-selector"><div class="flex justify-between items-center mb-6"><h3 class="text-lg font-bold text-slate-800">選擇分類</h3><button onclick="App.closeSubModal()" class="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 hover:bg-slate-200"><i class="fa-solid fa-xmark"></i></button></div><div id="category-chips" class="flex flex-wrap gap-2.5 pb-4"></div></template>
     <template id="tpl-receipt-modal"><div class="flex justify-between items-center mb-4"><h3 class="text-xl font-bold text-slate-800">產生收據</h3><button onclick="App.closeSubModal()" class="w-9 h-9 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 hover:bg-slate-200 transition"><i class="fa-solid fa-xmark"></i></button></div><div class="mb-6 space-y-3"><div><label class="text-[10px] font-bold text-slate-400 block mb-1">客戶名稱 / 抬頭</label><input type="text" id="receipt-client-name" class="input-box w-full rounded-xl p-3 text-sm" placeholder="輸入客戶姓名..." oninput="App.updateReceiptPreview()"></div></div><div id="receipt-preview" class="bg-white p-6 shadow-md relative overflow-hidden mx-auto max-w-[320px] font-mono border-t-[8px] border-black"><div class="text-center border-b-2 border-dashed border-slate-800 pb-4 mb-4"><h2 class="text-2xl font-bold text-slate-800 tracking-widest">RECEIPT</h2><p class="text-xs text-slate-400 mt-1 uppercase tracking-widest">Official Record</p></div><div class="space-y-4 text-sm text-slate-600"><div class="flex justify-between"><span class="text-slate-400 text-xs">DATE</span><span id="r-date" class="font-bold text-slate-800"></span></div><div class="flex justify-between"><span class="text-slate-400 text-xs">NO.</span><span id="r-id" class="font-bold text-[10px] text-slate-500"></span></div><div class="pt-2"><span class="text-slate-400 block text-xs mb-1">RECEIVED FROM</span><span id="r-client" class="font-bold text-lg block border-b border-slate-800 pb-1 text-slate-800 min-h-[1.75rem]"></span></div><div class="pt-2"><span class="text-slate-400 block text-xs mb-1">FOR</span><span id="r-desc" class="font-bold block text-slate-700"></span></div><div class="flex justify-between items-end pt-4 border-t-2 border-dashed border-slate-800 mt-4"><span class="text-slate-400 font-bold text-xs">AMOUNT</span><span id="r-amount" class="text-2xl font-bold text-slate-800"></span></div></div><div class="mt-8 pt-8 text-center relative"><div class="absolute top-8 left-0 right-0 border-t border-slate-800"></div><p class="text-[10px] text-slate-300 uppercase tracking-widest bg-white relative z-10 inline-block px-2 -mt-2">Authorized Signature</p><p class="text-sm font-bold text-slate-500 mt-2" id="r-signer">威爾設計</p></div><div class="mt-6 text-center"><img src="https://i.ibb.co/xt6cCqVS/grok-image-38ff8969-e1d9-4592-98d6-1366fb857c2c-image-edit-0-1.jpg" alt="Studio Logo" class="h-32 mx-auto opacity-80 mix-blend-multiply"></div><div class="absolute bottom-0 left-0 w-full h-3 receipt-jagged"></div></div><div class="mt-6 flex gap-3"><button onclick="App.printReceipt()" class="flex-1 bg-slate-800 text-white py-3.5 rounded-2xl font-bold text-xs hover:bg-slate-900 transition flex items-center justify-center gap-2"><i class="fa-solid fa-print"></i> 列印 / 儲存</button><button onclick="App.closeSubModal()" class="flex-1 bg-slate-100 text-slate-500 py-3.5 rounded-2xl font-bold text-xs hover:bg-slate-200 transition">完成</button></div></template>
 
-    <template id="tpl-details-modal"><div class="sticky top-0 bg-white z-10 pb-4 border-b border-slate-50 mb-4 flex justify-between items-center"><h3 class="text-lg font-bold text-slate-800 details-title truncate pr-4"></h3><button type="button" onclick="App.closeModal()" class="w-8 h-8 rounded-full bg-slate-50 flex items-center justify-center text-slate-400 hover:bg-slate-100 flex-shrink-0"><i class="fa-solid fa-xmark"></i></button></div><div class="max-h-[60vh] overflow-y-auto hide-scrollbar"><div class="details-budget-section mb-6 hidden"><h4 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">預算計畫</h4><ul class="details-budget-list space-y-2"></ul></div><div><h4 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">歷史紀錄</h4><ul class="details-list space-y-3"><li class="text-center text-slate-300 py-6 text-xs">載入中...</li></ul></div></div><div class="details-actions mt-4 pt-4 border-t border-slate-100 flex flex-col gap-2 sticky bottom-0 bg-white pb-2"></div></template>
+    <template id="tpl-details-modal"><div class="sticky top-0 bg-white z-10 pb-4 border-b border-slate-50 mb-4 flex justify-between items-center gap-2"><h3 class="text-lg font-bold text-slate-800 details-title truncate flex-1 pr-1"></h3><div class="flex items-center gap-1" id="details-header-actions"></div><button type="button" onclick="App.closeModal()" class="w-8 h-8 rounded-full bg-slate-50 flex items-center justify-center text-slate-400 hover:bg-slate-100 flex-shrink-0 ml-1"><i class="fa-solid fa-xmark"></i></button></div><div class="max-h-[60vh] overflow-y-auto hide-scrollbar"><div class="details-budget-section mb-6 hidden"><h4 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">預算計畫</h4><ul class="details-budget-list space-y-2"></ul></div><div><h4 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">歷史紀錄</h4><ul class="details-list space-y-3"><li class="text-center text-slate-300 py-6 text-xs">載入中...</li></ul></div></div><div class="details-actions mt-4 pt-4 border-t border-slate-100 flex flex-col gap-2 sticky bottom-0 bg-white pb-2"></div></template>
 
     <script type="module">
         import {initializeApp} from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
@@ -983,6 +983,15 @@
                 }
             };
             
+            App.getAccountTxs = (type, id, name) => {
+                const isInv = type === 'investment';
+                const allTxs = App.getAllTransactions();
+                return allTxs.filter(t => {
+                    if (isInv) return t.project === name || t.legacyInvId === id;
+                    return t.project === name;
+                });
+            };
+
             App.showDetails = (type, id) => {
                 try {
                     const isInv = type === 'investment';
@@ -994,11 +1003,15 @@
                     c.innerHTML = $('tpl-details-modal').innerHTML;
                     c.querySelector('.details-title').innerText = item.name;
 
-                    const allTxs = App.getAllTransactions();
-                    const relatedTxs = allTxs.filter(t => {
-                        if (isInv) return t.project === item.name || t.legacyInvId === id;
-                        return t.project === item.name;
-                    });
+                    const headerActions = c.querySelector('#details-header-actions');
+                    if(headerActions) {
+                        headerActions.innerHTML = `
+                            <button onclick="App.copyAccountReport('${type}', '${id}', '${item.name}')" class="w-8 h-8 rounded-lg bg-indigo-50 text-primary hover:bg-indigo-100 flex items-center justify-center transition" title="複製紀錄"><i class="fa-solid fa-copy text-xs"></i></button>
+                            <button onclick="App.exportAccountReport('${type}', '${id}', '${item.name}')" class="w-8 h-8 rounded-lg bg-indigo-50 text-primary hover:bg-indigo-100 flex items-center justify-center transition" title="匯出 CSV"><i class="fa-solid fa-file-export text-xs"></i></button>
+                        `;
+                    }
+
+                    const relatedTxs = App.getAccountTxs(type, id, item.name);
 
                     const list = c.querySelector('.details-list');
                     list.innerHTML = relatedTxs.map(t => {
@@ -1217,6 +1230,35 @@
                     toDateStr(getTxDate(e)),
                     e.title,
                     (e.description||'').replace(/\t|\n/g, ' ')
+                ].join("\t")).join("\n");
+                App.copyToClipboard(h + "\n" + r);
+            };
+
+            App.exportAccountReport = (type, id, name) => { 
+                if (!confirm(`匯出 [${name}] 紀錄為 CSV (可直接匯入 Google Sheets)?`)) return; 
+                const h = ["日期", "分類", "備註", "類型", "金額"].join(",");
+                const r = App.getAccountTxs(type, id, name).map(t => [
+                    toDateStr(t.timestamp), 
+                    t.category, 
+                    t.remarks, 
+                    t.type==='expense'?'支出':'收入', 
+                    (t.type==='expense'?'-':'')+t.amount
+                ].map(toCSV).join(",")).join("\n");
+                
+                const l = document.createElement("a"); 
+                l.href = URL.createObjectURL(new Blob(["\uFEFF" + h + "\n" + r], { type: 'text/csv;charset=utf-8;' })); 
+                l.download = `MoneyLite_${name}_${new Date().toISOString().split('T')[0]}.csv`; 
+                l.click(); 
+            };
+
+            App.copyAccountReport = (type, id, name) => {
+                const h = ["日期", "分類", "備註", "類型", "金額"].join("\t");
+                const r = App.getAccountTxs(type, id, name).map(t => [
+                    toDateStr(t.timestamp),
+                    t.category,
+                    (t.remarks||'').replace(/\t|\n/g, ' '),
+                    t.type==='expense'?'支出':'收入',
+                    (t.type==='expense'?'-':'')+t.amount
                 ].join("\t")).join("\n");
                 App.copyToClipboard(h + "\n" + r);
             };
