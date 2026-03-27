@@ -45,8 +45,10 @@
         <header class="bg-white/80 backdrop-blur-md sticky top-0 px-5 py-3 flex justify-between items-center z-20 shrink-0 border-b border-slate-100/50">
             <h1 class="font-bold text-slate-800 flex items-center gap-2.5 text-lg"><img id="header-icon" src="https://i.ibb.co/PvVffGgL/image.png" class="h-10 w-auto object-contain"><span id="page-title" class="hidden">總覽</span></h1>
             <div class="flex items-center gap-3">
+                <button onclick="App.openLedgerModal()" class="flex items-center gap-1.5 text-xs font-bold text-slate-600 bg-slate-100 hover:bg-slate-200 px-3 py-1.5 rounded-lg transition group shadow-sm">
+                    <i class="fa-solid fa-book-open text-primary group-active:scale-95 transition"></i> <span id="current-ledger-name" class="max-w-[70px] sm:max-w-[100px] truncate">載入中</span>
+                </button>
                 <button onclick="App.openNotificationModal()" class="relative text-slate-400 hover:text-primary p-1 group"><i class="fa-solid fa-bell text-lg group-active:scale-95"></i><span id="notification-badge" class="absolute top-0.5 right-0.5 w-2.5 h-2.5 bg-rose-500 rounded-full border-2 border-white hidden animate-bounce"></span></button>
-                <div id="user-info" class="hidden sm:block text-xs font-bold text-slate-400 bg-slate-100 px-2 py-1 rounded-lg"></div>
                 <button onclick="App.logout()" class="text-slate-400 hover:text-danger p-1"><i class="fa-solid fa-right-from-bracket"></i></button>
             </div>
         </header>
@@ -84,6 +86,23 @@
     <div id="sub-modal-overlay" class="fixed inset-0 bg-slate-900/30 z-[60] hidden flex items-end sm:items-center justify-center backdrop-blur-sm transition-all"><div id="sub-modal-content" class="bg-white w-full max-w-[28rem] rounded-t-[2rem] sm:rounded-2xl p-6 shadow-2xl animate-slide-up max-h-[70vh] overflow-y-auto hide-scrollbar"></div></div>
 
     <!-- TEMPLATES -->
+    <template id="tpl-ledger-modal">
+        <div class="flex justify-between items-center mb-6">
+            <h3 class="text-xl font-bold text-slate-800">選擇帳本</h3>
+            <button onclick="App.closeModal()" class="w-9 h-9 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 hover:bg-slate-200 transition"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        <div id="ledger-list" class="space-y-3 mb-6 max-h-[50vh] overflow-y-auto hide-scrollbar px-1">
+            <!-- 帳本列表會在這裡生成 -->
+        </div>
+        <div class="border-t border-slate-100 pt-5">
+            <h4 class="text-xs font-bold text-slate-400 mb-3 ml-1">建立全新帳務</h4>
+            <form onsubmit="App.handleAddLedger(event)" class="flex gap-2">
+                <input type="text" name="name" class="input-box flex-1 rounded-xl p-3 text-sm" placeholder="輸入新帳本名稱..." required>
+                <button type="submit" class="bg-slate-800 text-white px-5 rounded-xl font-bold text-sm hover:bg-slate-900 transition active:scale-[0.98]">新增</button>
+            </form>
+        </div>
+    </template>
+
     <template id="tpl-notifications"><div class="flex justify-between items-center mb-6"><h3 class="text-xl font-bold text-slate-800">提醒事項</h3><button onclick="App.closeModal()" class="w-9 h-9 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 hover:bg-slate-200"><i class="fa-solid fa-xmark"></i></button></div><div id="notification-list" class="space-y-3 pb-4"></div><div id="no-notification" class="hidden text-center py-10"><div class="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-3 text-slate-300"><i class="fa-regular fa-bell-slash text-xl"></i></div><p class="text-slate-400 text-xs">目前沒有待辦事項</p></div></template>
 
     <template id="tpl-accounting">
@@ -331,7 +350,7 @@
     <script type="module">
         import {initializeApp} from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import {getAuth,signInAnonymously,onAuthStateChanged,GoogleAuthProvider,signInWithPopup,signOut} from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import {getFirestore,collection,addDoc,query,onSnapshot,doc,deleteDoc,updateDoc,increment,Timestamp,writeBatch,getDocs,getDoc} from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import {getFirestore,collection,addDoc,query,onSnapshot,doc,deleteDoc,updateDoc,increment,Timestamp,writeBatch,getDocs,getDoc,setDoc} from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
         
         const FIREBASE_API_KEY = "AIzaSyAqFHm6Bn35m8xauc50ZvNNy_rxIZzCMTE";
         const GEMINI_API_KEY = "AIzaSyAze_WqtUmWv7i2xwQHosePZtUI9NZvr0w";
@@ -344,29 +363,121 @@
             const auth=getAuth(app);
             const db=getFirestore(app);
 
-            const State={user:null,data:{transactions:[],debts:[],investments:[],stocks:[],stockTxs:[],events:[],investmentBudgets:[],debtBudgets:[],accountingBudgets:[],legacyTxs:{}},listeners:[],chart:null,categories:{expense:['飲食','交通','居住','娛樂','購物','醫療','教育','投資','其他'],income:['薪資','獎金','投資','兼職','其他']},view:{invTab:'active',currentTab:'accounting', txPage: 1, txPageSize: 7},reminders:[]};
+            const State={user:null,ledgers:[],currentLedger:'default',data:{transactions:[],debts:[],investments:[],stocks:[],stockTxs:[],events:[],investmentBudgets:[],debtBudgets:[],accountingBudgets:[],legacyTxs:{}},listeners:[],chart:null,categories:{expense:['飲食','交通','居住','娛樂','購物','醫療','教育','投資','其他'],income:['薪資','獎金','投資','兼職','其他']},view:{invTab:'active',currentTab:'accounting', txPage: 1, txPageSize: 7},reminders:[]};
             const $=i=>document.getElementById(i);
             const Q=s=>document.querySelector(s);
             const getTxDate=t=>{if(!t)return new Date();try{if(t.timestamp?.toDate)return t.timestamp.toDate();if(t.date){if(t.date.toDate)return t.date.toDate();const d=new Date(t.date);if(!isNaN(d))return d}if(t.timestamp?.seconds)return new Date(t.timestamp.seconds*1000)}catch(e){}return new Date()};
             const toDateStr=d=>{const dt=(d instanceof Date)?d:getTxDate({timestamp:d});return dt.toISOString().split('T')[0]};
+            
+            // Helper for Ledger Path dynamically isolation
+            App.path = (c) => State.currentLedger === 'default' ? `users/${State.user.uid}/${c}` : `users/${State.user.uid}/ledgers/${State.currentLedger}/${c}`;
+
             const STOCK_MAP = {
                 '0050':'元大台灣50','0056':'元大高股息','00878':'國泰永續高股息','00929':'復華台灣科技優息','00919':'群益台灣精選高息','00940':'元大台灣價值高息','006208':'富邦台50','2330':'台積電','2317':'鴻海','2337':'旺宏','2454':'聯發科','2308':'台達電','2382':'廣達','2881':'富邦金','2882':'國泰金','2412':'中華電','1301':'台塑','1303':'南亞','2002':'中鋼','2303':'聯電','2891':'中信金','2886':'兆豐金','2884':'玉山金','2892':'第一金','5880':'合庫金','2885':'元大金','2880':'華南金','2883':'開發金','2887':'台新金','2890':'永豐金','1216':'統一','2912':'統一超','3008':'大立光','1101':'台泥','1102':'亞泥','2327':'國巨','2357':'華碩','2395':'研華','3045':'台灣大','4904':'遠傳','2603':'長榮','2609':'陽明','2615':'萬海','9910':'豐泰','9904':'寶成','1402':'遠東新','6505':'台塑化','2408':'南亞科','2344':'華邦電','2409':'友達','3481':'群創','2353':'宏碁','2324':'仁寶','3231':'緯創','3711':'日月光投控','5871':'中租-KY','1605':'華新','2379':'瑞昱','3034':'聯詠','2345':'智邦','2377':'微星','2301':'光寶科','4938':'和碩','3037':'欣興','2474':'可成','4958':'臻鼎-KY','6415':'矽力-KY','2492':'華新科'
             };
 
             // --- App Implementation ---
-            App.init = () => onAuthStateChanged(auth, u => {
+            App.init = () => onAuthStateChanged(auth, async u => {
                 State.user = u;
                 $('login-view').classList.toggle('hidden', !!u);
                 $('app-container').classList.toggle('hidden', !u);
                 if (u) {
-                    $('user-info').innerText = u.isAnonymous ? '訪客' : u.displayName;
+                    try {
+                        const profileRef = doc(db, `users/${u.uid}/settings/profile`);
+                        const profileSnap = await getDoc(profileRef);
+                        if (profileSnap.exists() && profileSnap.data().ledgers) {
+                            const p = profileSnap.data();
+                            State.ledgers = p.ledgers;
+                            State.currentLedger = p.currentLedger || 'default';
+                        } else {
+                            State.ledgers = [{id: 'default', name: '預設帳本'}];
+                            State.currentLedger = 'default';
+                            setDoc(profileRef, { ledgers: State.ledgers, currentLedger: State.currentLedger }).catch(e => console.warn(e));
+                        }
+                    } catch(e) {
+                        console.error("Profile load err", e);
+                        State.ledgers = [{id: 'default', name: '預設帳本'}];
+                        State.currentLedger = 'default';
+                    }
+                    
+                    const curL = State.ledgers.find(l => l.id === State.currentLedger) || State.ledgers[0];
+                    if ($('current-ledger-name')) $('current-ledger-name').innerText = curL.name;
+
                     App.switchTab('accounting', Q('#nav-accounting'));
                     setTimeout(() => App.startListeners(u.uid), 100);
-                } else App.stopListeners();
+                } else {
+                    App.stopListeners();
+                }
             });
 
+            // Ledger Management Methods
+            App.openLedgerModal = () => {
+                const c = $('modal-content'); 
+                c.innerHTML = $('tpl-ledger-modal').innerHTML;
+                App.renderLedgerList();
+                $('modal-overlay').classList.remove('hidden'); 
+                $('modal-overlay').classList.add('flex');
+            };
+
+            App.renderLedgerList = () => {
+                const list = $('ledger-list');
+                if(!list) return;
+                list.innerHTML = State.ledgers.map(l => `
+                    <div class="flex justify-between items-center p-3 rounded-xl border ${l.id === State.currentLedger ? 'border-primary bg-indigo-50/50' : 'border-slate-100 bg-white'} cursor-pointer hover:border-primary transition" onclick="App.switchLedger('${l.id}')">
+                        <div class="flex items-center gap-3">
+                            <div class="w-8 h-8 rounded-full ${l.id === State.currentLedger ? 'bg-primary text-white' : 'bg-slate-100 text-slate-400'} flex items-center justify-center font-bold">
+                                <i class="fa-solid fa-book"></i>
+                            </div>
+                            <span class="font-bold ${l.id === State.currentLedger ? 'text-primary' : 'text-slate-700'}">${l.name}</span>
+                        </div>
+                        ${l.id !== 'default' ? `<button type="button" onclick="event.stopPropagation(); App.deleteLedger('${l.id}')" class="w-8 h-8 flex items-center justify-center text-slate-300 hover:text-rose-500 transition"><i class="fa-solid fa-trash text-xs"></i></button>` : ''}
+                    </div>
+                `).join('');
+            };
+
+            App.switchLedger = (id) => {
+                if(State.currentLedger === id) return App.closeModal();
+                State.currentLedger = id;
+                $('current-ledger-name').innerText = State.ledgers.find(l => l.id === id)?.name || '未知帳本';
+                
+                updateDoc(doc(db, `users/${State.user.uid}/settings/profile`), { currentLedger: id });
+                App.closeModal();
+                
+                App.stopListeners();
+                State.data = {transactions:[],debts:[],investments:[],stocks:[],stockTxs:[],events:[],investmentBudgets:[],debtBudgets:[],accountingBudgets:[],legacyTxs:{}};
+                App.startListeners(State.user.uid);
+            };
+
+            App.handleAddLedger = (e) => {
+                e.preventDefault();
+                const name = e.target.name.value;
+                const newId = 'l_' + Date.now().toString(36);
+                State.ledgers.push({ id: newId, name });
+                
+                updateDoc(doc(db, `users/${State.user.uid}/settings/profile`), { ledgers: State.ledgers });
+                
+                e.target.reset();
+                App.renderLedgerList();
+            };
+
+            App.deleteLedger = (id) => {
+                if(!confirm('確定要刪除此帳本嗎？此帳本相關的所有資料將會無法存取！')) return;
+                State.ledgers = State.ledgers.filter(l => l.id !== id);
+                if (State.currentLedger === id) {
+                    State.currentLedger = 'default';
+                    $('current-ledger-name').innerText = State.ledgers.find(l => l.id === 'default')?.name;
+                    updateDoc(doc(db, `users/${State.user.uid}/settings/profile`), { currentLedger: 'default', ledgers: State.ledgers });
+                    App.stopListeners();
+                    State.data = {transactions:[],debts:[],investments:[],stocks:[],stockTxs:[],events:[],investmentBudgets:[],debtBudgets:[],accountingBudgets:[],legacyTxs:{}};
+                    App.startListeners(State.user.uid);
+                } else {
+                    updateDoc(doc(db, `users/${State.user.uid}/settings/profile`), { ledgers: State.ledgers });
+                }
+                App.renderLedgerList();
+            };
+
             App.startListeners = uid => {
-                const l = (c, k) => State.listeners.push(onSnapshot(query(collection(db, `users/${uid}/${c}`)), s => {
+                const l = (c, k) => State.listeners.push(onSnapshot(query(collection(db, App.path(c))), s => {
                     State.data[k] = s.docs.map(d => ({ id: d.id, ...d.data() }));
                     App.calculateReminders();
                     App.refreshCurrentView();
@@ -374,7 +485,7 @@
                 }));
                 ['transactions', 'debts', 'events', 'debtBudgets', 'accountingBudgets', 'stocks', 'stockTransactions'].forEach(k => l(k, k === 'stockTransactions' ? 'stockTxs' : k));
                 
-                State.listeners.push(onSnapshot(query(collection(db, `users/${uid}/debtBudgets`)), s => {
+                State.listeners.push(onSnapshot(query(collection(db, App.path('debtBudgets'))), s => {
                     const list = s.docs.map(d => ({ id: d.id, ...d.data() }));
                     State.data.debtBudgets = list;
                     App.checkAutoBudgetItems(list, 'debt');
@@ -382,7 +493,7 @@
                     App.refreshCurrentView();
                 }));
 
-                State.listeners.push(onSnapshot(query(collection(db, `users/${uid}/investmentBudgets`)), s => {
+                State.listeners.push(onSnapshot(query(collection(db, App.path('investmentBudgets'))), s => {
                     const list = s.docs.map(d => ({ id: d.id, ...d.data() }));
                     State.data.investmentBudgets = list;
                     App.checkAutoBudgetItems(list, 'investment');
@@ -390,12 +501,12 @@
                     App.refreshCurrentView();
                 }));
                 
-                State.listeners.push(onSnapshot(query(collection(db, `users/${uid}/investments`)), async s => {
+                State.listeners.push(onSnapshot(query(collection(db, App.path('investments'))), async s => {
                     State.data.investments = s.docs.map(d => ({ id: d.id, ...d.data() }));
                     App.processAutoInterest(State.data.investments, 'investment');
                     for (let i of State.data.investments) {
                         if (!State.data.legacyTxs[i.id]) try {
-                            const sub = await getDocs(collection(db, `users/${uid}/investments/${i.id}/transactions`));
+                            const sub = await getDocs(collection(db, `${App.path('investments')}/${i.id}/transactions`));
                             State.data.legacyTxs[i.id] = sub.docs.map(d => {
                                 const v = d.data();
                                 return { id: d.id, ...v, timestamp: v.timestamp || v.date || Timestamp.now(), isLegacy: true, legacyInvId: i.id };
@@ -447,7 +558,7 @@
                             while (c <= t) {
                                 // Check if penalty for this specific date exists
                                 if (!ex.some(p => p.isPenalty && p.parentBudgetId === i.id && getTxDate({ timestamp: p.expectedDate }).getTime() === c.getTime())) {
-                                    b.set(doc(collection(db, `users/${State.user.uid}/${colName}`)), { 
+                                    b.set(doc(collection(db, App.path(colName))), { 
                                         targetId: i.targetId, 
                                         parentBudgetId: i.id, 
                                         amount: parseFloat(i.dailyPenalty), 
@@ -470,7 +581,7 @@
                         let nd = new Date(ld); nd.setDate(nd.getDate() + parseInt(i.recurringDays));
                         while (nd <= t) {
                             if (!ex.some(x => x.isRecurringItem && x.parentBudgetId === i.id && getTxDate({ timestamp: x.expectedDate }).getTime() === nd.getTime())) {
-                                b.set(doc(collection(db, `users/${State.user.uid}/${colName}`)), { 
+                                b.set(doc(collection(db, App.path(colName))), { 
                                     targetId: i.targetId, 
                                     parentBudgetId: i.id, 
                                     amount: parseFloat(i.amount), 
@@ -481,7 +592,7 @@
                                     isRecurringItem: true, 
                                     createdAt: Timestamp.now() 
                                 });
-                                b.update(doc(db, `users/${State.user.uid}/${colName}`, i.id), { lastRecurringDate: Timestamp.fromDate(new Date(nd)) }); 
+                                b.update(doc(db, App.path(colName), i.id), { lastRecurringDate: Timestamp.fromDate(new Date(nd)) }); 
                                 has = true;
                             }
                             nd.setDate(nd.getDate() + parseInt(i.recurringDays));
@@ -516,7 +627,7 @@
                             const interestAmount = Math.round(principal * monthlyRate);
 
                             if (interestAmount > 0) {
-                                b.set(doc(collection(db, `users/${State.user.uid}/${colName}`)), {
+                                b.set(doc(collection(db, App.path(colName))), {
                                     targetId: item.id,
                                     amount: interestAmount,
                                     expectedDate: Timestamp.now(),
@@ -596,28 +707,28 @@
             };
 
             App.handleSaveTransaction = async e => {
-                e.preventDefault(); const f = e.target, u = State.user.uid, id = f.id.value, lid = f.legacy_inv_id.value, d = new Date(f.date.value + 'T12:00:00'), amt = parseFloat(f.amount.value);
+                e.preventDefault(); const f = e.target, id = f.id.value, lid = f.legacy_inv_id.value, d = new Date(f.date.value + 'T12:00:00'), amt = parseFloat(f.amount.value);
                 if (f.isUnrealized?.checked) {
-                    const b = writeBatch(db); b.set(doc(collection(db, `users/${u}/accountingBudgets`)), { targetId: f.category.value, amount: amt, expectedDate: Timestamp.fromDate(d), description: f.remarks.value + (f.project.value ? ` [${f.project.value}]` : ''), type: f.type.value, isRealized: false, createdAt: Timestamp.now() });
-                    if (id) (lid && lid !== 'undefined') ? b.delete(doc(db, `users/${u}/investments/${lid}/transactions`, id)) : b.delete(doc(db, `users/${u}/transactions`, id));
+                    const b = writeBatch(db); b.set(doc(collection(db, App.path('accountingBudgets'))), { targetId: f.category.value, amount: amt, expectedDate: Timestamp.fromDate(d), description: f.remarks.value + (f.project.value ? ` [${f.project.value}]` : ''), type: f.type.value, isRealized: false, createdAt: Timestamp.now() });
+                    if (id) (lid && lid !== 'undefined') ? b.delete(doc(db, `${App.path('investments')}/${lid}/transactions`, id)) : b.delete(doc(db, App.path('transactions'), id));
                     await b.commit(); App.closeModal(); return;
                 }
                 const dt = { type: f.type.value, amount: amt, category: f.category.value, remarks: f.remarks.value, timestamp: Timestamp.fromDate(d), project: f.project.value }, bt = writeBatch(db);
-                if (dt.type === 'expense' && dt.project && !id) { const dbItem = State.data.debts.find(x => x.name === dt.project); if (dbItem) bt.update(doc(db, `users/${u}/debts`, dbItem.id), { remainingAmount: increment(-amt) }); }
-                if (lid && id) { bt.set(doc(collection(db, `users/${u}/transactions`)), dt); bt.delete(doc(db, `users/${u}/investments/${lid}/transactions`, id)); if (State.data.legacyTxs[lid]) State.data.legacyTxs[lid] = State.data.legacyTxs[lid].filter(t => t.id !== id); } else id ? await updateDoc(doc(db, `users/${u}/transactions`, id), dt) : await addDoc(collection(db, `users/${u}/transactions`), dt);
+                if (dt.type === 'expense' && dt.project && !id) { const dbItem = State.data.debts.find(x => x.name === dt.project); if (dbItem) bt.update(doc(db, App.path('debts'), dbItem.id), { remainingAmount: increment(-amt) }); }
+                if (lid && id) { bt.set(doc(collection(db, App.path('transactions'))), dt); bt.delete(doc(db, `${App.path('investments')}/${lid}/transactions`, id)); if (State.data.legacyTxs[lid]) State.data.legacyTxs[lid] = State.data.legacyTxs[lid].filter(t => t.id !== id); } else id ? await updateDoc(doc(db, App.path('transactions'), id), dt) : await addDoc(collection(db, App.path('transactions')), dt);
                 await bt.commit(); App.closeModal();
             };
 
             App.handleSaveInvestment = async e => {
                 e.preventDefault(); const f = e.target, d = { name: f.name.value, initialValue: parseFloat(f.initial.value) || 0, annualRate: parseFloat(f.annualRate.value) || 0, isArchived: f.isArchived.checked };
                 if (!f.id.value) { d.marketValue = d.initialValue; d.createdAt = Timestamp.now(); }
-                f.id.value ? await updateDoc(doc(db, `users/${State.user.uid}/investments`, f.id.value), d) : (await addDoc(collection(db, `users/${State.user.uid}/investments`), d) && d.initialValue > 0 && await addDoc(collection(db, `users/${State.user.uid}/transactions`), { type: 'expense', amount: d.initialValue, category: '投資', project: f.name.value, remarks: '初始投入', timestamp: Timestamp.now() })); App.closeModal();
+                f.id.value ? await updateDoc(doc(db, App.path('investments'), f.id.value), d) : (await addDoc(collection(db, App.path('investments')), d) && d.initialValue > 0 && await addDoc(collection(db, App.path('transactions')), { type: 'expense', amount: d.initialValue, category: '投資', project: f.name.value, remarks: '初始投入', timestamp: Timestamp.now() })); App.closeModal();
             };
 
             App.handleSaveDebt = async e => {
                 e.preventDefault(); const f = e.target, d = { name: f.name.value, totalAmount: parseFloat(f.total.value), annualRate: parseFloat(f.annualRate.value) || 0 };
                 if (f.remaining?.value) d.remainingAmount = parseFloat(f.remaining.value); else if (!f.id.value) { d.remainingAmount = parseFloat(f.total.value); d.createdAt = Timestamp.now(); }
-                f.id.value ? await updateDoc(doc(db, `users/${State.user.uid}/debts`, f.id.value), d) : await addDoc(collection(db, `users/${State.user.uid}/debts`), d); App.closeModal();
+                f.id.value ? await updateDoc(doc(db, App.path('debts'), f.id.value), d) : await addDoc(collection(db, App.path('debts')), d); App.closeModal();
             };
 
             App.handleSaveBudget = async e => {
@@ -625,12 +736,12 @@
                 const d = { targetId: tv, amount: parseFloat(f.amount.value), expectedDate: Timestamp.fromDate(new Date(f.date.value + 'T12:00:00')), description: f.desc.value, type: f.type.value || 'expense' };
                 if (ctx === 'investment' || ctx === 'debt') { d.enablePenalty = f.enablePenalty.checked; d.dailyPenalty = d.enablePenalty ? parseFloat(f.dailyPenalty.value) || 0 : 0; d.enableRecurring = f.enableRecurring.checked; d.recurringDays = d.enableRecurring ? parseInt(f.recurringDays.value) || 0 : 0; }
                 if (!f.id.value) { d.isRealized = false; d.createdAt = Timestamp.now(); }
-                f.id.value ? await updateDoc(doc(db, `users/${State.user.uid}/${col}`, f.id.value), d) : await addDoc(collection(db, `users/${State.user.uid}/${col}`), d); App.closeModal();
+                f.id.value ? await updateDoc(doc(db, App.path(col), f.id.value), d) : await addDoc(collection(db, App.path(col)), d); App.closeModal();
             };
 
             App.handleSaveEvent = async e => {
                 e.preventDefault(); const f = e.target, d = { title: f.title.value, description: f.desc.value, date: Timestamp.fromDate(new Date(f.date.value)) };
-                f.id.value ? await updateDoc(doc(db, `users/${State.user.uid}/events`, f.id.value), d) : await addDoc(collection(db, `users/${State.user.uid}/events`), d); App.closeModal();
+                f.id.value ? await updateDoc(doc(db, App.path('events'), f.id.value), d) : await addDoc(collection(db, App.path('events')), d); App.closeModal();
             };
 
             // Stock Logic
@@ -696,7 +807,7 @@
             App.calcStockTotal = () => { const p = parseFloat(document.querySelector('[name=price]').value) || 0, q = parseFloat(document.querySelector('[name=shares]').value) || 0; $('stock-total-input').value = Math.round(p * q); };
 
             App.handleSaveStockTx = async e => {
-                e.preventDefault(); const f = e.target, u = State.user.uid;
+                e.preventDefault(); const f = e.target;
                 const type = f.type.value;
                 const d = { 
                     symbol: f.symbol.value.toUpperCase(), 
@@ -717,8 +828,8 @@
 
                 if (!d.symbol || !d.total) return alert('請完整填寫');
                 
-                const b = writeBatch(db); b.set(doc(collection(db, `users/${u}/stockTransactions`)), { ...d, createdAt: Timestamp.now() });
-                const sRef = doc(db, `users/${u}/stocks`, d.symbol); const sDoc = State.data.stocks.find(s => s.id === d.symbol);
+                const b = writeBatch(db); b.set(doc(collection(db, App.path('stockTransactions'))), { ...d, createdAt: Timestamp.now() });
+                const sRef = doc(db, App.path('stocks'), d.symbol); const sDoc = State.data.stocks.find(s => s.id === d.symbol);
                 if (!sDoc) b.set(sRef, { id: d.symbol, symbol: d.symbol, name: d.name, currentPrice: d.price || 0, updatedAt: Timestamp.now() }); 
                 else if (d.type === 'buy') b.update(sRef, { currentPrice: d.price, name: d.name || sDoc.name });
                 
@@ -741,7 +852,7 @@
                 } catch(e) { console.error(e); }
 
                 const p=prompt(`更新 ${s} 現價 (AI 建議: ${suggested}):`,suggested);
-                if(p&&!isNaN(p))await updateDoc(doc(db,`users/${State.user.uid}/stocks`,s),{currentPrice:parseFloat(p),updatedAt:Timestamp.now()})
+                if(p&&!isNaN(p))await updateDoc(doc(db,App.path('stocks'),s),{currentPrice:parseFloat(p),updatedAt:Timestamp.now()})
             };
 
             App.updateAllStockPrices = async () => {
@@ -775,7 +886,7 @@
                         if (m) {
                             const price = parseFloat(m[0].replace(/,/g, ''));
                             if (!isNaN(price)) {
-                                await updateDoc(doc(db, `users/${State.user.uid}/stocks`, symbol), { currentPrice: price, updatedAt: Timestamp.now() });
+                                await updateDoc(doc(db, App.path('stocks'), symbol), { currentPrice: price, updatedAt: Timestamp.now() });
                                 updatedCount++;
                             }
                         }
@@ -933,16 +1044,15 @@
                 if (!confirm(`確定要刪除 ${symbol} 及其所有交易紀錄嗎？\n此動作無法復原。`)) return;
                 
                 try {
-                    const u = State.user.uid;
                     const batch = writeBatch(db);
                     
                     // Delete stock metadata
-                    batch.delete(doc(db, `users/${u}/stocks`, symbol));
+                    batch.delete(doc(db, App.path('stocks'), symbol));
                     
                     // Delete all related transactions
                     const relatedTxs = State.data.stockTxs.filter(t => t.symbol === symbol);
                     relatedTxs.forEach(t => {
-                        batch.delete(doc(db, `users/${u}/stockTransactions`, t.id));
+                        batch.delete(doc(db, App.path('stockTransactions'), t.id));
                     });
                     
                     await batch.commit();
@@ -965,7 +1075,7 @@
                 if(li) li.style.opacity = '0.5';
 
                 try {
-                    await deleteDoc(doc(db, `users/${State.user.uid}/stockTransactions`, id));
+                    await deleteDoc(doc(db, App.path('stockTransactions'), id));
                     
                     // Remove locally to prevent stale data until next snapshot
                     State.data.stockTxs = State.data.stockTxs.filter(t => t.id !== id);
@@ -1118,13 +1228,12 @@
                 const id = f.id.value;
                 const amt = parseFloat(f.amount.value);
                 const date = new Date(f.date.value);
-                const u = State.user.uid;
                 const item = State.data.debts.find(d => d.id === id);
 
                 if (!item) return;
 
                 const b = writeBatch(db);
-                b.set(doc(collection(db, `users/${u}/transactions`)), {
+                b.set(doc(collection(db, App.path('transactions'))), {
                     type: 'expense',
                     amount: amt,
                     category: '負債還款',
@@ -1132,7 +1241,7 @@
                     remarks: `償還: ${item.name}`,
                     timestamp: Timestamp.fromDate(date)
                 });
-                b.update(doc(db, `users/${u}/debts`, id), {
+                b.update(doc(db, App.path('debts'), id), {
                     remainingAmount: increment(-amt)
                 });
 
@@ -1141,31 +1250,31 @@
             };
 
             App.deleteTransaction = async (id, lid) => {
-                if (!confirm('刪除?')) return; const u = State.user.uid, p = lid && lid !== 'undefined' ? `users/${u}/investments/${lid}/transactions/${id}` : `users/${u}/transactions/${id}`;
+                if (!confirm('刪除?')) return; const p = lid && lid !== 'undefined' ? `${App.path('investments')}/${lid}/transactions/${id}` : `${App.path('transactions')}/${id}`;
                 try {
                     const s = await getDoc(doc(db, p)), td = s.data(), b = writeBatch(db);
-                    if (!lid && td.type === 'expense' && td.project) { const d = State.data.debts.find(x => x.name === td.project); if (d) b.update(doc(db, `users/${u}/debts`, d.id), { remainingAmount: increment(td.amount) }); }
+                    if (!lid && td.type === 'expense' && td.project) { const d = State.data.debts.find(x => x.name === td.project); if (d) b.update(doc(db, App.path('debts'), d.id), { remainingAmount: increment(td.amount) }); }
                     b.delete(doc(db, p)); await b.commit();
                     if (lid && State.data.legacyTxs[lid]) State.data.legacyTxs[lid] = State.data.legacyTxs[lid].filter(t => t.id !== id);
                     App.closeModal();
                 } catch (e) { alert('失敗'); }
             };
 
-            App.deleteItem = async (c, id) => { if (confirm('刪除?')) { await deleteDoc(doc(db, `users/${State.user.uid}/${c}`, id)); App.closeModal(); } };
-            App.updateMarketValue = async (id, old) => { const v = prompt("目前市值:", old); if (v && !isNaN(v)) await updateDoc(doc(db, `users/${State.user.uid}/investments`, id), { marketValue: parseFloat(v) }); };
+            App.deleteItem = async (c, id) => { if (confirm('刪除?')) { await deleteDoc(doc(db, App.path(c), id)); App.closeModal(); } };
+            App.updateMarketValue = async (id, old) => { const v = prompt("目前市值:", old); if (v && !isNaN(v)) await updateDoc(doc(db, App.path('investments'), id), { marketValue: parseFloat(v) }); };
             
             App.realizeBudget = async (ctx, id) => {
-                if (!confirm("執行並結算?")) return; const u = State.user.uid, col = ctx === 'investment' ? 'investmentBudgets' : ctx === 'debt' ? 'debtBudgets' : 'accountingBudgets', b = State.data[col].find(i => i.id === id), tn = ctx === 'investment' ? State.data.investments.find(i => i.id === b.targetId)?.name : ctx === 'debt' ? State.data.debts.find(d => d.id === b.targetId)?.name : '', bt = writeBatch(db);
-                bt.update(doc(db, `users/${u}/${col}`, id), { isRealized: true });
-                bt.set(doc(collection(db, `users/${u}/transactions`)), { type: b.type || (ctx === 'investment' ? 'income' : 'expense'), amount: parseFloat(b.amount), category: ctx === 'investment' ? '投資' : ctx === 'debt' ? '負債還款' : b.targetId, remarks: `預算執行: ${b.description}`, timestamp: Timestamp.now(), project: tn || '' });
+                if (!confirm("執行並結算?")) return; const col = ctx === 'investment' ? 'investmentBudgets' : ctx === 'debt' ? 'debtBudgets' : 'accountingBudgets', b = State.data[col].find(i => i.id === id), tn = ctx === 'investment' ? State.data.investments.find(i => i.id === b.targetId)?.name : ctx === 'debt' ? State.data.debts.find(d => d.id === b.targetId)?.name : '', bt = writeBatch(db);
+                bt.update(doc(db, App.path(col), id), { isRealized: true });
+                bt.set(doc(collection(db, App.path('transactions'))), { type: b.type || (ctx === 'investment' ? 'income' : 'expense'), amount: parseFloat(b.amount), category: ctx === 'investment' ? '投資' : ctx === 'debt' ? '負債還款' : b.targetId, remarks: `預算執行: ${b.description}`, timestamp: Timestamp.now(), project: tn || '' });
                 if (ctx === 'investment') {
-                    State.data.investmentBudgets.filter(p => p.parentBudgetId === id && p.isPenalty && !p.isRealized).forEach(p => bt.delete(doc(db, `users/${u}/investmentBudgets`, p.id)));
+                    State.data.investmentBudgets.filter(p => p.parentBudgetId === id && p.isPenalty && !p.isRealized).forEach(p => bt.delete(doc(db, App.path('investmentBudgets'), p.id)));
                     if (b.enablePenalty && b.dailyPenalty) {
                         const e = getTxDate({ timestamp: b.expectedDate }); e.setHours(0, 0, 0, 0); const t = new Date(); t.setHours(0, 0, 0, 0);
-                        if (t > e) { let c = new Date(e); while (c <= t) { bt.set(doc(collection(db, `users/${u}/transactions`)), { type: 'income', amount: parseFloat(b.dailyPenalty), category: '滯納金', remarks: `滯納金 (${b.description}) [${c.getMonth() + 1}/${c.getDate()}]`, timestamp: Timestamp.fromDate(new Date(c)), project: tn || '' }); c.setDate(c.getDate() + 1); } }
+                        if (t > e) { let c = new Date(e); while (c <= t) { bt.set(doc(collection(db, App.path('transactions'))), { type: 'income', amount: parseFloat(b.dailyPenalty), category: '滯納金', remarks: `滯納金 (${b.description}) [${c.getMonth() + 1}/${c.getDate()}]`, timestamp: Timestamp.fromDate(new Date(c)), project: tn || '' }); c.setDate(c.getDate() + 1); } }
                     }
                 }
-                if (ctx === 'debt' && b.targetId) bt.update(doc(db, `users/${u}/debts`, b.targetId), { remainingAmount: increment(-b.amount) });
+                if (ctx === 'debt' && b.targetId) bt.update(doc(db, App.path('debts'), b.targetId), { remainingAmount: increment(-b.amount) });
                 await bt.commit();
             };
 
@@ -1433,7 +1542,51 @@
             App.renderDebts = () => {if(!$('debt-list'))return;const mv=$('debt-date-filter').value,[yr,mn]=mv?mv.split('-').map(Number):[new Date().getFullYear(),new Date().getMonth()+1],sm=new Date(yr,mn-1,1),em=new Date(yr,mn,0,23,59,59),ds=State.data.debts.sort((a,b)=>(b.createdAt?.seconds||0)-(a.createdAt?.seconds||0));let tr=0,tm=0,to=0,trem=0;ds.forEach(d=>{to+=parseFloat(d.totalAmount)||0;trem+=parseFloat(d.remainingAmount)||0});const gp=to>0?Math.round(((to-trem)/to)*100):0;$('debt-list').innerHTML=ds.map(d=>{tr+=parseFloat(d.remainingAmount);const p=Math.round(((d.totalAmount-d.remainingAmount)/d.totalAmount)*100),mr=State.data.transactions.filter(t=>t.type==='expense'&&t.project===d.name).reduce((s,t)=>{const dt=getTxDate(t);return(dt>=sm&&dt<=em)?s+(parseFloat(t.amount)||0):s},0);tm+=mr;const md=mr>0?`<span class="text-[10px] text-emerald-600 font-bold bg-emerald-50 px-2 py-0.5 rounded-lg">本月已還: $${mr.toLocaleString()}</span>`:'';return`<div class="bg-white p-4 rounded-2xl shadow-soft border border-slate-50 cursor-pointer active:scale-[0.99] transition relative group" onclick="App.showDetails('debt','${d.id}')"><div class="flex justify-between mb-2"><span class="font-bold text-slate-700">${d.name}</span><div class="flex items-center gap-2">${md}<span class="text-xs font-bold text-warning">${p}%</span></div></div><div class="w-full bg-slate-100 rounded-full h-2 mb-3"><div class="bg-warning h-2 rounded-full" style="width:${p}%"></div></div><div class="flex justify-between items-end"><div class="text-xs text-slate-400">剩餘 <span class="text-slate-700 font-bold text-sm">$${d.remainingAmount.toLocaleString()}</span></div><div class="flex gap-2 relative z-10"><button onclick="event.stopPropagation();App.openRepayModal('${d.id}','${d.name}')" class="text-xs bg-emerald-50 text-emerald-600 font-bold px-3 py-1.5 rounded-lg hover:bg-emerald-100 transition">還款</button></div></div><button onclick="event.stopPropagation();App.openModal('debt-modal','${d.id}')" class="absolute top-4 right-4 text-slate-300 hover:text-primary opacity-0 group-hover:opacity-100 transition"><i class="fa-solid fa-pen text-xs"></i></button></div>`}).join('');$('debt-total-remaining').innerText=`$${tr.toLocaleString()}`;$('debt-monthly-summary').innerText=`本月還款: $${tm.toLocaleString()}`;$('debt-progress-text').innerText=`${gp}%`;$('debt-progress-bar').style.width=`${gp}%`;
             $('debt-budget-list').innerHTML=State.data.debtBudgets.filter(b=>!b.isRealized).sort((a,b)=>(a.expectedDate?.seconds||0)-(b.expectedDate?.seconds||0)).map(b=>{ const dateStr = toDateStr(b.expectedDate); const tName = State.data.debts.find(d=>d.id===b.targetId)?.name||'未知'; const isAutoInterest = b.isAutoInterest; const isPenalty = b.isPenalty; const isP = isAutoInterest || isPenalty; const rowBg = isP ? 'bg-indigo-50 border-indigo-200' : (b.expectedDate?.toDate()<new Date().setHours(0,0,0,0)?'bg-rose-50 border-rose-100':'bg-white border-slate-50'); return `<li class="flex justify-between items-center p-3 rounded-xl border shadow-soft mb-2 ${rowBg}"><div class="flex items-center gap-3"><div class="w-1 bg-warning h-8 rounded-full"></div><div><span class="font-bold text-slate-700 text-xs block">${tName}</span><div class="flex gap-2 text-[10px] text-slate-400"><span>${dateStr}</span><span>${b.description}</span></div></div></div><div class="flex flex-col items-end mr-3"><span class="font-bold text-rose-500 text-xs">$${(parseFloat(b.amount)||0).toLocaleString()}</span></div><div class="flex gap-2"><button onclick="App.toCal('[還款] ${tName}: ${b.description}', '${dateStr}', '預計金額: $${b.amount}')" class="w-8 h-8 rounded-full bg-blue-50 text-blue-400 hover:bg-blue-100 flex items-center justify-center transition"><i class="fa-solid fa-calendar-plus text-xs"></i></button><button onclick="App.realizeBudget('debt','${b.id}')" class="w-8 h-8 rounded-full bg-emerald-50 text-emerald-600 hover:bg-emerald-100 flex items-center justify-center transition"><i class="fa-solid fa-check text-xs"></i></button><button onclick="App.copyBudget('debt','${b.id}')" class="w-8 h-8 rounded-full bg-indigo-50 text-indigo-400 hover:bg-indigo-100 flex items-center justify-center transition"><i class="fa-solid fa-copy text-xs"></i></button><button onclick="App.openBudgetModal('debt','${b.id}')" class="w-8 h-8 rounded-full bg-slate-50 text-slate-400 hover:bg-slate-100 flex items-center justify-center transition"><i class="fa-solid fa-pen text-xs"></i></button><button onclick="App.deleteItem('debtBudgets','${b.id}')" class="w-8 h-8 rounded-full bg-rose-50 text-rose-400 hover:bg-rose-100 flex items-center justify-center transition"><i class="fa-solid fa-trash text-xs"></i></button></div></li>`}).join('')||'<li class="text-xs text-slate-300 text-center py-4 border-2 border-dashed border-slate-100 rounded-xl">尚無還款計畫</li>'};
             
-            App.renderReports = () => {if(!$('report-project'))return;const tx=App.getAllTransactions(),ps=$('report-project'),cs=$('report-category'),cp=ps.value,cc=cs.value,pr=[...new Set(tx.map(t=>t.project).filter(Boolean))].sort();ps.innerHTML='<option value="all">全部專案</option>'+pr.map(p=>`<option value="${p}">${p}</option>`).join('');if(pr.includes(cp))ps.value=cp;const ct=[...new Set(tx.map(t=>t.category).filter(Boolean))].sort();cs.innerHTML='<option value="all">全部分類</option>'+ct.map(c=>`<option value="${c}">${c}</option>`).join('');if(ct.includes(cc))cs.value=cc;const yr=parseInt($('report-year').value),mv=$('report-month-select').value;let s,e;if(mv==='all'){s=new Date(yr,0,1);e=new Date(yr,11,31,23,59,59)}else{const m=parseInt(mv);s=new Date(yr,m-1,1);e=new Date(yr,m,0,23,59,59)}const f=tx.filter(t=>{const d=getTxDate(t);return d>=s&&d<=e&&(ps.value==='all'||t.project===ps.value)&&(cs.value==='all'||t.category===cs.value)}).sort((a,b)=>getTxDate(b)-getTxDate(a));if(State.chart)State.chart.destroy();const m={},tot=f.filter(t=>t.type==='expense').reduce((s,t)=>{const c=t.category||'未分類';m[c]=(m[c]||0)+parseFloat(t.amount);return s+parseFloat(t.amount)},0);State.chart=new Chart($('expense-chart').getContext('2d'),{type:'doughnut',data:{labels:Object.keys(m),datasets:[{data:Object.values(m),backgroundColor:['#f43f5e','#f59e0b','#10b981','#3b82f6','#6366f1','#8b5cf6','#ec4899','#64748b'],borderWidth:0,hoverOffset:4}]},options:{responsive:true,maintainAspectRatio:false,layout:{padding:10},plugins:{legend:{position:'right',labels:{font:{size:11,family:"'Noto Sans TC'"},usePointStyle:true,boxWidth:8}}}}});let html='';const im={},em={};let it=0,et=0;f.forEach(t=>{const a=parseFloat(t.amount)||0,c=t.category||'未分類';if(t.type==='expense'){em[c]=(em[c]||0)+a;et+=a}else{im[c]=(im[c]||0)+a;it+=a}});if(it>0)html+=`<li class="text-xs font-bold text-emerald-600 mb-2 pb-1 mt-2 flex justify-between items-center"><span>收入統計</span><span class="bg-emerald-100 px-2 py-0.5 rounded-lg">$${it.toLocaleString()}</span></li>`+Object.entries(im).sort((a,b)=>b[1]-a[1]).map(([k,v])=>`<li class="flex justify-between border-b border-slate-100 py-1.5 last:border-0 text-slate-600"><span>${k}</span><span class="font-bold text-emerald-600">$${v.toLocaleString()} <span class="text-[10px] text-slate-300 font-normal">(${((v/it)*100).toFixed(1)}%)</span></span></li>`).join('');if(et>0)html+=`<li class="text-xs font-bold text-rose-500 mb-2 pb-1 mt-4 flex justify-between items-center"><span>支出統計</span><span class="bg-rose-100 px-2 py-0.5 rounded-lg">$${et.toLocaleString()}</span></li>`+Object.entries(em).sort((a,b)=>b[1]-a[1]).map(([k,v])=>`<li class="flex justify-between border-b border-slate-100 py-1.5 last:border-0 text-slate-600"><span>${k}</span><span class="font-bold text-rose-500">$${v.toLocaleString()} <span class="text-[10px] text-slate-300 font-normal">(${((v/et)*100).toFixed(1)}%)</span></span></li>`).join('');if(!it&&!et)html='<li class="text-center text-slate-300 py-4">無數據</li>';$('report-stats').innerHTML=html;$('report-details').innerHTML=f.length?f.map(t=>`<li class="flex justify-between items-center py-3 border-b border-slate-50 last:border-0 group cursor-pointer hover:bg-slate-50 p-2 rounded-xl transition" onclick="App.openModal('transaction-modal','${t.id}')"><div class="flex-1 min-w-0 mr-2"><p class="text-xs text-slate-400 mb-0.5">${getTxDate(t).toLocaleDateString()} <span class="font-bold text-slate-700 ml-1">${t.category}</span></p><p class="text-[10px] text-slate-400 break-words whitespace-pre-wrap">${t.remarks||''}</p></div><div class="flex items-center gap-2"><span class="text-xs font-bold ${t.type==='expense'?'text-rose-500':'text-emerald-500'} whitespace-nowrap">${t.type==='expense'?'-':'+'} ${parseFloat(t.amount).toLocaleString()}</span><button type="button" class="w-6 h-6 rounded-full bg-slate-100 text-slate-400 hover:text-primary flex items-center justify-center opacity-0 group-hover:opacity-100 transition" onclick="event.stopPropagation();App.openModal('transaction-modal','${t.id}')"><i class="fa-solid fa-pen text-[10px]"></i></button></div></li>`).join(''):'<li class="text-center text-slate-300 py-8">無交易紀錄</li>'};
+            App.showCategoryDetails = (category, type) => {
+                const ps = $('report-project').value;
+                const yr = parseInt($('report-year').value);
+                const mv = $('report-month-select').value;
+                let s, e;
+                if (mv === 'all') { s = new Date(yr, 0, 1); e = new Date(yr, 11, 31, 23, 59, 59); }
+                else { const m = parseInt(mv); s = new Date(yr, m - 1, 1); e = new Date(yr, m, 0, 23, 59, 59); }
+
+                const txs = App.getAllTransactions().filter(t => {
+                    const d = getTxDate(t);
+                    return d >= s && d <= e && (ps === 'all' || t.project === ps) && t.category === category && t.type === type;
+                }).sort((a, b) => getTxDate(b) - getTxDate(a));
+
+                const c = $('modal-content');
+                c.innerHTML = $('tpl-details-modal').innerHTML;
+                c.querySelector('.details-title').innerText = `${category} 明細`;
+                
+                const bs = c.querySelector('.details-budget-section');
+                if(bs) bs.classList.add('hidden');
+                const ha = c.querySelector('#details-header-actions');
+                if(ha) ha.innerHTML = '';
+
+                const list = c.querySelector('.details-list');
+                list.innerHTML = txs.map(t => {
+                    const isExp = t.type === 'expense';
+                    return `<li class="flex justify-between items-center py-3 border-b border-slate-50 last:border-0 group cursor-pointer hover:bg-slate-50 p-2 rounded-xl transition" onclick="App.openModal('transaction-modal','${t.id}')">
+                        <div class="flex-1 min-w-0 mr-2">
+                            <p class="text-xs text-slate-400 mb-0.5">${toDateStr(getTxDate(t))} <span class="font-bold text-slate-700 ml-1">${t.project || '一般'}</span></p>
+                            <p class="text-[10px] text-slate-400 break-words whitespace-pre-wrap">${t.remarks || ''}</p>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <span class="text-xs font-bold ${isExp ? 'text-rose-500' : 'text-emerald-500'} whitespace-nowrap">${isExp ? '-' : '+'} ${parseFloat(t.amount).toLocaleString()}</span>
+                            <button type="button" class="w-6 h-6 rounded-full bg-slate-100 text-slate-400 hover:text-primary flex items-center justify-center opacity-0 group-hover:opacity-100 transition" onclick="event.stopPropagation();App.openModal('transaction-modal','${t.id}')"><i class="fa-solid fa-pen text-[10px]"></i></button>
+                        </div>
+                    </li>`;
+                }).join('') || '<li class="text-center text-xs text-slate-300 py-8">無交易紀錄</li>';
+
+                const act = c.querySelector('.details-actions');
+                if(act) act.innerHTML = '';
+                
+                $('modal-overlay').classList.remove('hidden');
+                $('modal-overlay').classList.add('flex');
+            };
+
+            App.renderReports = () => {if(!$('report-project'))return;const tx=App.getAllTransactions(),ps=$('report-project'),cs=$('report-category'),cp=ps.value,cc=cs.value,pr=[...new Set(tx.map(t=>t.project).filter(Boolean))].sort();ps.innerHTML='<option value="all">全部專案</option>'+pr.map(p=>`<option value="${p}">${p}</option>`).join('');if(pr.includes(cp))ps.value=cp;const ct=[...new Set(tx.map(t=>t.category).filter(Boolean))].sort();cs.innerHTML='<option value="all">全部分類</option>'+ct.map(c=>`<option value="${c}">${c}</option>`).join('');if(ct.includes(cc))cs.value=cc;const yr=parseInt($('report-year').value),mv=$('report-month-select').value;let s,e;if(mv==='all'){s=new Date(yr,0,1);e=new Date(yr,11,31,23,59,59)}else{const m=parseInt(mv);s=new Date(yr,m-1,1);e=new Date(yr,m,0,23,59,59)}const f=tx.filter(t=>{const d=getTxDate(t);return d>=s&&d<=e&&(ps.value==='all'||t.project===ps.value)&&(cs.value==='all'||t.category===cs.value)}).sort((a,b)=>getTxDate(b)-getTxDate(a));if(State.chart)State.chart.destroy();const m={},tot=f.filter(t=>t.type==='expense').reduce((s,t)=>{const c=t.category||'未分類';m[c]=(m[c]||0)+parseFloat(t.amount);return s+parseFloat(t.amount)},0);State.chart=new Chart($('expense-chart').getContext('2d'),{type:'doughnut',data:{labels:Object.keys(m),datasets:[{data:Object.values(m),backgroundColor:['#f43f5e','#f59e0b','#10b981','#3b82f6','#6366f1','#8b5cf6','#ec4899','#64748b'],borderWidth:0,hoverOffset:4}]},options:{responsive:true,maintainAspectRatio:false,layout:{padding:10},plugins:{legend:{position:'right',labels:{font:{size:11,family:"'Noto Sans TC'"},usePointStyle:true,boxWidth:8}}}}});let html='';const im={},em={};let it=0,et=0;f.forEach(t=>{const a=parseFloat(t.amount)||0,c=t.category||'未分類';if(t.type==='expense'){em[c]=(em[c]||0)+a;et+=a}else{im[c]=(im[c]||0)+a;it+=a}});if(it>0)html+=`<li class="text-xs font-bold text-emerald-600 mb-2 pb-1 mt-2 flex justify-between items-center"><span>收入統計</span><span class="bg-emerald-100 px-2 py-0.5 rounded-lg">$${it.toLocaleString()}</span></li>`+Object.entries(im).sort((a,b)=>b[1]-a[1]).map(([k,v])=>`<li class="flex justify-between border-b border-slate-100 py-1.5 last:border-0 text-slate-600 cursor-pointer hover:bg-slate-50 transition px-2 -mx-2 rounded-lg" onclick="App.showCategoryDetails('${k}', 'income')"><span>${k}</span><span class="font-bold text-emerald-600">$${v.toLocaleString()} <span class="text-[10px] text-slate-300 font-normal">(${((v/it)*100).toFixed(1)}%)</span></span></li>`).join('');if(et>0)html+=`<li class="text-xs font-bold text-rose-500 mb-2 pb-1 mt-4 flex justify-between items-center"><span>支出統計</span><span class="bg-rose-100 px-2 py-0.5 rounded-lg">$${et.toLocaleString()}</span></li>`+Object.entries(em).sort((a,b)=>b[1]-a[1]).map(([k,v])=>`<li class="flex justify-between border-b border-slate-100 py-1.5 last:border-0 text-slate-600 cursor-pointer hover:bg-slate-50 transition px-2 -mx-2 rounded-lg" onclick="App.showCategoryDetails('${k}', 'expense')"><span>${k}</span><span class="font-bold text-rose-500">$${v.toLocaleString()} <span class="text-[10px] text-slate-300 font-normal">(${((v/et)*100).toFixed(1)}%)</span></span></li>`).join('');if(!it&&!et)html='<li class="text-center text-slate-300 py-4">無數據</li>';$('report-stats').innerHTML=html;$('report-details').innerHTML=f.length?f.map(t=>`<li class="flex justify-between items-center py-3 border-b border-slate-50 last:border-0 group cursor-pointer hover:bg-slate-50 p-2 rounded-xl transition" onclick="App.openModal('transaction-modal','${t.id}')"><div class="flex-1 min-w-0 mr-2"><p class="text-xs text-slate-400 mb-0.5">${getTxDate(t).toLocaleDateString()} <span class="font-bold text-slate-700 ml-1">${t.category}</span></p><p class="text-[10px] text-slate-400 break-words whitespace-pre-wrap">${t.remarks||''}</p></div><div class="flex items-center gap-2"><span class="text-xs font-bold ${t.type==='expense'?'text-rose-500':'text-emerald-500'} whitespace-nowrap">${t.type==='expense'?'-':'+'} ${parseFloat(t.amount).toLocaleString()}</span><button type="button" class="w-6 h-6 rounded-full bg-slate-100 text-slate-400 hover:text-primary flex items-center justify-center opacity-0 group-hover:opacity-100 transition" onclick="event.stopPropagation();App.openModal('transaction-modal','${t.id}')"><i class="fa-solid fa-pen text-[10px]"></i></button></div></li>`).join(''):'<li class="text-center text-slate-300 py-8">無交易紀錄</li>'};
 
             App.init();
         } catch (e) {
